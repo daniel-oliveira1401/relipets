@@ -1,0 +1,15 @@
+{
+  "item.relipets.air_titan_wand": "Air Titan Wand",
+  "item.relipets.earth_titan_wand": "Earth Titan Wand",
+  "item.relipets.ice_titan_wand": "Ice Titan Wand",
+  "item.relipets.titan_energy_crystal": "Titan Energy Crystal",
+  "key.category.relipets.relipets": "Relipets",
+  "key.relipets.teleport_titan": "Teleport titan to owner",
+  "key.relipets.change_titan_flying_mode": "Cycle titan fly mode",
+  "key.relipets.titan_fly_descent": "Descent while flying titan",
+  "key.relipets.titan_recall": "Recall titan while using wand",
+  "key.relipets.open_wand_screen": "Open titan wand screen",
+  "entity.relipets.air_titan": "Air Titan",
+  "entity.relipets.earth_titan": "Earth Titan",
+  "entity.relipets.ice_titan": "Ice Titan"
+}
