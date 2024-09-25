@@ -1,5 +1,6 @@
 package net.daniel.relipets;
 
+import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsItemRegistry;
 import net.fabricmc.api.ModInitializer;
 
@@ -24,5 +25,6 @@ public class Relipets implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("Hello Fabric world!");
 		RelipetsItemRegistry.initialize();
+		CardinalComponentsRegistry.initilize();
 	}
 }

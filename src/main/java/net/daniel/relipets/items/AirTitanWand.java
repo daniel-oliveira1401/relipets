@@ -16,7 +16,7 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class AirTitanWand extends Item implements GeoItem {
+public class AirTitanWand extends TitanWand implements GeoItem {
 
     //==================== Geckolib Variables =========================
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
