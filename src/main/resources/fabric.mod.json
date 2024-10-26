@@ -42,7 +42,8 @@
 	},
 	"custom": {
 		"cardinal-components": [
-			"relipets:pet_owner"
+			"relipets:pet_owner",
+			"relipets:part_system"
 		]
 	}
 }

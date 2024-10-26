@@ -1,28 +1,66 @@
 package net.daniel.relipets.cca_components;
 
 import dev.onyxstudios.cca.api.v3.component.Component;
-import net.daniel.relipets.registries.NBTKeysRegistry;
+import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
+import net.daniel.relipets.cca_components.slots.PetParty;
+import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.minecraft.nbt.NbtCompound;
 
-public class PetOwnerComponent implements Component {
+public class PetOwnerComponent implements Component, AutoSyncedComponent {
 
-    private int myNumber;
+    /*
 
-    public int getNumber(){
-        return this.myNumber;
-    }
+    TODO:
 
-    public void setNumber(int n){
-        this.myNumber = n;
-    }
+        - Handle when pet "dies"
+
+        - Handle slot selection
+
+        - Handle displaying slots
+
+        - Handle releasing pets
+
+     */
+
+    PetParty petParty = new PetParty();
 
     @Override
     public void readFromNbt(NbtCompound tag) {
-        this.myNumber = tag.getInt(NBTKeysRegistry.MY_NUMBER);
+
+        this.petParty = new PetParty();
+
+        if(tag.contains(RelipetsConstantsRegistry.PET_PARTY_KEY)){
+            this.petParty.readFromNbt(tag.getCompound(RelipetsConstantsRegistry.PET_PARTY_KEY));
+        }
+
     }
 
     @Override
     public void writeToNbt(NbtCompound tag) {
-        tag.putInt(NBTKeysRegistry.MY_NUMBER, this.myNumber);
+
+        if(this.petParty != null){
+            NbtCompound petParty = this.petParty.writeToNbt();
+
+            tag.put(RelipetsConstantsRegistry.PET_PARTY_KEY, petParty);
+
+        }
+
+    }
+
+    public PetParty getPetParty(){
+        return  this.petParty;
     }
 }
+
+/*
+
+Goal here:
+
+Be able to petify entities.
+
+Petification consists in:
+
+    - Being able to summon and unsummon the entity
+
+
+ */

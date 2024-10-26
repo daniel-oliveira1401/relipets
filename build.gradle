@@ -29,6 +29,8 @@ repositories {
 		name = "Ladysnake Mods"
 		url = 'https://maven.ladysnake.org/releases'
 	}
+	//owo
+	maven { url 'https://maven.wispforest.io/releases/' }
 }
 
 fabricApi {
@@ -51,6 +53,12 @@ dependencies {
 	//Cardinal components
 	modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-base:${project.cca_version}"
 	modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:${project.cca_version}"
+
+	//owo-ui
+	modImplementation "io.wispforest:owo-lib:${project.owo_version}"
+	include "io.wispforest:owo-sentinel:${project.owo_version}"
+
+	annotationProcessor modImplementation("io.wispforest:owo-lib:${project.owo_version}")
 }
 
 processResources {

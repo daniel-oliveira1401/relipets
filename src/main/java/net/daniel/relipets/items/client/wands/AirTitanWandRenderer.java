@@ -1,7 +1,6 @@
 package net.daniel.relipets.items.client.wands;
 
 import net.daniel.relipets.Relipets;
-import net.daniel.relipets.items.AirTitanWand;
 import net.minecraft.util.Identifier;
 import software.bernie.geckolib.model.DefaultedItemGeoModel;
 import software.bernie.geckolib.renderer.GeoItemRenderer;

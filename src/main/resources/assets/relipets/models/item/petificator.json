@@ -1,0 +1,58 @@
+{
+  "credit": "Made with Blockbench",
+  "parent": "builtin/entity",
+  "texture_size": [
+    32,
+    32
+  ],
+  "display": {
+    "thirdperson_righthand": {
+      "translation": [
+        0,
+        -6.75,
+        0
+      ]
+    },
+    "firstperson_righthand": {
+      "translation": [
+        0,
+        -7.25,
+        0
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        -180,
+        0,
+        180
+      ],
+      "translation": [
+        0,
+        -7.25,
+        0
+      ]
+    },
+    "gui": {
+      "rotation": [
+        -180,
+        84.25,
+        -180
+      ],
+      "translation": [
+        0,
+        -9.25,
+        0
+      ]
+    },
+    "fixed": {
+      "translation": [
+        0,
+        -10,
+        0
+      ]
+    }
+  },
+  "textures": {
+    "particle": "relipets:item/petficator"
+  }
+}
