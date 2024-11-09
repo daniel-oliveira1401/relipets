@@ -59,6 +59,9 @@ dependencies {
 	include "io.wispforest:owo-sentinel:${project.owo_version}"
 
 	annotationProcessor modImplementation("io.wispforest:owo-lib:${project.owo_version}")
+
+	compileOnly 'org.projectlombok:lombok:1.18.28'
+	annotationProcessor 'org.projectlombok:lombok:1.18.28'
 }
 
 processResources {

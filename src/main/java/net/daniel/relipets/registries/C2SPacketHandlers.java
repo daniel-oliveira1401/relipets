@@ -14,6 +14,7 @@ import net.minecraft.util.Identifier;
 public class C2SPacketHandlers {
 
     public static final Identifier TOGGLE_SUMMON_PET = new Identifier(Relipets.MOD_ID, "toggle_summon_pet");
+    public static final Identifier CYCLE_PET_SLOT = new Identifier(Relipets.MOD_ID, "cycle_pet_slot");
 
     public static void onInitialize(){
 
@@ -21,7 +22,16 @@ public class C2SPacketHandlers {
 
             PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
 
-            petOwnerSystem.getPetParty().toggleSummonSelectedPet((ServerWorld) player.getWorld(), player.raycast(30, 1, false).getPos());
+            petOwnerSystem.getPetParty().toggleSummonSelectedPet((ServerWorld) player.getWorld(), player.raycast(30, 1, false).getPos(), player);
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CYCLE_PET_SLOT, (server, player, handler, buf, responseSender) -> {
+
+            PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            int direction = buf.readInt();
+            System.out.println("Received direction in server " + direction);
+            petOwnerSystem.getPetParty().cyclePetSlot(direction);
 
         });
 

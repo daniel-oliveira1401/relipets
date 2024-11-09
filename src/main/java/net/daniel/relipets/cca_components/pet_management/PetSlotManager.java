@@ -1,4 +1,4 @@
-package net.daniel.relipets.cca_components.slots;
+package net.daniel.relipets.cca_components.pet_management;
 
 import net.daniel.relipets.cca_components.ISerializable;
 import net.minecraft.nbt.NbtCompound;
@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class PetSlotManager<T extends ISerializable> implements ISerializable {
 
@@ -35,11 +36,23 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
     }
 
     public void pushSlot(){
-        slots.add(new PetSlot());
+        slots.add(new PetSlot<T>());
     }
 
     public void popSlot(){
         slots.remove(this.slots.size()-1);
+    }
+
+    public List<PetSlot<T>> getSlotsWithContent(){
+
+        List<PetSlot<T>> slotsWithContent = new ArrayList<>();
+
+        for(PetSlot<T> slot : slots){
+            if(!slot.isEmpty())
+                slotsWithContent.add(slot);
+        }
+
+        return slotsWithContent;
     }
 
     public PetSlot<T> getSlotAt(int index){
@@ -48,12 +61,20 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
 
     public boolean isFull(){
 
-        for(PetSlot slot : slots){
+        for(PetSlot<T> slot : slots){
            if(slot.isEmpty())
                return false;
        }
 
        return true;
+    }
+
+    public int getSlotCount(){
+        return this.slots.size();
+    }
+
+    public List<PetSlot<T>> getSlots(){
+        return this.slots.stream().collect(Collectors.toUnmodifiableList());
     }
 
     @Nullable
@@ -62,7 +83,7 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
         if(this.isFull())
             return null;
 
-        for(PetSlot slot : slots){
+        for(PetSlot<T> slot : slots){
             if(slot.isEmpty())
                 return slot;
         }
@@ -76,7 +97,7 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
         if(this.isFull())
             return this.getSlotAt(0);
 
-        for (PetSlot slot : slots){
+        for (PetSlot<T> slot : slots){
             if(!slot.isEmpty())
                 return slot;
         }
@@ -87,19 +108,23 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
 
     @Override
     public void readFromNbt(NbtCompound nbt) {
+        int i = 0;
         for(String key : nbt.getKeys()){
 
-            PetSlot<T> emptySlot = this.getFirstEmptySlot();
+            PetSlot<T> slot = this.getSlotAt(i);
 
-            if(emptySlot != null){
+            if(slot != null){
 
                 NbtCompound contentNbt = nbt.getCompound(key);
-                T content = this.contentSupplier.get();
-                content.readFromNbt(contentNbt);
-
-                emptySlot.setContent(content);
+                if(contentNbt.isEmpty()){
+                    slot.clear();
+                }else{
+                    T content = this.contentSupplier.get();
+                    content.readFromNbt(contentNbt);
+                    slot.setContent(content);
+                }
             }
-
+            i++;
         }
     }
 
@@ -112,7 +137,10 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
         for(PetSlot<T> slot : slots){
             if(!slot.isEmpty() && slot.getContent() != null){
                 nbt.put(""+slotIndex, slot.getContent().writeToNbt());
+            }else{
+                nbt.put(""+slotIndex, new NbtCompound());
             }
+            slotIndex++;
         }
 
         return nbt;

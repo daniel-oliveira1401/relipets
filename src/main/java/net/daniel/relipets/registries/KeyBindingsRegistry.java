@@ -35,12 +35,10 @@ public class KeyBindingsRegistry {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if(toggleCurrentPetSummonStateKeyBinding.wasPressed()){
-                System.out.println("Pressed toggle key");
-
                 ClientPlayNetworking.send(C2SPacketHandlers.TOGGLE_SUMMON_PET, PacketByteBufs.empty());
             }
-        });
 
+        });
     }
 
     public static class DebouncedKeyBinding extends KeyBinding{

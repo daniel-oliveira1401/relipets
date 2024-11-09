@@ -1,28 +1,16 @@
 package net.daniel.relipets.items;
 
-import net.daniel.relipets.Relipets;
-import net.daniel.relipets.cca_components.PartSystemComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
-import net.daniel.relipets.cca_components.parts.PetPart;
-import net.daniel.relipets.items.client.PartItemRenderer;
+import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.items.client.PetificatorRenderer;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
-import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.minecraft.client.render.item.BuiltinModelItemRenderer;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUsageContext;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.animatable.client.RenderProvider;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
@@ -75,27 +63,39 @@ public class Petificator extends Item implements GeoItem {
     }
 
     @Override
-    public ActionResult useOnBlock(ItemUsageContext context) {
-        
-        if(!context.getWorld().isClient()){
-
-
-        }
-        
-        return super.useOnBlock(context);
-    }
-
-    @Override
     public ActionResult useOnEntity(ItemStack stack, PlayerEntity user, LivingEntity entity, Hand hand) {
 
-        if(!entity.getWorld().isClient()){
+        if(!entity.getWorld().isClient() && user.isSneaking()){
 
             PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(user);
 
-            petOwnerSystem.getPetParty().addPetToParty(entity);
+            petOwnerSystem.getPetParty().addPetToParty(entity, user);
 
         }
 
         return super.useOnEntity(stack, user, entity, hand);
     }
+
+    @Override
+    public boolean postHit(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+
+        if(!attacker.getWorld().isClient()){
+            //check if the player was holding shift
+            if(attacker instanceof PlayerEntity player && player.isSneaking()){
+                String targetUUID = target.getUuidAsString();
+                PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                PetData pet = petOwner.getPetParty().getPetByEntityUUID(targetUUID);
+
+                if(pet != null){ //this entity is in the party of the player
+                    petOwner.getPetParty().releasePetFromParty(pet);
+                }
+            }
+            //check if the attacked entity was in the player's party
+            //release that entity if so
+        }
+
+        return false;
+    }
+
+
 }

@@ -1,4 +1,4 @@
-package net.daniel.relipets.cca_components.slots;
+package net.daniel.relipets.cca_components.pet_management;
 
 import net.daniel.relipets.cca_components.ISerializable;
 import org.jetbrains.annotations.Nullable;
