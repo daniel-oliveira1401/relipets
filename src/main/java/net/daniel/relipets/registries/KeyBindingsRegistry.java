@@ -1,10 +1,12 @@
 package net.daniel.relipets.registries;
 
 import net.daniel.relipets.Relipets;
+import net.daniel.relipets.items.Petificator;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.network.PacketByteBuf;
@@ -34,7 +36,7 @@ public class KeyBindingsRegistry {
     public static void onInitialize(){
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if(toggleCurrentPetSummonStateKeyBinding.wasPressed()){
+            if(client.player != null && client.player.getMainHandStack().getItem() instanceof Petificator && toggleCurrentPetSummonStateKeyBinding.wasPressed()){
                 ClientPlayNetworking.send(C2SPacketHandlers.TOGGLE_SUMMON_PET, PacketByteBufs.empty());
             }
 
@@ -66,7 +68,7 @@ public class KeyBindingsRegistry {
             boolean pressed = super.wasPressed();
 
             if(pressed && this.debounceCooldown > 0){
-                System.out.println("Debounce is in cooldown. Wait " + this.debounceCooldown);
+                Relipets.LOGGER.debug("Debounce is in cooldown. Wait " + this.debounceCooldown);
                 return false;
             }
 

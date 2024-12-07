@@ -2,6 +2,7 @@ package net.daniel.relipets.cca_components.pet_management;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.daniel.relipets.utils.Utils;
@@ -11,14 +12,21 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PetData implements ISerializable {
 
     public static final String PET_INFO_KEY = "pet_info";
+    public static final String HEALING_COOLDOWN = "pet_healing_cooldown";
+
 
     public static final String SUMMONED = "summoned";
     public static final String RECALLED = "recalled";
     public static final String HEALING = "healing";
 
+    @Getter
+    @Setter
     int healingCooldown = 0;
 
     @Getter
@@ -52,16 +60,15 @@ public class PetData implements ISerializable {
 
             if(this.healingCooldown == 0){
                 this.summonState = RECALLED;
-                System.out.println("Pet is healed!");
+                Relipets.LOGGER.debug("Pet is healed!");
             }
         }
 
     }
 
     //TODO: split info into volatile and non-volatile. Update only the volatile info
-    public void updatePetInfoIfPossible(){
+    public void updateVolatilePetInfoIfPossible(){
         if(this.isSummoned()){
-
             this.getPetInfo().setPetName(this.getPetEntityData().getEntity().getDisplayName().getString());
             this.getPetInfo().setMaxHealth((int) this.getPetEntityData().getEntity().getMaxHealth());
             this.getPetInfo().setCurrentHealth((int) this.getPetEntityData().getEntity().getHealth());
@@ -78,7 +85,7 @@ public class PetData implements ISerializable {
     boolean pendingEntityBind = false;
     private void handleEntityBindingIfNeeded(ServerWorld world, PlayerEntity player){
         if(pendingEntityBind){
-            System.out.println("Entity needs binding. Trying to bind it");
+            Relipets.LOGGER.debug("Entity needs binding. Trying to bind it");
             this.getPetEntityData().bindEntity(world, player);
             pendingEntityBind = false;
         }
@@ -145,7 +152,7 @@ public class PetData implements ISerializable {
         entity.setVelocity(0, 0, 0 );
         this.recall(world);
         this.summonState = HEALING;
-        this.healingCooldown = 200;
+        this.healingCooldown = 800;
     }
 
     @Override
@@ -170,6 +177,11 @@ public class PetData implements ISerializable {
             this.petInfo.readFromNbt(nbt.getCompound(PET_INFO_KEY));
         }
 
+        if(nbt.contains(HEALING_COOLDOWN)){
+            this.setHealingCooldown(nbt.getInt(HEALING_COOLDOWN));
+
+        }
+
         pendingEntityBind = this.needsEntityBinding();
     }
 
@@ -180,8 +192,8 @@ public class PetData implements ISerializable {
 
         nbt.putString(RelipetsConstantsRegistry.PET_SUMMON_STATE_KEY, this.summonState);
         nbt.putInt(RelipetsConstantsRegistry.PET_LEVEL_KEY, this.petLevel);
-
-        if(this.petEntityData != null){ //TODO this shouldnt be necessary
+        nbt.putInt(HEALING_COOLDOWN, this.getHealingCooldown());
+        if(this.petEntityData != null){
             nbt.put(RelipetsConstantsRegistry.PET_NBT_KEY, this.petEntityData.writeToNbt());
 
         }
@@ -214,8 +226,9 @@ public class PetData implements ISerializable {
 
         @Override
         public void readFromNbt(NbtCompound nbt) {
-            if(nbt.contains(NAME_KEY))
+            if(nbt.contains(NAME_KEY)){
                 this.setPetName(nbt.getString(NAME_KEY));
+            }
 
             if(nbt.contains(CURRENT_HEALTH_KEY))
                 this.setCurrentHealth(nbt.getInt(CURRENT_HEALTH_KEY));
@@ -234,6 +247,7 @@ public class PetData implements ISerializable {
 
             return nbt;
         }
+
     }
 
 }

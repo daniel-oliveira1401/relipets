@@ -70,7 +70,7 @@ public class PartItem extends Item implements GeoItem {
                 PetPart part = createRandomPetPart();
 
                 tag.put(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY, part.writeToNbt());
-                System.out.println("Added NBT to item");
+                Relipets.LOGGER.debug("Added NBT to item");
             }
         }
 

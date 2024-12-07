@@ -2,6 +2,7 @@ package net.daniel.relipets.cca_components.pet_management;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -50,14 +51,14 @@ public class PetEntityData implements ISerializable {
         ServerWorld world = this.getTracker().getWorld(server);
 
         if(world == null){
-            System.out.println("Could not find world this entity was last seen at. World: " + this.getTracker().getDimension().toString());
+            Relipets.LOGGER.debug("Could not find world this entity was last seen at. World: " + this.getTracker().getDimension().toString());
             return;
         }
 
 
         ChunkPos lastKnownChunkPos = this.getTracker().getChunkPos();
 
-        System.out.println("Loaded 3x3 area around entity last known pos");
+        Relipets.LOGGER.debug("Loaded 3x3 area around entity last known pos");
         //load 3x3 area around the last know chunk
         for(int x = -1 ; x <= 1; x++){
             for(int z = -1 ; z <= 1; z++){
@@ -71,13 +72,13 @@ public class PetEntityData implements ISerializable {
 
             LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(entityUUID));
             if(entity != null){
-                System.out.println("Performing action");
+                Relipets.LOGGER.debug("Performing action");
                 actionToPerform.apply(entity);
             }else{
-                System.out.println("Could not find entity even after loading the area aroudn it.");
+                Relipets.LOGGER.debug("Could not find entity even after loading the area aroudn it.");
             }
 
-            System.out.println("Unloading 3x3 area around entity last known pos");
+            Relipets.LOGGER.debug("Unloading 3x3 area around entity last known pos");
             for(int x = -1 ; x <= 1; x++){
                 for(int z = -1 ; z <= 1; z++){
                     world.setChunkForced(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z, false);
@@ -118,7 +119,9 @@ public class PetEntityData implements ISerializable {
         if(createdEntity instanceof MobEntity mob) mob.setPersistent(); //idk if this actually works. Too hard to test
 
         createdEntity.setPosition(pos);
-        world.spawnEntity(createdEntity);
+        world.getServer().execute(()->{
+            world.spawnEntity(createdEntity);
+        });
 
         this.setEntity(createdEntity);
 
@@ -133,7 +136,7 @@ public class PetEntityData implements ISerializable {
             this.entity = entity;
             this.setOwner(player);
 
-            System.out.println("Bound entity successfully");
+            Relipets.LOGGER.debug("Bound entity successfully");
         }else{
             //search in the world of the tracker
             ServerWorld trackerWorld = this.getTracker().getWorld(world.getServer());
@@ -153,7 +156,7 @@ public class PetEntityData implements ISerializable {
 
                     this.entity = entityLoaded;
                     this.setOwner(player);
-                    System.out.println("Bound entity successfully after loading it");
+                    Relipets.LOGGER.debug("Bound entity successfully after loading it");
                     return true;
                 });
 
@@ -168,7 +171,7 @@ public class PetEntityData implements ISerializable {
             petMetadata.setPlayerUUID(player.getUuidAsString());
             CardinalComponentsRegistry.PET_METADATA_KEY.sync(this.entity);
         }else{
-            System.out.println("There must be an entity in order to set the owner");
+            Relipets.LOGGER.debug("There must be an entity in order to set the owner");
         }
     }
 
@@ -179,7 +182,7 @@ public class PetEntityData implements ISerializable {
         ServerWorld world = this.getTracker().getWorld(currentWorld.getServer());
 
         if(world == null){
-            System.out.println("Could not find world: " + this.getTracker().getDimension().toString());
+            Relipets.LOGGER.debug("Could not find world: " + this.getTracker().getDimension().toString());
             return false;
         }
 
@@ -201,7 +204,7 @@ public class PetEntityData implements ISerializable {
                 loadEntityAndPerformAction(currentWorld.getServer(),(entityLoaded)->{
                     entityLoaded.remove(Entity.RemovalReason.DISCARDED);
                     this.entity = null;
-                    System.out.println("Loaded entity and removed it");
+                    Relipets.LOGGER.debug("Loaded entity and removed it");
                     setRecalledState.apply(true);
                     return true;
                 });

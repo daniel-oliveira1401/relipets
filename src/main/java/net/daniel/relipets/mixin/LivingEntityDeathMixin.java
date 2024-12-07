@@ -1,5 +1,6 @@
 package net.daniel.relipets.mixin;
 
+import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.events.PetFaintedCallback;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -21,7 +22,7 @@ public class LivingEntityDeathMixin {
         PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(this);
 
         if(petMetadata.getPlayerUUID() != null && !petMetadata.getPlayerUUID().isEmpty()){
-            System.out.println("This entity that died had an owner :)");
+            Relipets.LOGGER.debug("This entity that died had an owner :)");
 
             //emit an event
             PetFaintedCallback.EVENT.invoker().interact((LivingEntity) (Object) this);

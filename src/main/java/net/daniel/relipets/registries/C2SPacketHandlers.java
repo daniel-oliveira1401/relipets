@@ -30,7 +30,7 @@ public class C2SPacketHandlers {
 
             PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
             int direction = buf.readInt();
-            System.out.println("Received direction in server " + direction);
+            Relipets.LOGGER.debug("Received direction in server " + direction);
             petOwnerSystem.getPetParty().cyclePetSlot(direction);
 
         });

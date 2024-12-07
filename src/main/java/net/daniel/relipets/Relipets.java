@@ -49,13 +49,13 @@ public class Relipets implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(server -> SetTimeoutManager.tickActiveTimeouts());
 
 		PetFaintedCallback.EVENT.register((pet)->{
-			System.out.println("Pet entity died (inside listener)");
+			Relipets.LOGGER.debug("Pet entity died (inside listener)");
 
 			PetMetadataComponent petMetadataComponent = CardinalComponentsRegistry.PET_METADATA_KEY.get(pet);
 
 			String ownerUUID = petMetadataComponent.getPlayerUUID();
 
-			System.out.println("Owner is: " + ownerUUID);
+			Relipets.LOGGER.debug("Owner is: " + ownerUUID);
 
 			if(!pet.getWorld().isClient() && pet.getWorld() instanceof ServerWorld world){
 				ServerPlayerEntity player = (ServerPlayerEntity) world.getPlayerByUuid(UUID.fromString(ownerUUID));
@@ -64,7 +64,7 @@ public class Relipets implements ModInitializer {
 					petOwnerComponent.getPetParty().onPetFainted(pet, world);
 
 				}else{
-					System.out.println("Could not find the player bound to this pet using UUID");
+					Relipets.LOGGER.debug("Could not find the player bound to this pet using UUID");
 				}
 
 			}

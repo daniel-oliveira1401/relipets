@@ -5,19 +5,18 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.passive.PassiveEntity;
-import net.minecraft.entity.passive.TameableEntity;
+import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.EntityView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
 
-public abstract class BaseCore extends TameableEntity implements GeoEntity {
+public abstract class BaseCore extends PathAwareEntity implements GeoEntity {
 
     public static final TrackedData<String> CURRENT_ANIM = DataTracker.registerData(BaseCore.class, TrackedDataHandlerRegistry.STRING);
 
-    public BaseCore(EntityType<? extends TameableEntity> entityType, World world) {
+    public BaseCore(EntityType<? extends PathAwareEntity> entityType, World world) {
         super(entityType, world);
         this.dataTracker.startTracking(CURRENT_ANIM, "");
     }
@@ -29,17 +28,6 @@ public abstract class BaseCore extends TameableEntity implements GeoEntity {
     public void setCurrentAnim(String animName){
         this.dataTracker.set(CURRENT_ANIM, animName);
     }
-
-    @Override
-    public @Nullable PassiveEntity createChild(ServerWorld world, PassiveEntity entity) {
-        return null;
-    }
-
-    @Override
-    public EntityView method_48926() {
-        return null;
-    }
-
 }
 
 /*

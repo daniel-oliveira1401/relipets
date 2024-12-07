@@ -4,6 +4,7 @@ import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.items.Petificator;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -22,7 +23,7 @@ public class PetHud {
     static int leftOffset = 20;
     static int baseHealthBarSize = 60;
     static int baseHealthBarHeight = 6;
-    static int bottomOffset = 50;
+    static int bottomOffset = 42;
     static int slotWidth = 10;
     static int slotHeight = 10;
     static int slotContentPadding = 3;
@@ -47,7 +48,11 @@ public class PetHud {
         PetData selectedPet = petOwner.getPetParty().getSelectedPet();
 
         if(selectedPet != null){
-            String selectedPetName = selectedPet.getPetInfo().getPetName() + " (" + selectedPet.getSummonState() + ")";
+            String summonState = selectedPet.getSummonState();
+            if(summonState.equals(PetData.HEALING)){
+                summonState += " " + String.format(" %.2fs", Utils.tickToSecond(selectedPet.getHealingCooldown()));
+            }
+            String selectedPetName = selectedPet.getPetInfo().getPetName() + " (" + summonState + ")";
             //draw the selected pet name
             drawContext.drawText(client.textRenderer, selectedPetName, leftOffset, currentYPos, 0xcccccc,false);
 

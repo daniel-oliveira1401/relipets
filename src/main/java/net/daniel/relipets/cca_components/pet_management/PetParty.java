@@ -1,15 +1,18 @@
 package net.daniel.relipets.cca_components.pet_management;
 
 import lombok.Getter;
+import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.daniel.relipets.registries.RelipetsItemRegistry;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,7 +54,8 @@ public class PetParty implements ISerializable {
         if(partyUpdateCooldown <= 0){
             for(PetSlot<PetData> slot : slotsWithPets){
                 PetData petData = slot.getContent();
-                petData.updatePetInfoIfPossible();
+                if(petData != null)
+                    petData.updateVolatilePetInfoIfPossible();
             }
             partyUpdateCooldown = 5;
             onPetPartyModifiedListener.onPetPartyEvent(this);
@@ -109,7 +113,7 @@ public class PetParty implements ISerializable {
         this.selectedPetIndex = Math.min(this.selectedPetIndex, this.getSlotManager().getSlotCount()-1);
         this.selectedPetIndex = Math.max(this.selectedPetIndex, 0);
 
-        System.out.println("Selected pet index: " + this.selectedPetIndex);
+        Relipets.LOGGER.debug("Selected pet index: " + this.selectedPetIndex);
 
         if(this.getSelectedPet() != null && this.getSelectedPet().isSummoned()){
             this.getSelectedPet().addHighlight();
@@ -119,7 +123,7 @@ public class PetParty implements ISerializable {
 
     public void toggleSummonSelectedPet(ServerWorld world, Vec3d pos, PlayerEntity player){
         if(petSummonCooldown > 0){
-            System.out.println("Pet summon is on cooldown");
+            Relipets.LOGGER.debug("Pet summon is on cooldown");
             return;
         }
 
@@ -127,7 +131,7 @@ public class PetParty implements ISerializable {
         PetData selectedPet = this.getSelectedPet();
 
         if(selectedPet == null){
-            System.out.println("There is no pet in the selected slot");
+            Relipets.LOGGER.debug("There is no pet in the selected slot");
             return;
         }
 
@@ -136,12 +140,17 @@ public class PetParty implements ISerializable {
         if(selectedPet.isSummoned()){
             selectedPet.recall(world);
             operationExecuted = true;
+            Utils.message("Recalled " + selectedPet.getPetInfo().getPetName() + ".", player);
         }else if (selectedPet.isRecalled()){
             selectedPet.summon(world, pos, player);
             operationExecuted = true;
+            Utils.message("Summoned " + selectedPet.getPetInfo().getPetName() + ".", player);
+
         }else{
             petSummonCooldown = 10;
-            System.out.println("The selected pet is healing");
+            Relipets.LOGGER.debug("The selected pet is healing");
+            Utils.message(selectedPet.getPetInfo().getPetName() + " is healing. Wait "+ Utils.tickToSecond(selectedPet.getHealingCooldown()) + "s.", player);
+
         }
 
         if(operationExecuted){
@@ -160,9 +169,10 @@ public class PetParty implements ISerializable {
         if(petData != null){
 
             petData.onFaint(petEntity, world);
-            System.out.println("Recalled pet that was about to die");
+            Relipets.LOGGER.debug("Recalled pet that was about to die");
+            Utils.message("Pet " + petData.getPetInfo().getPetName() + " fainted! They are healing now...", player);
         }else{
-            System.out.println("Could not find pet bound to this entity that fainted");
+            Relipets.LOGGER.debug("Could not find pet bound to this entity that fainted");
         }
     }
 
@@ -187,20 +197,26 @@ public class PetParty implements ISerializable {
             if(this.getSlotManager().getSlotAt(this.selectedPetIndex).isEmpty()){
                 this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
             }else{
-
+                Relipets.LOGGER.debug("Released pet from party to put another one in place");
                 //add a strategy here?
-                this.releasePetFromParty(this.getSlotManager().getSlotAt(this.selectedPetIndex).getContent());
+                PetData currentPetInSlot = this.getSlotManager().getSlotAt(this.selectedPetIndex).getContent();
+                if(currentPetInSlot != null && currentPetInSlot.isRecalled()){
+                    currentPetInSlot.summon((ServerWorld) player.getWorld(), entity.getPos(), player);
+                }
+
+                this.releasePetFromParty(currentPetInSlot);
 
                 this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
                 //this.getSlotManager().getFirstEmptySlot().setContent(newPet);
             }
 
-            System.out.println(entity.getDisplayName().getString() + " has been petified!");
-            newPet.updatePetInfoIfPossible();
+            Relipets.LOGGER.debug(entity.getDisplayName().getString() + " has been petified!");
+            newPet.updateVolatilePetInfoIfPossible();
             newPet.recall((ServerWorld) entity.getWorld());
+            Utils.message("Added " + newPet.getPetInfo().getPetName() + " to party!", player);
             triggerOnPartyModifiedEvent();
         }else{
-            System.out.println("Can not add this entity to party. All slots are full");
+            Relipets.LOGGER.debug("Can not add this entity to party. All slots are full");
         }
 
     }
@@ -220,7 +236,7 @@ public class PetParty implements ISerializable {
         }
 
         if(petIndex == -1){
-            System.out.println("Could not find pet in the party. Release failed.");
+            Relipets.LOGGER.debug("Could not find pet in the party. Release failed.");
             return;
         }
 
@@ -228,13 +244,13 @@ public class PetParty implements ISerializable {
         if(petToBeReleased != null && petToBeReleased.getPetEntityData().getEntity() != null){
             PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(petToBeReleased.getPetEntityData().getEntity());
             petMetadata.clear();
-
+            Utils.message("Released "+ petToBeReleased.getPetInfo().getPetName() + " from party", player);
         }
 
         this.getSlotManager().getSlotAt(petIndex).clear();
 
+        Relipets.LOGGER.debug("Pet released");
 
-        System.out.println("Pet released");
     }
 
     public void removeSelectedPetFromParty(ServerWorld world, Vec3d pos, PlayerEntity player){
@@ -242,7 +258,7 @@ public class PetParty implements ISerializable {
         PetData selectedPet = this.getSelectedPet();
 
         if(selectedPet == null){
-            System.out.println("There is no pet in this slot to remove from party");
+            Relipets.LOGGER.debug("There is no pet in this slot to remove from party");
             return;
         }
 

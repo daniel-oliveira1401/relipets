@@ -12,6 +12,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.ai.goal.LookAtEntityGoal;
 import net.minecraft.entity.ai.goal.WanderAroundGoal;
+import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -30,7 +31,7 @@ public class CyanCore extends BaseCore {
 
     //the core should have a way to access its parts
 
-    public CyanCore(EntityType<? extends TameableEntity> entityType, World world) {
+    public CyanCore(EntityType<? extends PathAwareEntity> entityType, World world) {
         super(entityType, world);
     }
 

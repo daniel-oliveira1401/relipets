@@ -1,7 +1,6 @@
 package net.daniel.relipets.registries;
 
 import net.daniel.relipets.Relipets;
-import net.daniel.relipets.items.AirTitanWand;
 import net.daniel.relipets.items.PartItem;
 import net.daniel.relipets.items.Petificator;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;

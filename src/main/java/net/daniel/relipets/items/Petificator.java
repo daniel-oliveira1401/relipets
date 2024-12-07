@@ -3,7 +3,9 @@ package net.daniel.relipets.items;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.items.client.PetificatorRenderer;
+import net.daniel.relipets.items.special.PetificatorProjectile;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.registries.RelipetsEntityRegistry;
 import net.minecraft.client.render.item.BuiltinModelItemRenderer;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -11,6 +13,10 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.animatable.client.RenderProvider;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
@@ -63,17 +69,19 @@ public class Petificator extends Item implements GeoItem {
     }
 
     @Override
-    public ActionResult useOnEntity(ItemStack stack, PlayerEntity user, LivingEntity entity, Hand hand) {
+    public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
+        if(user.isSneaking()){
+            PetificatorProjectile proj = new PetificatorProjectile(RelipetsEntityRegistry.PETIFICATOR_PROJECTILE, user.getWorld());
+            //proj.setPos(user.getX(), user.getY()+1.3f, user.getZ());
 
-        if(!entity.getWorld().isClient() && user.isSneaking()){
-
-            PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(user);
-
-            petOwnerSystem.getPetParty().addPetToParty(entity, user);
-
+            Vec3d pos = user.raycast(0.3f, 1, false).getPos();
+            proj.setPosition(pos);
+            proj.setVelocity(user, user.getPitch(), user.getYaw(), 0.0F, 1.5F, 1.0F);
+            proj.setOwner(user);
+            user.getWorld().spawnEntity(proj);
         }
 
-        return super.useOnEntity(stack, user, entity, hand);
+        return super.use(world, user, hand);
     }
 
     @Override

@@ -1,10 +1,9 @@
 package net.daniel.relipets.utils;
 
+import net.daniel.relipets.Relipets;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.server.MinecraftServer;
-
-import java.util.function.Consumer;
 
 public class Utils {
 
@@ -26,6 +25,14 @@ public class Utils {
 
     public static String setTimeout(SetTimeoutManager.TimeoutCallback callback, int ticks){
         return SetTimeoutManager.setTimeout(callback, ticks);
+    }
+
+    public static void message(String message, PlayerEntity player){
+        player.sendMessage(Text.of(message));
+    }
+
+    public static float tickToSecond(int ticks){
+        return ticks / 20.0f;
     }
 
 }
