@@ -1,6 +1,6 @@
 {
 
   "key.category.relipets.relipets": "Relipets",
-  "item.relipets.petificator": "Petificator"
-
+  "item.relipets.petificator": "Petificator",
+  "entity.relipets.pets.cyan_core": "Cyan Core"
 }

@@ -1,18 +1,25 @@
 package net.daniel.relipets.entity.cores;
 
-import net.daniel.relipets.cca_components.parts.PetPart;
+import net.daniel.relipets.entity.brain.behavior.CoreFollowPartyOwner;
+import net.daniel.relipets.entity.brain.sensor.CoreOwnerSensor;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.ai.brain.Activity;
+import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.EntityView;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
+import net.tslat.smartbrainlib.api.SmartBrainOwner;
+import net.tslat.smartbrainlib.api.core.BrainActivityGroup;
+import net.tslat.smartbrainlib.api.core.SmartBrainProvider;
+import net.tslat.smartbrainlib.api.core.sensor.ExtendedSensor;
 import software.bernie.geckolib.animatable.GeoEntity;
 
-public abstract class BaseCore extends PathAwareEntity implements GeoEntity {
+import java.util.List;
+import java.util.Map;
+
+public abstract class BaseCore extends PathAwareEntity implements GeoEntity, SmartBrainOwner<BaseCore> {
 
     public static final TrackedData<String> CURRENT_ANIM = DataTracker.registerData(BaseCore.class, TrackedDataHandlerRegistry.STRING);
 
@@ -28,7 +35,104 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity {
     public void setCurrentAnim(String animName){
         this.dataTracker.set(CURRENT_ANIM, animName);
     }
+
+    @Override
+    public void tick() {
+        super.tick();
+    }
+
+    @Override
+    protected void mobTick() {
+        super.mobTick();
+        if(!this.getWorld().isClient()) tickBrain(this);
+    }
+
+    @Override
+    protected Brain.Profile<?> createBrainProfile() {
+        return new SmartBrainProvider<BaseCore>(this);
+    }
+
+    @Override
+    public List<? extends ExtendedSensor<? extends BaseCore>> getSensors() {
+        return List.of(
+                new CoreOwnerSensor<>()
+        );
+    }
+
+    @Override
+    public BrainActivityGroup<? extends BaseCore> getCoreTasks() {
+        CoreFollowPartyOwner coreFollowPartyOwner = new CoreFollowPartyOwner();
+
+        return BrainActivityGroup.coreTasks(coreFollowPartyOwner);
+    }
+
+    @Override
+    public BrainActivityGroup<? extends BaseCore> getIdleTasks() {
+        return SmartBrainOwner.super.getIdleTasks();
+    }
+
+    @Override
+    public BrainActivityGroup<? extends BaseCore> getFightTasks() {
+        return SmartBrainOwner.super.getFightTasks();
+    }
+
+    @Override
+    public Map<Activity, BrainActivityGroup<? extends BaseCore>> getAdditionalTasks() {
+        return SmartBrainOwner.super.getAdditionalTasks();
+    }
+
+    @Override
+    public List<Activity> getActivityPriorities() {
+        return SmartBrainOwner.super.getActivityPriorities();
+    }
+
+    //TODO: add behavior
+        // follow owner //DONE
+        // stroll around when near owner
+        // attack owner's target
+        // avenge owner
+
+    //TODO: add leveling capability
+
+    //TODO: add natural spawning
+
 }
+
+/*
+
+Comments from the creator of SmartBrainLib
+
+=========== About what activities are =========
+
+mm no
+activities are a layer of complexity that don't have an equal in goals
+basically
+with goals you basically just list out every possible thing the entity might wanna do, in approximate order
+then slap some conditions and priorities on em (mostly)
+when you want your entity to stop doing things, you kinda just do a bunch of checks in every goal to make sure it should or shouldn't be doing the thing
+super inefficient
+with brains comes the concept of activities
+activities are groups of behaviours that run together, bundled into.. well.. activities
+you're already using activities with SBL by default, SBL just makes them so easy to use you don't realise you're doing it
+the way it works is a brain can only run TWO activities at any given time, and one of those will ALWAYS be the CORE activity
+which is to say that you have the core activity running, and you have have ONE additional activity running at any given time
+usually this is a flip-flop between the FIGHT and IDLE activities
+with IDLE running when no other activities are, and FIGHT running when the entity has a target, thne stopping when the target disappears
+but you can add additional activities if you want
+which supercede fight or whatever
+when an activity is running, no behaviours from any other activity (besides CORE) will try to run, and will be automatically stopped
+
+======= About how to add a custom activity =============
+
+just like you override getFightTasks or getIdleTasks
+you should override getAdditionalTasks
+which allows you to define more activities and their behaviours
+I'd recommend using the requireAndWipeMemoriesOnUse method, which defines what memory is used as the starting trigger for when that activity should be active, and auto-wiping it when it stops
+
+
+ */
+
+
 
 /*
 Useful sources:

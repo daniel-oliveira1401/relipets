@@ -57,8 +57,8 @@ public class CyanCore extends BaseCore {
     protected void initGoals() {
         super.initGoals();
 
-        this.goalSelector.add(1, new LookAtEntityGoal(this, PlayerEntity.class, 10, 0.05f));
-        this.goalSelector.add(2, new WanderAroundGoal(this, 0.3));
+        //this.goalSelector.add(1, new LookAtEntityGoal(this, PlayerEntity.class, 10, 0.05f));
+        //this.goalSelector.add(2, new WanderAroundGoal(this, 0.3));
     }
 
     @Override

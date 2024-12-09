@@ -3,6 +3,8 @@ package net.daniel.relipets;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.config.RelipetsConfig;
+import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
+import net.daniel.relipets.entity.brain.sensor.RelipetsSensorTypes;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.events.PetFaintedCallback;
 import net.daniel.relipets.registries.C2SPacketHandlers;
@@ -45,6 +47,10 @@ public class Relipets implements ModInitializer {
 		RelipetsEntityRegistry.onInitialize();
 
 		C2SPacketHandlers.onInitialize();
+
+		RelipetsSensorTypes.init();
+
+		RelipetsMemoryTypes.init();
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> SetTimeoutManager.tickActiveTimeouts());
 
