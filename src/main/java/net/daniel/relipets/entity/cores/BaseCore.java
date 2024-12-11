@@ -1,10 +1,16 @@
 package net.daniel.relipets.entity.cores;
 
+import com.mojang.datafixers.util.Pair;
+import net.daniel.relipets.entity.brain.activity.CoreCustomActivities;
 import net.daniel.relipets.entity.brain.behavior.CoreFollowPartyOwner;
+import net.daniel.relipets.entity.brain.behavior.DoSomethingOnce;
+import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.brain.sensor.CoreOwnerSensor;
+import net.daniel.relipets.entity.brain.sensor.FeelLikeDoingSomethingSensor;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
+import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
@@ -12,7 +18,10 @@ import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.world.World;
 import net.tslat.smartbrainlib.api.SmartBrainOwner;
 import net.tslat.smartbrainlib.api.core.BrainActivityGroup;
+import net.tslat.smartbrainlib.api.core.SmartBrain;
 import net.tslat.smartbrainlib.api.core.SmartBrainProvider;
+import net.tslat.smartbrainlib.api.core.behaviour.FirstApplicableBehaviour;
+import net.tslat.smartbrainlib.api.core.behaviour.OneRandomBehaviour;
 import net.tslat.smartbrainlib.api.core.sensor.ExtendedSensor;
 import software.bernie.geckolib.animatable.GeoEntity;
 
@@ -55,7 +64,11 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     @Override
     public List<? extends ExtendedSensor<? extends BaseCore>> getSensors() {
         return List.of(
-                new CoreOwnerSensor<>()
+                new CoreOwnerSensor<>(),
+                new FeelLikeDoingSomethingSensor<>()
+                        .withChance(0.5f)
+                        .affectsMemory(RelipetsMemoryTypes.SHOULD_TEST)
+                        .setScanRate((e) -> (int) (Math.random() * 30 + 20))
         );
     }
 
@@ -68,23 +81,134 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
     @Override
     public BrainActivityGroup<? extends BaseCore> getIdleTasks() {
-        return SmartBrainOwner.super.getIdleTasks();
+        return BrainActivityGroup.empty();
     }
 
     @Override
     public BrainActivityGroup<? extends BaseCore> getFightTasks() {
-        return SmartBrainOwner.super.getFightTasks();
+        return BrainActivityGroup.empty();
     }
 
     @Override
     public Map<Activity, BrainActivityGroup<? extends BaseCore>> getAdditionalTasks() {
-        return SmartBrainOwner.super.getAdditionalTasks();
+
+        BrainActivityGroup<BaseCore> testActivity = new BrainActivityGroup<BaseCore>(CoreCustomActivities.TEST)
+                .requireAndWipeMemoriesOnUse(RelipetsMemoryTypes.SHOULD_TEST)
+                .priority(20)
+                .behaviours( new DoSomethingOnce().cooldownFor((e)-> (int)(Math.random() * 200 + 180)));
+
+
+        /*
+        BrainActivityGroup<BaseCore> testActivity1 = new BrainActivityGroup<BaseCore>(CoreCustomActivities.TEST)
+                .requireAndWipeMemoriesOnUse(RelipetsMemoryTypes.SHOULD_TEST)
+                .priority(20)
+                .behaviours(
+                        new OneRandomBehaviour<BaseCore>(
+                                Pair.of(new DoSomethingOnce().cooldownFor((e)-> 200), 5),
+                                Pair.of(new DoSomethingOnce().cooldownFor((e)-> 50), 20),
+                                Pair.of(new DoSomethingOnce().cooldownFor((e)-> 70), 10),
+                                Pair.of(new DoSomethingOnce().cooldownFor((e)-> 70), 10)
+                        )
+                );
+        */
+
+        return Map.of(CoreCustomActivities.TEST, testActivity);
     }
 
     @Override
     public List<Activity> getActivityPriorities() {
-        return SmartBrainOwner.super.getActivityPriorities();
+        return List.of(CoreCustomActivities.TEST);
     }
+
+    /*
+
+    How activities and behaviors work:
+
+    A behavior (ExtendedBehavior) will be an action that the entity performs.
+
+    These actions are grouped using an Activity (BrainActivityGroup).
+
+    At any given time, there will only be two activities running: the Core activity and some other one.
+
+    The other activity that will run alongside Core will be decided by the activity priority list returned by
+    getActivityPriorities().
+
+    The lib will iterate through the list of activities and try to start their behaviors. The first behavior that
+    successfully starts will set the activity that the behavior belongs to as the current activity.
+
+    Apart from just trying to start the behaviors and seeing it they actually start, there's also a pre-check
+    for a given activity that is done using getActivityStartMemoryConditions().
+
+    By using getActivityStartMemoryConditions() you don't need to ensure interlocking of behaviors from different
+    activities. All you need to do is ensure interlocking of the activities themselves by using the memories. A simple
+    way of achieving that would be a "CURRENT_STATE" memory that defines what should be the current activity and then
+    you can just use that as a memory condition in getActivityStartMemoryConditions().
+
+    How does it set what activity should be running?
+
+    every tick, it resets the possible activities. This reset is based on whether the entity can perform that
+    activity or not. The first activity that the entity can perform becomes the activity that is active at the moment
+
+    So if at tick 1 i was able to perform activity A, but in the next tick i can perform activity B and not A, then it
+    will disable activity A and start activity B, without any transition. The activities dont wait for their behavior
+    to "complete" before being disabled.
+
+    An important part of deciding which activity will be active at a given time is getActivityPriorities(). What is
+    returned from this method will be used to define what are the candidates for being the current activity.
+    If the list returns a custom activity, it will try to start that activity. If the activity doesnt have any
+    memory requirement, then it will just start it and that activity will always be active. But if it does have a
+    memory requirement, then it will check if the requirement is met and if it is, then it activates the activity, but if
+    not then it falls back to the default activity defined by getDefaultActivity();
+
+    Inside an activity you can further enhance the degree of control by setting requirements on the behaviors themselves,
+    so let's say you want to implement an entity that can randomly feel like doing something and when it feels like so,
+    it can choose between a couple of random things that it can do. Upon choosing that random thing that it can do,
+    that things enters a cooldown.
+
+    A way to implement that would be having a DO_SOMETHING activity that has the memory requirement of
+    FEELING_LIKE_DOING_SOMETHING. Inside that activity we could have a OneRandomBehavior() and pass to it a list of
+    things that it could do, like:
+
+    new OneRandomBehaviour<BaseCore>(
+                Pair.of(new DoSomethingOnce().cooldownFor((e)-> 200), 5),
+                Pair.of(new DoSomethingOnce().cooldownFor((e)-> 50), 20),
+                Pair.of(new DoSomethingOnce().cooldownFor((e)-> 70), 10),
+                Pair.of(new DoSomethingOnce().cooldownFor((e)-> 70), 10)
+        );
+
+    But what if you wanted to make that list dynamic? So that you could apply some sort of reinforcement learning to
+    those behaviors or maybe use information about the environemnt (through memories and sensor) to make a behavior
+    more or less likely to happen? In that case, you would use a FirstApplicableBehavior() and inside the tryStarting()
+    of each behavior you would read data from the memories or the entity itself to determine the chance of it happening
+    or not.
+
+    ================ The behavior system ===============================
+
+    So, the behavior system will be based on a map that the entity will store. The map will be String, float. String
+    will be the name of the behavior and float will be the chance of that behavior happening. Inside the behavior that
+    corresponds to each behavior in the list, they will fetch the chance and use it to determine if it should happen
+    or not. If a behavior does occur, the entity will save which behavior it last executed. If you feed the entity a
+    treat it will increase the chance of the last behavior happening again.
+
+    The behaviors will be implemented using a FirstApplicationBehaviour() that will be contained within a BEHAVIOR
+    activity. This activity should be triggered by the WANTS_TO_BEHAVIOR memory that will be set using the
+    FeelLikeBehavingSensor. This sensor will have a random scan rate and a random chance of setting the memory to true.
+    There should be a decent amount of time between the trigger of behaviors so that the pet doesnt spam them and also
+    the owner has enough time to give the treat to the pet if they want to reinforce that behavior.
+
+    ============== The ability system ==================
+
+    Each ability will have a cooldown. Abilities will be triggered by the pets themselves and the trigger will be based
+    on combat-related memories.
+
+    There will be combat abilities and utility abilities.
+
+    Combat abilities should be triggered by combat-related memories, while utility abilities should be triggered by some
+    player actions and utility-related memories. There should be sensors for setting those memories.
+
+    Abilities should be usable alongside basic attacks.
+
+     */
 
     //TODO: add behavior
         // follow owner //DONE

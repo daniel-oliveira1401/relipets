@@ -39,8 +39,8 @@ public class CoreOwnerSensor<C extends BaseCore> extends ExtendedSensor<C> {
     }
 
     @Override
-    protected void sense(ServerWorld level, C baseCoreEntity) {
-
+    public void sense(ServerWorld level, C baseCoreEntity) {
+        Relipets.LOGGER.debug("Sensing owner...");
         List<PlayerEntity> playersNearby = (List<PlayerEntity>) baseCoreEntity.getWorld().getPlayers();
 
         for(PlayerEntity player : playersNearby){

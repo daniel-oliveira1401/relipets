@@ -26,7 +26,8 @@ public class CoreStrollAroundPartyOwner extends ExtendedBehaviour<BaseCore> {
             if(Boolean.FALSE.equals(BrainUtils.getMemory(baseCoreEntity.getBrain(), RelipetsMemoryTypes.PARTY_OWNER_NEARBY))) return false;
 
             //it should have a random chance of happening
-        }
+            return false;
+        };
     }
 
 }

@@ -3,6 +3,7 @@ package net.daniel.relipets;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.config.RelipetsConfig;
+import net.daniel.relipets.entity.brain.activity.CoreCustomActivities;
 import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.brain.sensor.RelipetsSensorTypes;
 import net.daniel.relipets.entity.cores.BaseCore;
@@ -47,6 +48,8 @@ public class Relipets implements ModInitializer {
 		RelipetsEntityRegistry.onInitialize();
 
 		C2SPacketHandlers.onInitialize();
+
+		CoreCustomActivities.init();
 
 		RelipetsSensorTypes.init();
 

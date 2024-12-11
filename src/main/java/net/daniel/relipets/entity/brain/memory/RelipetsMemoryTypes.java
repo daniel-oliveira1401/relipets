@@ -12,10 +12,12 @@ public class RelipetsMemoryTypes {
 
     public static final MemoryModuleType<PlayerEntity> PARTY_OWNER;
     public static final MemoryModuleType<Boolean> PARTY_OWNER_NEARBY;
+    public static final MemoryModuleType<Boolean> SHOULD_TEST;
 
     static {
         PARTY_OWNER = register("party_owner");
         PARTY_OWNER_NEARBY = register("party_owner_nearby");
+        SHOULD_TEST = register("should_test");
     }
 
 
