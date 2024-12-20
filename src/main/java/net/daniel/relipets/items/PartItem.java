@@ -6,23 +6,30 @@ import net.daniel.relipets.items.client.PartItemRenderer;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.minecraft.client.render.item.BuiltinModelItemRenderer;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.animatable.client.RenderProvider;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class PartItem extends Item implements GeoItem {
+public abstract class PartItem extends Item implements GeoItem {
 
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private final Supplier<Object> renderProvider = GeoItem.makeRenderer(this);
+    public String TYPE = "";
 
     public PartItem(Settings settings) {
         super(settings);
@@ -64,26 +71,63 @@ public class PartItem extends Item implements GeoItem {
     @Override
     public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
         if(!world.isClient()){
-            if(!stack.hasNbt()){
-                NbtCompound tag = stack.getOrCreateNbt();
-
-                PetPart part = createRandomPetPart();
-
-                tag.put(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY, part.writeToNbt());
-                Relipets.LOGGER.debug("Added NBT to item");
+            if(!stack.hasNbt() || (stack.getOrCreateNbt().contains(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY) && !this.TYPE.isEmpty())){
+                fillNbtWithItem(stack);
             }
         }
 
         super.inventoryTick(stack, world, entity, slot, selected);
     }
 
-    private PetPart createRandomPetPart(){
+    @Override
+    public void onCraft(ItemStack stack, World world, PlayerEntity player) {
+        super.onCraft(stack, world, player);
+        if(!world.isClient()){
+            if(!stack.hasNbt()){
+                fillNbtWithItem(stack);
+            }
+        }
+
+    }
+
+    private void fillNbtWithItem(ItemStack stack){
+        NbtCompound tag = stack.getOrCreateNbt();
+
+        PetPart part = this.createPetPartFromType(TYPE);
+
+        if(part != null){
+            tag.put(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY, part.writeToNbt());
+            Relipets.LOGGER.debug("Added NBT to item");
+
+        }
+    }
+
+    protected PetPart createRandomPetPart(){
 
         String[] partModelVariants = Relipets.CONFIG.partModelVariants();
 
         int randomIndex = (int) (Math.random() * partModelVariants.length);
 
         String chosenPart = partModelVariants[randomIndex];
+
+        PetPart part = PetPart.createFromString(chosenPart);
+
+        return part;
+    }
+
+    @Nullable
+    protected PetPart createPetPartFromType(String type){
+
+        List<String> partModelVariants = List.of(Relipets.CONFIG.partModelVariants());
+
+        partModelVariants = partModelVariants.stream().filter((p) -> PetPart.createFromString(p).partType.equals(type)).toList();
+
+        if(partModelVariants.isEmpty())
+            return null;
+
+        int randomIndex = (int) (Math.random() * partModelVariants.size());
+
+        String chosenPart = partModelVariants.get(randomIndex);
 
         PetPart part = PetPart.createFromString(chosenPart);
 

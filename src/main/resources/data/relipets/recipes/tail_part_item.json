@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "DRD",
+    " S ",
+    "   "
+  ],
+  "key": {
+    "R": {
+      "item": "minecraft:rabbit_hide"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "S": {
+      "item": "minecraft:stone_slab"
+    }
+  },
+  "result": {
+    "item": "relipets:tail_part_item",
+    "count": 1
+  }
+}
