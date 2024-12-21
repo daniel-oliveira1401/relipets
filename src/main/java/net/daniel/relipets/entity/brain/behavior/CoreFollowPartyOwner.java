@@ -39,6 +39,8 @@ public class CoreFollowPartyOwner extends ExtendedBehaviour<BaseCore> {
             return entity.squaredDistanceTo(owner) > this.minDist * this.minDist && entity.squaredDistanceTo(owner) <= this.maxDist * this.maxDist;
 
         };
+
+        this.runFor((e)-> 200);
     }
 
     @Override
@@ -72,6 +74,11 @@ public class CoreFollowPartyOwner extends ExtendedBehaviour<BaseCore> {
     @Override
     protected void tick(BaseCore entity) {
         super.tick(entity);
-        Relipets.LOGGER.info("Running Follow Party Owner behavior");
+        if(!entity.getNavigation().isFollowingPath()){
+            PlayerEntity owner = BrainUtils.getMemory(entity.getBrain(), RelipetsMemoryTypes.PARTY_OWNER);
+            if(owner != null){
+                entity.getNavigation().startMovingTo(owner, 0.5);
+            }
+        }
     }
 }

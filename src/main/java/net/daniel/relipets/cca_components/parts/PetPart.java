@@ -1,5 +1,6 @@
 package net.daniel.relipets.cca_components.parts;
 
+import lombok.Getter;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Vec3d;
@@ -36,9 +37,9 @@ public class PetPart {
         EMPTY_PARTS.put(WING_PART, EMPTY_WING_PART);
     }
 
-
+    @Getter
     public String modelPartId;
-
+    @Getter
     public String partType;
 
     public Vec3d baseCenterOffset = new Vec3d(-0.5, -0.5, -0.5);

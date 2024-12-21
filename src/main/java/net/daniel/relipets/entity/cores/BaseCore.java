@@ -1,23 +1,34 @@
 package net.daniel.relipets.entity.cores;
 
 import com.mojang.datafixers.util.Pair;
+import net.daniel.relipets.cca_components.PartSystemComponent;
+import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.entity.brain.activity.CoreCustomActivities;
-import net.daniel.relipets.entity.brain.behavior.CoreComeCloseToOwnerBehavior;
-import net.daniel.relipets.entity.brain.behavior.CoreFollowPartyOwner;
-import net.daniel.relipets.entity.brain.behavior.DoSomethingOnce;
-import net.daniel.relipets.entity.brain.behavior.ForageBehavior;
+import net.daniel.relipets.entity.brain.behavior.*;
 import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.brain.sensor.CoreOwnerSensor;
 import net.daniel.relipets.entity.brain.sensor.FeelLikeDoingSomethingSensor;
+import net.daniel.relipets.items.PartItem;
+import net.daniel.relipets.items.PartItemFactory;
+import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.registries.RelipetsConstantsRegistry;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
+import net.minecraft.entity.ai.goal.LookAtEntityGoal;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.PathAwareEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ShearsItem;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import net.tslat.smartbrainlib.api.SmartBrainOwner;
 import net.tslat.smartbrainlib.api.core.BrainActivityGroup;
@@ -90,6 +101,55 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     }
 
     @Override
+    public ActionResult interactMob(PlayerEntity player, Hand hand) {
+        if(!player.getWorld().isClient() && hand == Hand.MAIN_HAND){
+            ItemStack mainHandItem = player.getMainHandStack();
+
+            //if interact with shears, remove parts
+
+            if(mainHandItem.getItem() instanceof ShearsItem){
+
+                PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
+
+                PetPart partRemoved = partSystem.removeNextPart();
+                if(partRemoved != null){
+                    dropPetPart(partRemoved);
+
+                }
+
+            }else if (mainHandItem.getItem() instanceof PartItem){
+
+                NbtCompound itemTag = mainHandItem.getOrCreateNbt().getCompound(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY);
+
+                PetPart partInHand = PetPart.readFromNbt(itemTag);
+
+                PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
+
+                //drop the pet part if it already has one of this type
+                if(partSystem.hasValidPart(partInHand.partType)){
+                    PetPart existingPart = partSystem.getPartByType(partInHand.partType);
+                    dropPetPart(existingPart);
+                }
+
+                partSystem.addOrUpdatePart(partInHand);
+                mainHandItem.decrement(1);
+            }
+
+
+        }
+
+        return super.interactMob(player, hand);
+    }
+
+    private void dropPetPart(PetPart part){
+        ItemStack partToBeDropped = PartItemFactory.createStackByType(part.getPartType());
+        partToBeDropped.getOrCreateNbt().put(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY, part.writeToNbt());
+        ItemEntity partEntity = new ItemEntity(this.getWorld(), this.getX(), this.getY(), this.getZ(), partToBeDropped);
+        partEntity.setVelocity(this.getWorld().random.nextGaussian() * 0.05, 0.2, this.getWorld().random.nextGaussian() * 0.05);
+        this.getWorld().spawnEntity(partEntity);
+    }
+
+    @Override
     protected void mobTick() {
         super.mobTick();
         if (!this.getWorld().isClient()) tickBrain(this);
@@ -120,7 +180,10 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public BrainActivityGroup<? extends BaseCore> getCoreTasks() {
         CoreFollowPartyOwner coreFollowPartyOwner = new CoreFollowPartyOwner(5, 50);
 
-        return BrainActivityGroup.coreTasks(coreFollowPartyOwner);
+        LookAtPartyOwner lookAtPartyOwner = (LookAtPartyOwner) new LookAtPartyOwner(0.5f)
+                .runFor((e)-> Utils.secondToTick(10)).cooldownFor((e)-> Utils.secondToTick(5));
+
+        return BrainActivityGroup.coreTasks(coreFollowPartyOwner, lookAtPartyOwner);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package net.daniel.relipets.items.special;
 
 import net.daniel.relipets.Relipets;
+import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -67,7 +68,7 @@ public class PetificatorProjectile extends PersistentProjectileEntity implements
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
 
-        if(!this.getWorld().isClient()){
+        if(!this.getWorld().isClient() && entityHitResult.getEntity() instanceof LivingEntity entityHit){
             Relipets.LOGGER.debug("Hit entity!!");
 
             PlayerEntity owner = (PlayerEntity) this.getOwner();
@@ -78,8 +79,11 @@ public class PetificatorProjectile extends PersistentProjectileEntity implements
 
             PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(owner);
 
-            petOwnerSystem.getPetParty().addPetToParty((LivingEntity) entityHitResult.getEntity(), owner);
+            PetMetadataComponent entityMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(entityHit);
 
+            if(entityMetadata.getPlayerUUID() == null || entityMetadata.getPlayerUUID().isEmpty()){
+                petOwnerSystem.getPetParty().addPetToParty(entityHit, owner);
+            }
 
         }
         this.remove(RemovalReason.DISCARDED);

@@ -2,5 +2,12 @@
 
   "key.category.relipets.relipets": "Relipets",
   "item.relipets.petificator": "Petificator",
-  "entity.relipets.pets.cyan_core": "Cyan Core"
+  "entity.relipets.pets.cyan_core": "Cyan Core",
+  "item.relipets.cyan_core_spawn_egg": "Cyan Core Spawn Egg",
+  "item.relipets.wing_part_item": "Wing Part Item",
+  "item.relipets.leg_part_item": "Leg Part Item",
+  "item.relipets.head_part_item": "Head Part Item",
+  "item.relipets.arm_part_item": "Arm Part Item",
+  "item.relipets.tail_part_item": "Tail Part Item",
+  "item.relipets.torso_part_item": "Torso Part Item"
 }

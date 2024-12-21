@@ -35,4 +35,8 @@ public class Utils {
         return ticks / 20.0f;
     }
 
+    public static int secondToTick(float second){
+        return (int)(second * 20);
+    }
+
 }
