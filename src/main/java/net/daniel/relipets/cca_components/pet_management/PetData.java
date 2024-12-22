@@ -146,7 +146,7 @@ public class PetData implements ISerializable {
     }
 
     public void onFaint(LivingEntity entity, ServerWorld world){
-        entity.setHealth(2);
+        entity.setHealth(entity.getMaxHealth());
         entity.clearStatusEffects();
         entity.setOnFire(false);
         entity.setVelocity(0, 0, 0 );
@@ -210,6 +210,16 @@ public class PetData implements ISerializable {
             this.getPetEntityData().getEntity().setGlowing(false);
         }, 10);
 
+    }
+
+    public void applyNaturalHealing() {
+        //TODO: everyone heals the same for now. Make it dependent on other factors in the future
+        int healing = 1;
+
+        LivingEntity pet = this.getPetEntityData().getEntity();
+        pet.setHealth(
+                Math.min(pet.getMaxHealth(), pet.getHealth() + healing)
+        );
     }
 
     @Getter

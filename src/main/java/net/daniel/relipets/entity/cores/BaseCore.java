@@ -19,6 +19,7 @@ import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.goal.LookAtEntityGoal;
+import net.minecraft.entity.ai.pathing.EntityNavigation;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
@@ -36,6 +37,7 @@ import net.tslat.smartbrainlib.api.core.SmartBrain;
 import net.tslat.smartbrainlib.api.core.SmartBrainProvider;
 import net.tslat.smartbrainlib.api.core.behaviour.FirstApplicableBehaviour;
 import net.tslat.smartbrainlib.api.core.behaviour.OneRandomBehaviour;
+import net.tslat.smartbrainlib.api.core.navigation.SmoothGroundNavigation;
 import net.tslat.smartbrainlib.api.core.sensor.ExtendedSensor;
 import net.tslat.smartbrainlib.util.BrainUtils;
 import software.bernie.geckolib.animatable.GeoEntity;
@@ -139,6 +141,11 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         }
 
         return super.interactMob(player, hand);
+    }
+
+    @Override
+    protected EntityNavigation createNavigation(World world) {
+        return new SmoothGroundNavigation(this, world);
     }
 
     private void dropPetPart(PetPart part){

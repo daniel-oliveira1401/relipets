@@ -39,6 +39,7 @@ public class PetParty implements ISerializable {
     }
     int partyUpdateCooldown = 0;
     int petSummonCooldown = 0;
+    int naturalHealingCooldown = 0;
     public void tick(ServerWorld world){
 
         List<PetSlot<PetData>> slotsWithPets = this.getSlotManager().getSlotsWithContent();
@@ -64,6 +65,30 @@ public class PetParty implements ISerializable {
         partyUpdateCooldown = Math.max(partyUpdateCooldown - 1, 0);
 
         petSummonCooldown = Math.max(petSummonCooldown - 1, 0);
+
+        naturalHealingCooldown = Math.max(naturalHealingCooldown - 1, 0);
+
+        if(naturalHealingCooldown == 0){
+            applyHealingToSummonedPetsIfPossible();
+            naturalHealingCooldown = 40;
+        }
+
+    }
+
+    public void applyHealingToSummonedPetsIfPossible(){
+        List<PetSlot<PetData>> healablePets = this.getSlotManager()
+                .getSlotsWithContent().stream()
+                .filter((s)-> s.getContent() != null &&
+                        s.getContent().isSummoned() &&
+                        s.getContent().getPetInfo().getCurrentHealth() < s.getContent().getPetInfo().getMaxHealth())
+                .toList();
+
+        for(PetSlot<PetData> pet : healablePets){
+            PetData petData = pet.getContent();
+
+            if(petData != null) //this is redundant but the IDE screams at me if i dont do this
+                petData.applyNaturalHealing();
+        }
 
     }
 
@@ -127,7 +152,6 @@ public class PetParty implements ISerializable {
             return;
         }
 
-        petSummonCooldown = 60;
         PetData selectedPet = this.getSelectedPet();
 
         if(selectedPet == null){
@@ -147,7 +171,6 @@ public class PetParty implements ISerializable {
             Utils.message("Summoned " + selectedPet.getPetInfo().getPetName() + ".", player);
 
         }else{
-            petSummonCooldown = 10;
             Relipets.LOGGER.debug("The selected pet is healing");
             Utils.message(selectedPet.getPetInfo().getPetName() + " is healing. Wait "+ Utils.tickToSecond(selectedPet.getHealingCooldown()) + "s.", player);
 
@@ -155,7 +178,7 @@ public class PetParty implements ISerializable {
 
         if(operationExecuted){
             player.getItemCooldownManager().set(RelipetsItemRegistry.PETIFICATOR_ITEM.asItem(), 60);
-            petSummonCooldown = 60;
+            petSummonCooldown = 20;
         }else{
             petSummonCooldown = 10;
         }
