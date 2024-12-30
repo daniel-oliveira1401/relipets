@@ -20,15 +20,22 @@ import java.util.HashMap;
 
 public class BasePart implements GeoEntity {
 
+    public boolean variantChanged;
     AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     public BaseCore core;
     public String partType;
     public String partModelId;
 
+    public String activeModelId = "";
+
     private final HashMap<String, RawAnimation> rawAnimationCache = new HashMap<>();
 
     private final RawAnimation IDLE = RawAnimation.begin().thenLoop(BaseCore.ANIM_IDLE);
+
+    public String buildAnimCacheKey(String animationName){
+        return animationName+"_"+this.partModelId;
+    }
 
     protected <E extends BasePart> PlayState partAnimController(final AnimationState<E> event) {
 
@@ -45,12 +52,25 @@ public class BasePart implements GeoEntity {
                 //model does not have any animations. Don't play anything then
                 return PlayState.STOP;
             }else{
+                //check for variant changes
+                if(!this.activeModelId.equals(partModelId)){
+                    variantChanged = true;
+                }
+
+                if(variantChanged){
+                    variantChanged = false;
+                    this.cache = GeckoLibUtil.createInstanceCache(this);
+                    this.rawAnimationCache.clear();
+                    this.activeModelId = partModelId;
+                    return PlayState.STOP;
+                }
+
                 //this part has an animation that corresponds to the current anim
                 if(bakedAnimations.animations().containsKey(animationName)){
-                    RawAnimation anim = rawAnimationCache.getOrDefault(animationName, null);
+                    RawAnimation anim = rawAnimationCache.getOrDefault(buildAnimCacheKey(animationName), null);
 
                     if(anim == null){
-                        rawAnimationCache.put(animationName, RawAnimation.begin().thenLoop(animationName));
+                        rawAnimationCache.put(buildAnimCacheKey(animationName), RawAnimation.begin().thenLoop(animationName));
                     }
 
                     return event.setAndContinue(anim);

@@ -13,34 +13,30 @@ public class PartModel extends GeoModel<BasePart> {
     String partType;
     public BaseCore core;
 
-    public PartModel(Identifier assetSubpath, String partType) {
+    public PartModel(Identifier partVariant, String partType) {
 
         this.partType = partType;
 
-        this.modelPath = buildFormattedModelPath(assetSubpath);
-        this.texturePath = buildFormattedTexturePath(assetSubpath);
-        this.animationsPath = buildFormattedAnimationPath(assetSubpath);
+        this.modelPath = buildFormattedModelPath(partVariant, partType);
+        this.texturePath = buildFormattedTexturePath(partVariant, partType);
+        this.animationsPath = buildFormattedAnimationPath(partVariant, partType);
 
-    }
-
-    public String subtype() {
-        return "parts/"+this.partType;
     }
 
     public Identifier modelPath;
     public Identifier texturePath;
     public Identifier animationsPath;
 
-    public Identifier buildFormattedModelPath(Identifier basePath) {
-        return new Identifier(basePath.getNamespace(), "geo/" + subtype() + "/" + basePath.getPath() + ".geo.json");
+    public Identifier buildFormattedModelPath(Identifier basePath, String partType) {
+        return new Identifier(basePath.getNamespace(), "geo/parts/" + partType + "/" + basePath.getPath() + ".geo.json");
     }
 
-    public Identifier buildFormattedAnimationPath(Identifier basePath) {
-        return new Identifier(basePath.getNamespace(), "animations/" + subtype() + "/" + basePath.getPath() + ".animation.json");
+    public static Identifier buildFormattedAnimationPath(Identifier basePath, String partType) {
+        return new Identifier(basePath.getNamespace(), "animations/parts/" + partType + "/" + basePath.getPath() + ".animation.json");
     }
 
-    public Identifier buildFormattedTexturePath(Identifier basePath) {
-        return new Identifier(basePath.getNamespace(), "textures/" + subtype() + "/" + basePath.getPath() + ".png");
+    public static Identifier buildFormattedTexturePath(Identifier basePath, String partType) {
+        return new Identifier(basePath.getNamespace(), "textures/parts/" + partType + "/" + basePath.getPath() + ".png");
     }
 
 

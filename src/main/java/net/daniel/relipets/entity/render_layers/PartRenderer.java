@@ -18,7 +18,7 @@ public class PartRenderer extends GeoObjectRenderer<BasePart> {
     public String partVariantId;
     public String partType;
 
-    private boolean variantChangeSinceLastRender = true;
+    public boolean variantChangeSinceLastRender = true;
 
     public PartRenderer() {
         super(null);
@@ -61,7 +61,7 @@ public class PartRenderer extends GeoObjectRenderer<BasePart> {
     @Override
     public Color getRenderColor(BasePart animatable, float partialTick, int packedLight) {
         if(animatable.core != null && animatable.core.hurtTime > 0){
-            return Color.ofRGBA(255, 150, 150, 200);
+            return Color.ofRGBA(255, 150, 150, 150);
         }
         return super.getRenderColor(animatable, partialTick, packedLight);
     }

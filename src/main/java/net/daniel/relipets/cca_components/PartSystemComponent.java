@@ -84,6 +84,7 @@ public class PartSystemComponent implements Component, AutoSyncedComponent {
         CardinalComponentsRegistry.PART_SYSTEM_KEY.sync(this.provider);
     }
 
+    @Nullable
     public PetPart getPartByType(String partType){
         switch (partType){
 

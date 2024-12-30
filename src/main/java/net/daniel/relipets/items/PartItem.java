@@ -4,12 +4,17 @@ import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.items.client.PartItemRenderer;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
+import net.minecraft.client.item.TooltipContext;
 import net.minecraft.client.render.item.BuiltinModelItemRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.text.LiteralTextContent;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
+import net.minecraft.text.Text;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoItem;
@@ -88,6 +93,33 @@ public abstract class PartItem extends Item implements GeoItem {
             }
         }
 
+    }
+
+    @Override
+    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+        if(stack.getOrCreateNbt().contains(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY)){
+            PetPart part = PetPart.readFromNbt(stack.getOrCreateNbt().getCompound(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY));
+
+            tooltip.add(
+                    MutableText.of(new LiteralTextContent("Part variant: " + parsePartVariantName(part.getModelPartId())))
+                            .setStyle(Style.EMPTY.withColor(0x5DE2E7))
+                    );
+
+
+        }
+    }
+
+    public String parsePartVariantName(String inputName){
+        String[] words = inputName.split("_");
+        StringBuilder formatted = new StringBuilder();
+
+        for (String word : words) {
+            formatted.append(Character.toUpperCase(word.charAt(0)))
+                    .append(word.substring(1).toLowerCase())
+                    .append(" ");
+        }
+
+        return formatted.toString().trim();
     }
 
     private void fillNbtWithItem(ItemStack stack){

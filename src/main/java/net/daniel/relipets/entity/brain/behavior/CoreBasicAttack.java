@@ -24,6 +24,10 @@ public class CoreBasicAttack extends ExtendedBehaviour<BaseCore> {
         return MEMORIES;
     }
 
+    public CoreBasicAttack(int attackRange){
+        this.attackRange = attackRange;
+    }
+
     @Override
     protected void start(BaseCore entity) {
         super.start(entity);
@@ -32,7 +36,7 @@ public class CoreBasicAttack extends ExtendedBehaviour<BaseCore> {
 
         if(target == null) return;
 
-        if(entity.squaredDistanceTo(target) <= this.attackRange * this.attackRange){
+        if(entity.squaredDistanceTo(target) <= this.attackRange * this.attackRange || entity.getBoundingBox().intersects(target.getBoundingBox())){
             entity.getNavigation().stop();
             BrainUtils.clearMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET);
             entity.performBasicAttack(target);

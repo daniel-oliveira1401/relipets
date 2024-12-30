@@ -35,6 +35,7 @@ import net.minecraft.item.ShearsItem;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.tslat.smartbrainlib.api.SmartBrainOwner;
 import net.tslat.smartbrainlib.api.core.BrainActivityGroup;
@@ -45,6 +46,7 @@ import net.tslat.smartbrainlib.api.core.behaviour.OneRandomBehaviour;
 import net.tslat.smartbrainlib.api.core.navigation.SmoothGroundNavigation;
 import net.tslat.smartbrainlib.api.core.sensor.ExtendedSensor;
 import net.tslat.smartbrainlib.util.BrainUtils;
+import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
 
 import java.util.HashMap;
@@ -82,9 +84,11 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         this.dataTracker.startTracking(CURRENT_ANIM, ANIM_IDLE);
     }
 
-    @Override
-    public float getMovementSpeed() {
-        return 0.3f;
+    @Nullable
+    public PetPart getPartFromType(String partType){
+        PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
+
+        return partSystem.getPartByType(partType);
     }
 
     public String getCurrentAnim() {
@@ -152,6 +156,8 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public void performBasicAttack(LivingEntity attackTarget){
         System.out.println("Attacked target!! >.>");
         attackTarget.damage(this.getWorld().getDamageSources().magic(), 1);
+        this.setVelocity(attackTarget.getPos().subtract(this.getPos()).normalize().multiply(0.5));
+        this.jump();
     }
 
     @Override
@@ -201,7 +207,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public BrainActivityGroup<? extends BaseCore> getFightTasks() {
         return BrainActivityGroup.fightTasks(
                 new FirstApplicableBehaviour<BaseCore>(
-                        new CoreBasicAttack().cooldownFor((e)-> 20)
+                        new CoreBasicAttack(3).cooldownFor((e)-> 20)
                 )
         );
     }
@@ -269,6 +275,21 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     @Override
     public List<Activity> getActivityPriorities() {
         return List.of(Activity.FIGHT, CoreCustomActivities.BEHAVIOR, Activity.IDLE);
+    }
+
+    @Override
+    public boolean cannotDespawn() {
+        return true;
+    }
+
+    @Override
+    public boolean isPersistent() {
+        return true;
+    }
+
+    @Override
+    public float getMovementSpeed() {
+        return 0.3f;
     }
 
     /*

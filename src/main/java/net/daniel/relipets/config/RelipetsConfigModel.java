@@ -19,5 +19,13 @@ public class RelipetsConfigModel {
             "head_basic_quadruped",
             "tail_basic_quadruped",
 
+            //======== bee set =========
+            "leg_basic_bee",
+            "torso_basic_bee",
+            "head_basic_bee",
+            "tail_basic_bee",
+            "arm_basic_bee",
+            "wing_basic_bee"
+
     }; //Each part model variant should be named as such: parttype_part_name
 }

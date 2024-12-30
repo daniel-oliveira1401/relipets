@@ -1,6 +1,7 @@
 package net.daniel.relipets.entity.render_layers;
 
 
+import lombok.Getter;
 import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -20,6 +21,7 @@ import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
 public class PartRenderLayer extends GeoRenderLayer<BaseCore> {
 
+    @Getter
     private final PartRenderer partRenderer;
     private final String partType;
 
