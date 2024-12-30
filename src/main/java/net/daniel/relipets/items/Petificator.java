@@ -6,11 +6,13 @@ import net.daniel.relipets.items.client.PetificatorRenderer;
 import net.daniel.relipets.items.special.PetificatorProjectile;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsEntityRegistry;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.render.item.BuiltinModelItemRenderer;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsageContext;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
@@ -70,6 +72,7 @@ public class Petificator extends Item implements GeoItem {
 
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
+        System.out.println("called this");
         if(user.isSneaking()){
             PetificatorProjectile proj = new PetificatorProjectile(RelipetsEntityRegistry.PETIFICATOR_PROJECTILE, user.getWorld());
             //proj.setPos(user.getX(), user.getY()+1.3f, user.getZ());
@@ -79,9 +82,9 @@ public class Petificator extends Item implements GeoItem {
             proj.setVelocity(user, user.getPitch(), user.getYaw(), 0.0F, 1.5F, 1.0F);
             proj.setOwner(user);
             user.getWorld().spawnEntity(proj);
+            return TypedActionResult.consume(user.getStackInHand(hand));
         }
-
-        return super.use(world, user, hand);
+        return TypedActionResult.fail(user.getStackInHand(hand));
     }
 
     @Override
@@ -105,5 +108,18 @@ public class Petificator extends Item implements GeoItem {
         return false;
     }
 
-
+    @Override
+    public ActionResult useOnBlock(ItemUsageContext context) {
+        if(context.getPlayer() != null && !context.getWorld().isClient() && !context.getPlayer().isSneaking()){
+            System.out.println("Called use on block");
+            PlayerEntity player = context.getPlayer();
+            PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            PetData pet = petOwner.getPetParty().getSelectedPet();
+            if(pet != null){
+                pet.teleport(context.getHitPos());
+            }
+            return ActionResult.CONSUME;
+        }
+        return super.useOnBlock(context);
+    }
 }

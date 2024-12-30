@@ -170,10 +170,14 @@ public class PetParty implements ISerializable {
             operationExecuted = true;
             Utils.message("Summoned " + selectedPet.getPetInfo().getPetName() + ".", player);
 
-        }else{
+        }else if(selectedPet.isHealing()){
             Relipets.LOGGER.debug("The selected pet is healing");
             Utils.message(selectedPet.getPetInfo().getPetName() + " is healing. Wait "+ Utils.tickToSecond(selectedPet.getHealingCooldown()) + "s.", player);
 
+        }else{
+            Utils.message("Something bad happened. Pet is not in a known state. Attempting to recover pet...", player);
+            //create a copy of the pet using the last known state of the pet
+            selectedPet.summon(world, pos, player);
         }
 
         if(operationExecuted){

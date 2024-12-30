@@ -7,10 +7,13 @@ import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.brain.MemoryModuleType;
+import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
+import net.tslat.smartbrainlib.util.BrainUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,28 +69,12 @@ public class PetData implements ISerializable {
 
     }
 
-    //TODO: split info into volatile and non-volatile. Update only the volatile info
     public void updateVolatilePetInfoIfPossible(){
         if(this.isSummoned()){
             this.getPetInfo().setPetName(this.getPetEntityData().getEntity().getDisplayName().getString());
             this.getPetInfo().setMaxHealth((int) this.getPetEntityData().getEntity().getMaxHealth());
             this.getPetInfo().setCurrentHealth((int) this.getPetEntityData().getEntity().getHealth());
 
-        }
-    }
-
-    private void updateTrackerIfNeeded(ServerWorld world){
-        if(this.isSummoned()){
-            this.petEntityData.updateTracker();
-        }
-    }
-
-    boolean pendingEntityBind = false;
-    private void handleEntityBindingIfNeeded(ServerWorld world, PlayerEntity player){
-        if(pendingEntityBind){
-            Relipets.LOGGER.debug("Entity needs binding. Trying to bind it");
-            this.getPetEntityData().bindEntity(world, player);
-            pendingEntityBind = false;
         }
     }
 
@@ -133,6 +120,20 @@ public class PetData implements ISerializable {
         if(recalled)
             this.summonState = RECALLED;
 
+    }
+
+    public void teleport(Vec3d pos){
+        if(this.isSummoned()){
+            this.getPetEntityData().getEntity().teleport(
+                    pos.getX(),
+                    pos.getY(),
+                    pos.getZ()
+            );
+            //is this a no no?
+            BrainUtils.clearMemory(this.getPetEntityData().getEntity(), MemoryModuleType.WALK_TARGET);
+            if(this.getPetEntityData().getEntity() instanceof PathAwareEntity entity)
+                entity.getNavigation().stop();
+        }
     }
 
     public void fillFromEntity(LivingEntity entity, PlayerEntity player){
@@ -221,6 +222,24 @@ public class PetData implements ISerializable {
                 Math.min(pet.getMaxHealth(), pet.getHealth() + healing)
         );
     }
+
+
+    private void updateTrackerIfNeeded(ServerWorld world){
+        if(this.isSummoned()){
+            this.petEntityData.updateTracker();
+        }
+    }
+
+    boolean pendingEntityBind = false;
+    private void handleEntityBindingIfNeeded(ServerWorld world, PlayerEntity player){
+        if(pendingEntityBind){
+            Relipets.LOGGER.debug("Entity needs binding. Trying to bind it");
+            System.out.println("Entity needs binding, trying to bind it...");
+            this.getPetEntityData().bindEntity(world, player);
+            pendingEntityBind = false;
+        }
+    }
+
 
     @Getter
     @Setter

@@ -137,6 +137,7 @@ public class PetEntityData implements ISerializable {
             this.setOwner(player);
 
             Relipets.LOGGER.debug("Bound entity successfully");
+            System.out.println("Bound entity successfully");
         }else{
             //search in the world of the tracker
             ServerWorld trackerWorld = this.getTracker().getWorld(world.getServer());
@@ -150,6 +151,7 @@ public class PetEntityData implements ISerializable {
 
                 this.entity = entity;
                 this.setOwner(player);
+                System.out.println("Bound entity successfully");
 
             }else{
                 this.loadEntityAndPerformAction(world.getServer(), (entityLoaded)-> {
@@ -157,6 +159,8 @@ public class PetEntityData implements ISerializable {
                     this.entity = entityLoaded;
                     this.setOwner(player);
                     Relipets.LOGGER.debug("Bound entity successfully after loading it");
+                    System.out.println("Bound entity successfully");
+
                     return true;
                 });
 

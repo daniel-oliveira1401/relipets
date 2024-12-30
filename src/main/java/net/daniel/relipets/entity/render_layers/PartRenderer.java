@@ -8,6 +8,7 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
+import software.bernie.geckolib.core.object.Color;
 import software.bernie.geckolib.model.DefaultedGeoModel;
 import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.renderer.GeoObjectRenderer;
@@ -57,4 +58,11 @@ public class PartRenderer extends GeoObjectRenderer<BasePart> {
         return partVariantModel;
     }
 
+    @Override
+    public Color getRenderColor(BasePart animatable, float partialTick, int packedLight) {
+        if(animatable.core != null && animatable.core.hurtTime > 0){
+            return Color.ofRGBA(255, 150, 150, 200);
+        }
+        return super.getRenderColor(animatable, partialTick, packedLight);
+    }
 }

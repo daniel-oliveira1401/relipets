@@ -17,9 +17,8 @@ import java.util.function.Consumer;
  * try to set the memory associated with it to true.
  */
 public class FeelLikeDoingSomethingSensor<C extends BaseCore> extends ExtendedSensor<C> {
-    private MemoryModuleType<Boolean> memory;
+    private MemoryModuleType<String> memory;
     private float chance = 0.5f;
-    private int forgetAfter = 10;
 
     public FeelLikeDoingSomethingSensor(){
     }
@@ -29,13 +28,8 @@ public class FeelLikeDoingSomethingSensor<C extends BaseCore> extends ExtendedSe
         return this;
     }
 
-    public FeelLikeDoingSomethingSensor<C> affectsMemory(MemoryModuleType<Boolean> memory){
+    public FeelLikeDoingSomethingSensor<C> affectsMemory(MemoryModuleType<String> memory){
         this.memory = memory;
-        return this;
-    }
-
-    public FeelLikeDoingSomethingSensor<C> forgetsAfter(int ticks){
-        this.forgetAfter = ticks;
         return this;
     }
 
@@ -58,7 +52,7 @@ public class FeelLikeDoingSomethingSensor<C extends BaseCore> extends ExtendedSe
     @Override
     public void sense(ServerWorld level, BaseCore entity) {
         if(Math.random() <= this.chance){
-            BrainUtils.setForgettableMemory(entity.getBrain(), this.memory, true, this.forgetAfter);
+            BrainUtils.setMemory(entity.getBrain(), this.memory, "yes you should");
             System.out.println("I feel like doing something!");
         }
     }

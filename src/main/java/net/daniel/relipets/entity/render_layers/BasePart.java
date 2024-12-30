@@ -22,13 +22,13 @@ public class BasePart implements GeoEntity {
 
     AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
-
     public BaseCore core;
     public String partType;
     public String partModelId;
 
     private final HashMap<String, RawAnimation> rawAnimationCache = new HashMap<>();
+
+    private final RawAnimation IDLE = RawAnimation.begin().thenLoop(BaseCore.ANIM_IDLE);
 
     protected <E extends BasePart> PlayState partAnimController(final AnimationState<E> event) {
 
@@ -42,22 +42,30 @@ public class BasePart implements GeoEntity {
 
             //IDK how the hell this works, but it works. This can be used to check if an animation exists or not
             if (bakedAnimations == null){
-                //animation doesnt exist, fallback to idle anim
-                //return event.setAndContinue(IDLE);
+                //model does not have any animations. Don't play anything then
                 return PlayState.STOP;
             }else{
+                //this part has an animation that corresponds to the current anim
+                if(bakedAnimations.animations().containsKey(animationName)){
+                    RawAnimation anim = rawAnimationCache.getOrDefault(animationName, null);
 
-                RawAnimation anim = rawAnimationCache.getOrDefault(animationName, null);
+                    if(anim == null){
+                        rawAnimationCache.put(animationName, RawAnimation.begin().thenLoop(animationName));
+                    }
 
-                if(anim == null){
-                    rawAnimationCache.put(animationName, RawAnimation.begin().thenLoop(animationName));
+                    return event.setAndContinue(anim);
+                }else{
+                    //this part does not have an animation that corresponds to the current animation. Fall back to idle
+                    //assumes that it has an idle animation
+                    return  event.setAndContinue(IDLE);
+
                 }
 
-                return event.setAndContinue(anim);
             }
 
         }
 
+        //if the part doesnt have a core attached to it (for some reason), then don't play anything
         return PlayState.STOP;
 
     }

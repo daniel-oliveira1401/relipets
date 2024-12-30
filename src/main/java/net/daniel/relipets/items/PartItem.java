@@ -71,7 +71,7 @@ public abstract class PartItem extends Item implements GeoItem {
     @Override
     public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
         if(!world.isClient()){
-            if(!stack.hasNbt() || (stack.getOrCreateNbt().contains(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY) && !this.TYPE.isEmpty())){
+            if(!stack.hasNbt() || (!stack.getOrCreateNbt().contains(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY) && !this.TYPE.isEmpty())){
                 fillNbtWithItem(stack);
             }
         }

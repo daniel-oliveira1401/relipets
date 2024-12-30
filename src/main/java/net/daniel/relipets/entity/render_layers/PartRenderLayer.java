@@ -29,44 +29,6 @@ public class PartRenderLayer extends GeoRenderLayer<BaseCore> {
         this.partType = partType;
     }
 
-
-//    @Override
-//    public void render(MatrixStack poseStack, BaseCore core, BakedGeoModel bakedModel, RenderLayer renderType, VertexConsumerProvider bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
-//
-//        PetPart part = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(core).getPartByType(partType);
-//
-//        this.partRenderer.setPartVariant(part.modelPartId, part.partType);
-//
-//        this.partRenderer.buildModelIfNeeded();
-//
-//        if(!this.partRenderer.isValid()) return;
-//
-//        this.partRenderer.partVariantModel.updateCustomAnimation(core, partialTick);
-//
-//        RenderLayer entityRenderType = RenderLayer.getEntityCutout(this.partRenderer.partVariantModel.texturePath);
-//
-//        poseStack.push();
-//
-//        getRenderer().reRender(
-//                this.partRenderer.getGeoModel().getBakedModel(this.partRenderer.partVariantModel.modelPath),
-//                poseStack,
-//                bufferSource,
-//                core,
-//                entityRenderType,
-//                bufferSource.getBuffer(entityRenderType),
-//                partialTick,
-//                packedLight,
-//                OverlayTexture.DEFAULT_UV,
-//                1,
-//                1,
-//                1,
-//                1
-//                );
-//
-//        poseStack.pop();
-//
-//    }
-
     private BasePart dummyPart  = new BasePart();
 
     @Override

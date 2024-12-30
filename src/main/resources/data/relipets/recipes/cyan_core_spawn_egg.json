@@ -2,12 +2,12 @@
   "type": "minecraft:crafting_shaped",
   "pattern": [
     " D ",
-    "DBD",
+    "DED",
     "DDD"
   ],
   "key": {
-    "B": {
-      "item": "minecraft:diamond_block"
+    "E": {
+      "item": "minecraft:egg"
     },
     "D": {
       "item": "minecraft:diamond"
