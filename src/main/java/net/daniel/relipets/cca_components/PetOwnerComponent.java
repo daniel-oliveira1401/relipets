@@ -15,32 +15,6 @@ import net.minecraft.server.world.ServerWorld;
 
 public class PetOwnerComponent implements Component, AutoSyncedComponent, CommonTickingComponent {
 
-    /*
-
-    TODO:
-
-        - Add a summoning cooldown //DONE
-
-        - Add a visual indicator of when pet summoning is on cooldown //DONE
-
-        - Add a brief highlight effect when a pet is selected //DONE
-
-        - Handle when pet "dies" //DONE
-
-        - Handle slot selection //DONE
-
-        - Handle displaying slots //DONE
-
-        - Handle releasing pets //DONE
-
-        - Handle re-binding after leaving world and coming back //DONE
-
-        - Handle pet tracking //DONE
-
-        - Add a cooldown for when the pet dies (a healing state) //DONE
-
-     */
-
     @Getter
     PetParty petParty;
     PlayerEntity player;
@@ -51,7 +25,7 @@ public class PetOwnerComponent implements Component, AutoSyncedComponent, Common
     }
 
     //TODO: override the packet assembling method for making it more lightweight to update things
-    public void onPartyModified(PetParty party){
+    public void onPartyModified(){
         CardinalComponentsRegistry.PET_OWNER_KEY.sync(player);
     }
 

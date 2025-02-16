@@ -13,7 +13,12 @@
 			"bones": [
 				{
 					"name": "wing",
-					"pivot": [-3, 11, -3],
+					"pivot": [-3, 11, -3]
+				},
+				{
+					"name": "left",
+					"parent": "wing",
+					"pivot": [3, 11, -3],
 					"cubes": [
 						{
 							"origin": [5, 11, -6],
@@ -28,7 +33,14 @@
 								"up": {"uv": [0, 0], "uv_size": [8, 6]},
 								"down": {"uv": [0, 12], "uv_size": [8, -6]}
 							}
-						},
+						}
+					]
+				},
+				{
+					"name": "right",
+					"parent": "wing",
+					"pivot": [-2, 10, 0],
+					"cubes": [
 						{
 							"origin": [-13, 11, -6],
 							"size": [8, 1, 6],

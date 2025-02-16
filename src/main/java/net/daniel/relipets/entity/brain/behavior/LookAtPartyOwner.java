@@ -24,7 +24,8 @@ public class LookAtPartyOwner extends ContinuousTimedBehavior {
     protected List<Pair<MemoryModuleType<?>, MemoryModuleState>> getMemoryRequirements() {
         return List.of(
                 Pair.of(RelipetsMemoryTypes.PARTY_OWNER, MemoryModuleState.VALUE_PRESENT),
-                Pair.of(RelipetsMemoryTypes.PARTY_OWNER_NEARBY, MemoryModuleState.VALUE_PRESENT));
+                Pair.of(RelipetsMemoryTypes.PARTY_OWNER_NEARBY, MemoryModuleState.VALUE_PRESENT),
+                Pair.of(MemoryModuleType.ATTACK_TARGET, MemoryModuleState.VALUE_ABSENT));
     }
 
     {
@@ -34,7 +35,11 @@ public class LookAtPartyOwner extends ContinuousTimedBehavior {
     @Override
     protected void start(BaseCore entity) {
         super.start(entity);
-        System.out.println("Started look at party owner");
+    }
+
+    @Override
+    protected boolean shouldKeepRunning(BaseCore entity) {
+        return !BrainUtils.hasMemory(entity, MemoryModuleType.ATTACK_TARGET);
     }
 
     @Override

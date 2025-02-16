@@ -1,13 +1,21 @@
 package net.daniel.relipets.entity.cores;
 
-import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import net.daniel.relipets.cca_components.PartSystemComponent;
 import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.entity.brain.activity.CoreCustomActivities;
 import net.daniel.relipets.entity.brain.behavior.*;
+import net.daniel.relipets.entity.brain.behavior.abilities.UseAttackAbilityBehavior;
+import net.daniel.relipets.entity.brain.behavior.special.CoreComeCloseToOwnerBehavior;
+import net.daniel.relipets.entity.brain.behavior.special.CoreStrollAroundPartyOwner;
 import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.brain.sensor.*;
+import net.daniel.relipets.entity.brain.sensor.models.BehaviorDefinition;
+import net.daniel.relipets.entity.brain.sensor.models.WeightedList;
+import net.daniel.relipets.entity.cores.abilities.AbilityRunningStateEnum;
+import net.daniel.relipets.entity.cores.abilities.CoreAbility;
+import net.daniel.relipets.entity.cores.abilities.CoreAbilityStats;
+import net.daniel.relipets.entity.cores.progression.LevelProgression;
 import net.daniel.relipets.items.PartItem;
 import net.daniel.relipets.items.PartItemFactory;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -20,11 +28,11 @@ import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.goal.LookAtEntityGoal;
 import net.minecraft.entity.ai.pathing.EntityNavigation;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageSources;
-import net.minecraft.entity.damage.DamageTypes;
+import net.minecraft.entity.attribute.AttributeContainer;
+import net.minecraft.entity.attribute.DefaultAttributeContainer;
+import net.minecraft.entity.attribute.DefaultAttributeRegistry;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
@@ -35,32 +43,32 @@ import net.minecraft.item.ShearsItem;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.tslat.smartbrainlib.api.SmartBrainOwner;
 import net.tslat.smartbrainlib.api.core.BrainActivityGroup;
-import net.tslat.smartbrainlib.api.core.SmartBrain;
 import net.tslat.smartbrainlib.api.core.SmartBrainProvider;
+import net.tslat.smartbrainlib.api.core.behaviour.AllApplicableBehaviours;
 import net.tslat.smartbrainlib.api.core.behaviour.FirstApplicableBehaviour;
-import net.tslat.smartbrainlib.api.core.behaviour.OneRandomBehaviour;
 import net.tslat.smartbrainlib.api.core.navigation.SmoothGroundNavigation;
 import net.tslat.smartbrainlib.api.core.sensor.ExtendedSensor;
 import net.tslat.smartbrainlib.util.BrainUtils;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+//TODO: move progression system to PetMetadaComponent
 
 public abstract class BaseCore extends PathAwareEntity implements GeoEntity, SmartBrainOwner<BaseCore> {
+
+    public static final String ABILITY_STATS_KEY = "ability_stats";
+    public static final String LEVEL_PROGRESSION_KEY = "level_progression";
 
     public static final String ANIM_IDLE = "idle";
     public static final String ANIM_WALK = "walk";
 
-    public static final int MIN_BEHAVIOR_SCAN_RATE = 50;
-    public static final int MAX_BEHAVIOR_SCAN_RATE = 100;
+    public static final int MIN_BEHAVIOR_SCAN_RATE = Utils.secondToTick(1);
+    public static final int MAX_BEHAVIOR_SCAN_RATE = Utils.secondToTick(5);
 
     public static final String COME_CLOSE_TO_OWNER = "come_close_to_owner";
     public static final String FORAGE = "forage";
@@ -69,26 +77,42 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public int minFollowDist = 15;
     public int maxFollowDist = 50;
 
-    @Getter
-    private Map<String, Float> behaviorDistribution = new HashMap<>();
-
-    {
-        behaviorDistribution.put(STROLL_AROUND, 70.0f);
-        behaviorDistribution.put(COME_CLOSE_TO_OWNER, 30.0f);
-    }
+    public int currentBehaviorDuration = 0;
 
     public static final TrackedData<String> CURRENT_ANIM = DataTracker.registerData(BaseCore.class, TrackedDataHandlerRegistry.STRING);
 
+    //============= Abilities ===================
+
+    @Getter
+    public CoreAbilityStats abilityStats;
+
+    public List<CoreAbility> runningAbilities = new ArrayList<>();
+
+    // ========== Progression ===================
+
     public BaseCore(EntityType<? extends PathAwareEntity> entityType, World world) {
         super(entityType, world);
+
         this.dataTracker.startTracking(CURRENT_ANIM, ANIM_IDLE);
+
+        this.abilityStats = new CoreAbilityStats(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
+    public static DefaultAttributeContainer.Builder createBaseCoreAttributes() {
+        return createMobAttributes()
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 100.0); // 40 HP (20 hearts)
     }
 
     @Nullable
     public PetPart getPartFromType(String partType){
-        PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
+
+        PartSystemComponent partSystem = this.getPartSystem();
 
         return partSystem.getPartByType(partType);
+    }
+
+    public PartSystemComponent getPartSystem(){
+        return CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
     }
 
     public String getCurrentAnim() {
@@ -158,13 +182,38 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         attackTarget.damage(this.getWorld().getDamageSources().magic(), 1);
         this.setVelocity(attackTarget.getPos().subtract(this.getPos()).normalize().multiply(0.5));
         this.jump();
+        attackTarget.setAttacker(this);
     }
 
     @Override
     protected void mobTick() {
         super.mobTick();
-        if (!this.getWorld().isClient()) tickBrain(this);
+
+        if (!this.getWorld().isClient()){
+            tickBrain(this);
+
+            tickRunningAbilities();
+
+        }
     }
+
+    private void tickRunningAbilities() {
+
+        Iterator<CoreAbility> abilityIterator = this.runningAbilities.iterator();
+
+        while(abilityIterator.hasNext()){
+            CoreAbility ability = abilityIterator.next();
+            ability.tick(this);
+
+            if(ability.getRunningState() == AbilityRunningStateEnum.FINISHED){
+                ability.finish(this);
+                abilityIterator.remove();
+            }
+
+        }
+
+    }
+
 
     @Override
     protected Brain.Profile<?> createBrainProfile() {
@@ -181,10 +230,16 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
                                 PredicateSensor.MemoryPair.of(RelipetsMemoryTypes.SHOULD_FOLLOW_OWNER,(e)-> true)
                         )
                 ),
-                new FeelLikeDoingSomethingSensor<>()
-                        .withChance(1)
-                        .affectsMemory(RelipetsMemoryTypes.SHOULD_BEHAVE)
-                        .setScanRate((e) -> (int) (Math.random() * MAX_BEHAVIOR_SCAN_RATE + MIN_BEHAVIOR_SCAN_RATE))
+                new ChooseBehaviorSensor(RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM)
+                        .withChoices(new WeightedList<BehaviorDefinition>()
+                                .addEntry(BehaviorDefinition.of(COME_CLOSE_TO_OWNER, Utils.secondToTick(4)), 30)
+                                .addEntry(BehaviorDefinition.of(STROLL_AROUND, Utils.secondToTick(1)), 70))
+                        .scanRateBetween(MAX_BEHAVIOR_SCAN_RATE, MIN_BEHAVIOR_SCAN_RATE)
+
+//                new FeelLikeDoingSomethingSensor<>()
+//                        .withChance(1)
+//                        .affectsMemory(RelipetsMemoryTypes.SHOULD_BEHAVE)
+//                        .setScanRate((e) -> (int) (Math.random() * MAX_BEHAVIOR_SCAN_RATE + MIN_BEHAVIOR_SCAN_RATE))
         );
     }
 
@@ -205,10 +260,20 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
     @Override
     public BrainActivityGroup<? extends BaseCore> getFightTasks() {
+        /*
+
+        Instead of having the abilities being behaviors, i could have a single behavior that is responsible for activating
+        abilities. When that behavior is activated it would read the parts that the core has, it would then pick one
+        of the abilities depending on a criteria and use it. The ability used would be added to the list of running
+        abilities of this core and the core would tick the abilities in its tick method
+
+         */
+        AllApplicableBehaviours<BaseCore> possibleFightTasks = new AllApplicableBehaviours<>(
+                new UseAttackAbilityBehavior(),
+                new CoreBasicAttack(2).cooldownFor((e)-> Utils.secondToTick(1)));
+
         return BrainActivityGroup.fightTasks(
-                new FirstApplicableBehaviour<BaseCore>(
-                        new CoreBasicAttack(3).cooldownFor((e)-> 20)
-                )
+                possibleFightTasks
         );
     }
 
@@ -217,25 +282,17 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
         Map<Activity, BrainActivityGroup<? extends BaseCore>> customActivities = new HashMap<>();
 
-        //========= V2 STUFF ======== Behaviors
-
-
         BrainActivityGroup<BaseCore> behaviorBehaviors = new BrainActivityGroup<BaseCore>(CoreCustomActivities.BEHAVIOR)
-                .requireAndWipeMemoriesOnUse(RelipetsMemoryTypes.SHOULD_BEHAVE)
+                .requireAndWipeMemoriesOnUse(RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM)
+                .onlyStartWithMemoryStatus(MemoryModuleType.ATTACK_TARGET, MemoryModuleState.VALUE_ABSENT)
                 .priority(20)
                 .behaviours(
                         new FirstApplicableBehaviour<BaseCore>(
-                                new CoreStrollAroundPartyOwner()
-                                        .cooldownFor((e)-> 80)
-                                        .whenStopping((e)-> BrainUtils.clearMemory(e.getBrain(), RelipetsMemoryTypes.SHOULD_BEHAVE))
-                                        .startCondition((e) -> (Math.random() * 100) < e.getBehaviorDistribution().get(STROLL_AROUND)),
+                                new CoreStrollAroundPartyOwner(),
                                 new CoreComeCloseToOwnerBehavior()
-                                        .startCondition((e)-> (Math.random() * 100) < e.getBehaviorDistribution().get(COME_CLOSE_TO_OWNER))
-                                        .whenStopping((e)-> BrainUtils.clearMemory(e.getBrain(), RelipetsMemoryTypes.SHOULD_BEHAVE))
-                                        .cooldownFor((e)-> 30)
                         )
-                        .startCondition((e)-> BrainUtils.hasMemory(e, RelipetsMemoryTypes.SHOULD_BEHAVE))
-                        .whenStopping((e)-> BrainUtils.clearMemory(e.getBrain(), RelipetsMemoryTypes.SHOULD_BEHAVE))
+                        .startCondition((e)-> BrainUtils.hasMemory(e, RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM) && !BrainUtils.hasMemory(e, MemoryModuleType.ATTACK_TARGET))
+                        .whenStopping((e)-> BrainUtils.clearMemory(e.getBrain(), RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM))
                 );
 
         customActivities.put(CoreCustomActivities.BEHAVIOR, behaviorBehaviors);
@@ -245,36 +302,30 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         return customActivities;
     }
 
-    /*
-
-    1
-
-    0.3 - comeCloseToOwner
-    0.5 - forage
-    0.2 - goGreatNearbyMob
-
-
-    reinforceBehavior(comeCloseToOwner)
-
-        ExtendedBehavior ccto = getBehaviorById(comeCloseToOwner)
-
-        ccto.applyReinforcement(this.getBehaviors, ccto)
-
-    //then inside .applyReinforcement()
-
-    applyReinforcement(otherBehaviors, thisBehavior){
-
-        //logic here to increase the weight of thisBehavior and decrease the behavior of otherBehaviors
-        thisBehavior
-
-
-    }
-
-     */
-
     @Override
     public List<Activity> getActivityPriorities() {
         return List.of(Activity.FIGHT, CoreCustomActivities.BEHAVIOR, Activity.IDLE);
+    }
+
+    public void runAbility(CoreAbility ability){
+
+        ability.start(this.getAbilityStats(), this);
+
+        this.runningAbilities.add(ability);
+    }
+
+    @Override
+    public void writeCustomDataToNbt(NbtCompound nbt) {
+        super.writeCustomDataToNbt(nbt);
+        nbt.put(ABILITY_STATS_KEY, this.abilityStats.writeToNbt());
+    }
+
+    @Override
+    public void readCustomDataFromNbt(NbtCompound nbt) {
+        super.readCustomDataFromNbt(nbt);
+
+        this.abilityStats = new CoreAbilityStats(nbt.getCompound(ABILITY_STATS_KEY));
+
     }
 
     @Override
@@ -400,17 +451,23 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         - Nightvision
         - Give haste when mining
 
+
+    Abilities are tied to parts. Each part has a signature ability. Apart from that, a part could also have a special
+    ability which is randomly assigned to it when the part is created.
+
+    For now, lets stick with only the signature abilities.
+
+    For that we need a way to map a part to an ability.
+
      */
 
     //TODO: add behavior
     // follow owner //DONE
-    // stroll around when near owner
-    // attack owner's target
-    // avenge owner
+    // stroll around when near owner //DONE
+    // attack owner's target //DONE
+    // avenge owner //DONE
 
     //TODO: add leveling capability
-
-    //TODO: add natural spawning
 
 }
 

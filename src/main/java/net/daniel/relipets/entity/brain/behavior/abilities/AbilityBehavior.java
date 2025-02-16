@@ -1,4 +1,4 @@
-package net.daniel.relipets.entity.brain.behavior;
+package net.daniel.relipets.entity.brain.behavior.abilities;
 
 import com.mojang.datafixers.util.Pair;
 import net.daniel.relipets.entity.cores.BaseCore;
@@ -8,15 +8,17 @@ import net.tslat.smartbrainlib.api.core.behaviour.ExtendedBehaviour;
 
 import java.util.List;
 
-public class ForageBehavior extends ExtendedBehaviour<BaseCore> {
+public abstract class AbilityBehavior extends ExtendedBehaviour<BaseCore> {
+
     @Override
     protected List<Pair<MemoryModuleType<?>, MemoryModuleState>> getMemoryRequirements() {
-        return List.of();
+        return List.of(
+                Pair.of(MemoryModuleType.ATTACK_TARGET, MemoryModuleState.VALUE_PRESENT)
+        );
     }
 
     @Override
-    protected void start(BaseCore entity) {
-        super.start(entity);
-        System.out.println("[BEHAVIOR] Foraging...");
+    protected boolean shouldKeepRunning(BaseCore entity) {
+        return true;
     }
 }

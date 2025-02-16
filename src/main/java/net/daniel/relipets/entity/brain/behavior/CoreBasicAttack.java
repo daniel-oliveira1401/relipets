@@ -39,9 +39,11 @@ public class CoreBasicAttack extends ExtendedBehaviour<BaseCore> {
         if(entity.squaredDistanceTo(target) <= this.attackRange * this.attackRange || entity.getBoundingBox().intersects(target.getBoundingBox())){
             entity.getNavigation().stop();
             BrainUtils.clearMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET);
+            entity.getLookControl().lookAt(target);
             entity.performBasicAttack(target);
         }else{
             entity.getNavigation().startMovingTo(target, entity.getMovementSpeed());
+            entity.getLookControl().lookAt(target);
             BrainUtils.setMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET, new WalkTarget(target, entity.getMovementSpeed(), 1));
         }
     }

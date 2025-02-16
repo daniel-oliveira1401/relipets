@@ -8,10 +8,7 @@ import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.brain.sensor.RelipetsSensorTypes;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.events.PetFaintedCallback;
-import net.daniel.relipets.registries.C2SPacketHandlers;
-import net.daniel.relipets.registries.CardinalComponentsRegistry;
-import net.daniel.relipets.registries.RelipetsEntityRegistry;
-import net.daniel.relipets.registries.RelipetsItemRegistry;
+import net.daniel.relipets.registries.*;
 import net.daniel.relipets.utils.SetTimeoutManager;
 import net.fabricmc.api.ModInitializer;
 
@@ -55,6 +52,8 @@ public class Relipets implements ModInitializer {
 
 		RelipetsMemoryTypes.init();
 
+		PetPartRegistry.onInitialize();
+
 		ServerTickEvents.END_SERVER_TICK.register(server -> SetTimeoutManager.tickActiveTimeouts());
 
 		PetFaintedCallback.EVENT.register((pet)->{
@@ -64,7 +63,7 @@ public class Relipets implements ModInitializer {
 
 			String ownerUUID = petMetadataComponent.getPlayerUUID();
 
-			Relipets.LOGGER.debug("Owner is: " + ownerUUID);
+            Relipets.LOGGER.debug("Owner is: {}", ownerUUID);
 
 			if(!pet.getWorld().isClient() && pet.getWorld() instanceof ServerWorld world){
 				ServerPlayerEntity player = (ServerPlayerEntity) world.getPlayerByUuid(UUID.fromString(ownerUUID));

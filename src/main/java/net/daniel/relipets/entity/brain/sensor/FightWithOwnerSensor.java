@@ -1,7 +1,9 @@
 package net.daniel.relipets.entity.brain.sensor;
 
+import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
@@ -45,20 +47,22 @@ public class FightWithOwnerSensor extends ExtendedSensor<BaseCore> {
             LivingEntity attackingTarget = owner.getAttacking();
 
             //the one attacking the owner
-            if(attackingTarget == null)
+            if(owner.getAttacker() != null && owner.getAttacker().isAlive())
                 attackingTarget = owner.getAttacker();
 
-            if(attackingTarget != null && owner.squaredDistanceTo(attackingTarget) < atkDist * atkDist){
+            if(attackingTarget == null) return;
+
+            //target must not be inside party
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(owner);
+            if(petOwnerComponent.getPetParty().getPetByEntityUUID(attackingTarget.getUuidAsString()) != null) return;
+
+            if(owner.squaredDistanceTo(attackingTarget) < atkDist * atkDist){
                 //so that it doesnt attack itself
                 if(attackingTarget != entity){
-                    BrainUtils.setForgettableMemory(entity.getBrain(), MemoryModuleType.ATTACK_TARGET, owner.getAttacking(), Utils.secondToTick(5));
-                    System.out.println("Set core to attack owner's target");
+                    BrainUtils.setForgettableMemory(entity.getBrain(), MemoryModuleType.ATTACK_TARGET, attackingTarget, Utils.secondToTick(5));
 
                 }
             }
-//            else{
-//                BrainUtils.clearMemory(entity.getBrain(), MemoryModuleType.ATTACK_TARGET);
-//            }
         }
 
     }

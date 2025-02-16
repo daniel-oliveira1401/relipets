@@ -49,4 +49,21 @@ public class LivingEntityDeathMixin {
     }
 
 
+    @Inject(at = @At("HEAD"), method = "canTarget(Lnet/minecraft/entity/LivingEntity;)Z", cancellable = true)
+    public void canTarget(LivingEntity entity, CallbackInfoReturnable<Boolean> cir){
+
+        //Entities that are inside a player's party cant target the owner
+
+        PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(this);
+
+        if(petMetadata.getPlayerUUID() != null && !petMetadata.getPlayerUUID().isEmpty()){
+            if(entity.getUuidAsString().equals(petMetadata.getPlayerUUID())){
+                cir.setReturnValue(false);
+            }
+        }
+
+    }
+
+
+
 }

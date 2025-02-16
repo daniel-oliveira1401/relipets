@@ -3,6 +3,7 @@ package net.daniel.relipets.items;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.items.client.PartItemRenderer;
+import net.daniel.relipets.registries.PetPartRegistry;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.client.render.item.BuiltinModelItemRenderer;
@@ -136,11 +137,11 @@ public abstract class PartItem extends Item implements GeoItem {
 
     protected PetPart createRandomPetPart(){
 
-        String[] partModelVariants = Relipets.CONFIG.partModelVariants();
+        List<PetPartRegistry.PetPartRegistryEntry> partModelVariants = PetPartRegistry.PART_VARIANTS;
 
-        int randomIndex = (int) (Math.random() * partModelVariants.length);
+        int randomIndex = (int) (Math.random() * partModelVariants.size());
 
-        String chosenPart = partModelVariants[randomIndex];
+        String chosenPart = partModelVariants.get(randomIndex).getName();
 
         PetPart part = PetPart.createFromString(chosenPart);
 
@@ -150,16 +151,16 @@ public abstract class PartItem extends Item implements GeoItem {
     @Nullable
     protected PetPart createPetPartFromType(String type){
 
-        List<String> partModelVariants = List.of(Relipets.CONFIG.partModelVariants());
+        List<PetPartRegistry.PetPartRegistryEntry> partModelVariants = PetPartRegistry.PART_VARIANTS;
 
-        partModelVariants = partModelVariants.stream().filter((p) -> PetPart.createFromString(p).partType.equals(type)).toList();
+        partModelVariants = partModelVariants.stream().filter((p) -> PetPart.createFromString(p.getName()).partType.equals(type)).toList();
 
         if(partModelVariants.isEmpty())
             return null;
 
         int randomIndex = (int) (Math.random() * partModelVariants.size());
 
-        String chosenPart = partModelVariants.get(randomIndex);
+        String chosenPart = partModelVariants.get(randomIndex).getName();
 
         PetPart part = PetPart.createFromString(chosenPart);
 

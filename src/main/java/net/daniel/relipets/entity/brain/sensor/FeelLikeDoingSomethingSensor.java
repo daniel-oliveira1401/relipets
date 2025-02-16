@@ -53,7 +53,6 @@ public class FeelLikeDoingSomethingSensor<C extends BaseCore> extends ExtendedSe
     public void sense(ServerWorld level, BaseCore entity) {
         if(Math.random() <= this.chance){
             BrainUtils.setMemory(entity.getBrain(), this.memory, "yes you should");
-            System.out.println("I feel like doing something!");
         }
     }
 }

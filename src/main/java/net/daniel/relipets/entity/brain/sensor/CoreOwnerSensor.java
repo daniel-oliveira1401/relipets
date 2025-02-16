@@ -40,7 +40,6 @@ public class CoreOwnerSensor<C extends BaseCore> extends ExtendedSensor<C> {
 
     @Override
     public void sense(ServerWorld level, C baseCoreEntity) {
-        Relipets.LOGGER.debug("Sensing owner...");
         List<PlayerEntity> playersNearby = (List<PlayerEntity>) baseCoreEntity.getWorld().getPlayers();
 
         for(PlayerEntity player : playersNearby){
@@ -51,9 +50,7 @@ public class CoreOwnerSensor<C extends BaseCore> extends ExtendedSensor<C> {
                 BrainUtils.setMemory(baseCoreEntity.getBrain(), RelipetsMemoryTypes.PARTY_OWNER, player);
                 if(player.squaredDistanceTo(baseCoreEntity) <= this.maxDist * this.maxDist){
                     BrainUtils.setMemory(baseCoreEntity.getBrain(), RelipetsMemoryTypes.PARTY_OWNER_NEARBY, true);
-                    Relipets.LOGGER.debug("Set owner nearby to true");
                 }
-                Relipets.LOGGER.debug("CoreOwnerSensor found core owner");
                 break;
             }
 

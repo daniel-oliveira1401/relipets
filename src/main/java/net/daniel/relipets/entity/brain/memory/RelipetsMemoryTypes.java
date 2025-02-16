@@ -1,5 +1,6 @@
 package net.daniel.relipets.entity.brain.memory;
 
+import net.daniel.relipets.entity.brain.sensor.models.BehaviorDefinition;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
@@ -13,7 +14,7 @@ public class RelipetsMemoryTypes {
     public static final MemoryModuleType<PlayerEntity> PARTY_OWNER;
     public static final MemoryModuleType<Boolean> PARTY_OWNER_NEARBY;
     public static final MemoryModuleType<Boolean> SHOULD_TEST;
-    public static final MemoryModuleType<String> SHOULD_BEHAVE;
+    public static final MemoryModuleType<BehaviorDefinition> BEHAVIOR_TO_PERFORM;
     public static final MemoryModuleType<Boolean> WANTS_TO_USE_ABILITY;
     public static final MemoryModuleType<Boolean> SHOULD_FOLLOW_OWNER;
 
@@ -21,7 +22,7 @@ public class RelipetsMemoryTypes {
         PARTY_OWNER = register("party_owner");
         PARTY_OWNER_NEARBY = register("party_owner_nearby");
         SHOULD_TEST = register("should_test");
-        SHOULD_BEHAVE = register("should_behave");
+        BEHAVIOR_TO_PERFORM = register("should_behave");
         WANTS_TO_USE_ABILITY = register("wants_to_use_ability");
         SHOULD_FOLLOW_OWNER = register("should_follow_owner");
     }

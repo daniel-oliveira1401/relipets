@@ -17,12 +17,13 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class PetParty implements ISerializable {
 
     public static final String SELECTED_PET_INDEX = "selected_pet_index";
 
-    private int slotCount = 5;
+    private int slotCount = 10;
 
     @Getter
     int selectedPetIndex = 0;
@@ -33,25 +34,46 @@ public class PetParty implements ISerializable {
     PetPartyEventListener onPetPartyModifiedListener;
 
     private PlayerEntity player;
+    private int baseSlotCount = 10;
+    int partyUpdateCooldown = 0;
+    int petSummonCooldown = 0;
+    int naturalHealingCooldown = 0;
 
     public PetParty(PlayerEntity player){
         this.player = player;
     }
-    int partyUpdateCooldown = 0;
-    int petSummonCooldown = 0;
-    int naturalHealingCooldown = 0;
+
     public void tick(ServerWorld world){
 
         List<PetSlot<PetData>> slotsWithPets = this.getSlotManager().getSlotsWithContent();
+        List<PetData> summonedPets = getSummonedPets(slotsWithPets);
 
-        for(PetSlot<PetData> slot : slotsWithPets){
-            PetData petData = slot.getContent();
-            if(petData != null){
-                petData.tick(world, player);
-            }
+        tickPets(slotsWithPets, world);
 
-        }
+        updateParty(slotsWithPets);
 
+        applyHealingToSummonedPetsIfPossible(summonedPets);
+
+        tickCooldowns();
+
+    }
+
+    private List<PetData> getSummonedPets(List<PetSlot<PetData>> slotsWithPets){
+        return slotsWithPets.stream()
+                .filter((s)-> s.getContent() != null && s.getContent().isSummoned())
+                .map(PetSlot::getContent).toList();
+    }
+
+    public void tickCooldowns(){
+        partyUpdateCooldown = Math.max(partyUpdateCooldown - 1, 0);
+
+        petSummonCooldown = Math.max(petSummonCooldown - 1, 0);
+
+        naturalHealingCooldown = Math.max(naturalHealingCooldown - 1, 0);
+
+    }
+
+    private void updateParty(List<PetSlot<PetData>> slotsWithPets) {
         if(partyUpdateCooldown <= 0){
             for(PetSlot<PetData> slot : slotsWithPets){
                 PetData petData = slot.getContent();
@@ -59,36 +81,32 @@ public class PetParty implements ISerializable {
                     petData.updateVolatilePetInfoIfPossible();
             }
             partyUpdateCooldown = 5;
-            onPetPartyModifiedListener.onPetPartyEvent(this);
+            onPetPartyModifiedListener.onPetPartyEvent();
         }
+    }
 
-        partyUpdateCooldown = Math.max(partyUpdateCooldown - 1, 0);
+    public void tickPets(List<PetSlot<PetData>> slotsWithPets, ServerWorld world){
+        for(PetSlot<PetData> slot : slotsWithPets){
+            PetData petData = slot.getContent();
+            if(petData != null){
+                petData.tick(world, player);
+            }
 
-        petSummonCooldown = Math.max(petSummonCooldown - 1, 0);
+        }
+    }
 
-        naturalHealingCooldown = Math.max(naturalHealingCooldown - 1, 0);
+    public void applyHealingToSummonedPetsIfPossible(List<PetData> summonedPets){
+        if(naturalHealingCooldown == 0) {
+            List<PetData> healablePets = summonedPets.stream()
+                    .filter((p)-> p.getPetInfo().getCurrentHealth() < p.getPetInfo().getMaxHealth()).toList();
 
-        if(naturalHealingCooldown == 0){
-            applyHealingToSummonedPetsIfPossible();
+            for(PetData pet : healablePets){
+                pet.applyNaturalHealing();
+            }
+
             naturalHealingCooldown = 40;
         }
 
-    }
-
-    public void applyHealingToSummonedPetsIfPossible(){
-        List<PetSlot<PetData>> healablePets = this.getSlotManager()
-                .getSlotsWithContent().stream()
-                .filter((s)-> s.getContent() != null &&
-                        s.getContent().isSummoned() &&
-                        s.getContent().getPetInfo().getCurrentHealth() < s.getContent().getPetInfo().getMaxHealth())
-                .toList();
-
-        for(PetSlot<PetData> pet : healablePets){
-            PetData petData = pet.getContent();
-
-            if(petData != null) //this is redundant but the IDE screams at me if i dont do this
-                petData.applyNaturalHealing();
-        }
 
     }
 
@@ -98,7 +116,7 @@ public class PetParty implements ISerializable {
 
     private void triggerOnPartyModifiedEvent(){
         if(this.onPetPartyModifiedListener != null)
-            this.onPetPartyModifiedListener.onPetPartyEvent(this);
+            this.onPetPartyModifiedListener.onPetPartyEvent();
     }
 
     public void readFromNbt(NbtCompound nbt){
@@ -116,6 +134,8 @@ public class PetParty implements ISerializable {
         NbtCompound nbt = new NbtCompound();
 
         NbtCompound slotManagerNbt = slotManager.writeToNbt();
+
+        if(this.slotCount < this.baseSlotCount) this.slotCount = this.baseSlotCount;
 
         nbt.putInt(RelipetsConstantsRegistry.PET_SLOT_COUNT_KEY, this.slotCount);
         nbt.put(RelipetsConstantsRegistry.PET_SLOT_MANAGER_KEY, slotManagerNbt);
@@ -143,7 +163,7 @@ public class PetParty implements ISerializable {
         if(this.getSelectedPet() != null && this.getSelectedPet().isSummoned()){
             this.getSelectedPet().addHighlight();
         }
-        this.onPetPartyModifiedListener.onPetPartyEvent(this);
+        this.onPetPartyModifiedListener.onPetPartyEvent();
     }
 
     public void toggleSummonSelectedPet(ServerWorld world, Vec3d pos, PlayerEntity player){
@@ -175,13 +195,13 @@ public class PetParty implements ISerializable {
             Utils.message(selectedPet.getPetInfo().getPetName() + " is healing. Wait "+ Utils.tickToSecond(selectedPet.getHealingCooldown()) + "s.", player);
 
         }else{
-            Utils.message("Something bad happened. Pet is not in a known state. Attempting to recover pet...", player);
+            Utils.message("Summoned " + selectedPet.getPetInfo().getPetName() + ".", player);
             //create a copy of the pet using the last known state of the pet
             selectedPet.summon(world, pos, player);
         }
 
         if(operationExecuted){
-            player.getItemCooldownManager().set(RelipetsItemRegistry.PETIFICATOR_ITEM.asItem(), 60);
+            player.getItemCooldownManager().set(RelipetsItemRegistry.PETIFICATOR_ITEM.asItem(), 20);
             petSummonCooldown = 20;
         }else{
             petSummonCooldown = 10;
@@ -299,7 +319,7 @@ public class PetParty implements ISerializable {
     }
 
     public interface PetPartyEventListener{
-        void onPetPartyEvent(PetParty party);
+        void onPetPartyEvent();
     }
 
 

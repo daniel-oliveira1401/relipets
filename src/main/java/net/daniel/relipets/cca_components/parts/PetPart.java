@@ -1,11 +1,17 @@
 package net.daniel.relipets.cca_components.parts;
 
 import lombok.Getter;
+import lombok.Setter;
+import net.daniel.relipets.entity.brain.behavior.abilities.AbilityBehavior;
+import net.daniel.relipets.entity.cores.abilities.CoreAbility;
+import net.daniel.relipets.registries.PetPartRegistry;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Vec3d;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,6 +33,11 @@ public class PetPart {
     public static final String TORSO_PART = "torso";
 
     public static final HashMap<String, PetPart> EMPTY_PARTS = new HashMap<>();
+
+    @Getter
+    @Setter
+    @Nullable
+    private CoreAbility signatureAbility;
 
     static {
         EMPTY_PARTS.put(ARM_PART, EMPTY_ARM_PART);
@@ -61,6 +72,7 @@ public class PetPart {
         this.partType = partType;
     }
 
+    //TODO: add abilities. Make abilities serializable
     public NbtCompound writeToNbt (){
 
         NbtCompound tag = new NbtCompound();
@@ -77,6 +89,12 @@ public class PetPart {
         PetPart emptyPart = new PetPart();
         emptyPart.partType = tag.getString(RelipetsConstantsRegistry.PART_TYPE);
         emptyPart.modelPartId = tag.getString(RelipetsConstantsRegistry.PART_MODEL_ID);
+
+        //get the registry entry from the registry
+        //read the ability from it
+        Optional<PetPartRegistry.PetPartRegistryEntry> partEntry = PetPartRegistry.getPartRegistryEntryByVariantId(emptyPart.getModelPartId());
+
+        partEntry.ifPresent(petPartRegistryEntry -> emptyPart.setSignatureAbility(petPartRegistryEntry.getAbility()));
 
         return emptyPart;
     }

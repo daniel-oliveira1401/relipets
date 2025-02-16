@@ -1,16 +1,14 @@
 package net.daniel.relipets.registries;
 
 import net.daniel.relipets.Relipets;
+import net.daniel.relipets.gui.screen.MainPetificatorScreen;
 import net.daniel.relipets.items.Petificator;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class KeyBindingsRegistry {
@@ -20,6 +18,16 @@ public class KeyBindingsRegistry {
                     KeyBindingsRegistry.formatKeyBindingLangKey("toggle_current_summon"),
                     InputUtil.Type.KEYSYM,
                     GLFW.GLFW_KEY_C,
+                    getKeyCategory()
+
+            )
+    );
+
+    private static final KeyBinding openPetConfigurationScreen = KeyBindingHelper.registerKeyBinding(
+            new DebouncedKeyBinding(
+                    KeyBindingsRegistry.formatKeyBindingLangKey("open_pet_configuration_screen"),
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_R,
                     getKeyCategory()
 
             )
@@ -36,8 +44,13 @@ public class KeyBindingsRegistry {
     public static void onInitialize(){
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if(client.player != null && client.player.getMainHandStack().getItem() instanceof Petificator && toggleCurrentPetSummonStateKeyBinding.wasPressed()){
+
+            if(client.player != null && toggleCurrentPetSummonStateKeyBinding.wasPressed() && client.player.getMainHandStack().getItem() instanceof Petificator){
                 ClientPlayNetworking.send(C2SPacketHandlers.TOGGLE_SUMMON_PET, PacketByteBufs.empty());
+            }
+
+            if(client.player != null && openPetConfigurationScreen.wasPressed() && client.player.getMainHandStack().getItem() instanceof Petificator){
+                client.setScreen(new MainPetificatorScreen());
             }
 
         });

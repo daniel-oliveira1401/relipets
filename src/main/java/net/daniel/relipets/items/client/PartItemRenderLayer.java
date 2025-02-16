@@ -48,14 +48,17 @@ public class PartItemRenderLayer extends GeoRenderLayer<PartItem> {
 
         poseStack.scale(0.5f, 0.5f, 0.5f);
         poseStack.translate(part.baseCenterOffset.x, part.baseCenterOffset.y, part.baseCenterOffset.z);
-        this.partRenderer.render(
-                poseStack,
-                dummyPart,
-                bufferSource,
-                null,
-                null,
-                packedLight
-        );
+        if(this.partRenderer.getGeoModel() != null){
+            this.partRenderer.render(
+                    poseStack,
+                    dummyPart,
+                    bufferSource,
+                    null,
+                    null,
+                    packedLight
+            );
+        }
+
 
         poseStack.pop();
 

@@ -11,6 +11,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.world.World;
@@ -44,11 +45,6 @@ public class PetificatorProjectile extends PersistentProjectileEntity implements
     }
 
     @Override
-    protected ItemStack asItemStack() {
-        return null;
-    }
-
-    @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
 
     }
@@ -63,6 +59,12 @@ public class PetificatorProjectile extends PersistentProjectileEntity implements
 
         super.onCollision(hitResult);
 
+    }
+
+    @Override
+    protected void onBlockHit(BlockHitResult blockHitResult) {
+        super.onBlockHit(blockHitResult);
+        this.remove(RemovalReason.DISCARDED);
     }
 
     @Override
@@ -91,7 +93,10 @@ public class PetificatorProjectile extends PersistentProjectileEntity implements
 
     }
 
-
+    @Override
+    protected ItemStack asItemStack() {
+        return null;
+    }
 
 
 }

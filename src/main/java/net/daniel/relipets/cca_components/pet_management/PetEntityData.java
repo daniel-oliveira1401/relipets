@@ -1,15 +1,21 @@
 package net.daniel.relipets.cca_components.pet_management;
 
+import com.google.common.collect.*;
 import lombok.Getter;
 import lombok.Setter;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
+import net.daniel.relipets.entity.cores.progression.StatsEnum;
+import net.daniel.relipets.entity.cores.progression.UpgradableStats;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.EntityAttribute;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -22,8 +28,10 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -33,15 +41,21 @@ public class PetEntityData implements ISerializable {
     public static final String ENTITY_TYPE_KEY = "entity_type";
     public static final String ENTITY_UUID_KEY = "entity_uuid";
     public static final String ENTITY_TRACKER_KEY = "entity_tracker";
+    private static final String ENTITY_ID_KEY = "entity_id";
 
+    @Getter
     NbtCompound entityNbt;
 
     @Getter
     LivingEntity entity;
 
+    @Getter
     String entityType;
     @Getter
     String entityUUID;
+
+    @Getter
+    int entityId;
 
     @Getter
     PetEntityTracker tracker = new PetEntityTracker();
@@ -88,6 +102,18 @@ public class PetEntityData implements ISerializable {
 
     }
 
+    @Nullable
+    public PetMetadataComponent getMetadata(World world){
+
+        Optional<PetMetadataComponent> petMetadataComponent = CardinalComponentsRegistry.PET_METADATA_KEY.maybeGet(world.getEntityById(this.entityId));
+
+        if(petMetadataComponent.isPresent()){
+            return petMetadataComponent.get();
+        }
+
+        return null;
+    }
+
     //Valid: has entity data
     public boolean isValid(){
         boolean validEntityType = entityType != null && !entityType.isEmpty();
@@ -103,9 +129,29 @@ public class PetEntityData implements ISerializable {
     }
 
     public void saveEntityData(){
+        cleanEntityBeforeSaving();
+
         this.entityType = EntityType.getId(entity.getType()).toString();
         this.entityNbt = entity.writeNbt(new NbtCompound());
         this.entityUUID = entity.getUuidAsString();
+        this.entityId = entity.getId();
+    }
+
+    private void cleanEntityBeforeSaving() {
+        if(this.entity != null){
+            //clean glowing
+            if(this.entity.isGlowing()){
+                this.entity.setGlowing(false);
+            }
+
+            //clean velocity
+            this.entity.setVelocity(0, 0, 0);
+
+            //clean fire
+            this.entity.setOnFire(false);
+
+
+        }
     }
 
     public void spawnEntity(ServerWorld world, Vec3d pos, PlayerEntity player){
@@ -114,12 +160,19 @@ public class PetEntityData implements ISerializable {
         EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
         LivingEntity createdEntity = entityType.create(world);
+
+        if(createdEntity == null) return;
+
         createdEntity.readNbt(entityNbt);
 
         if(createdEntity instanceof MobEntity mob) mob.setPersistent(); //idk if this actually works. Too hard to test
 
         createdEntity.setPosition(pos);
+        createdEntity.setVelocity(0, 0, 0);
+        createdEntity.setOnFire(false);
+        createdEntity.setGlowing(false);
         world.getServer().execute(()->{
+            this.applyStatModifiers(createdEntity);
             world.spawnEntity(createdEntity);
         });
 
@@ -128,6 +181,7 @@ public class PetEntityData implements ISerializable {
         this.setOwner(player);
     }
 
+    //TODO: fix this code. It does not work if the entity is in an unloaded chunk when attempting to bind them
     public void bindEntity(ServerWorld world, PlayerEntity player){
         //search in current world
         LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(this.getEntityUUID()));
@@ -135,6 +189,8 @@ public class PetEntityData implements ISerializable {
         if(entity != null){
             this.entity = entity;
             this.setOwner(player);
+            this.applyStatModifiers(this.entity);
+            this.entityId = this.entity.getId();
 
             Relipets.LOGGER.debug("Bound entity successfully");
             System.out.println("Bound entity successfully");
@@ -151,6 +207,8 @@ public class PetEntityData implements ISerializable {
 
                 this.entity = entity;
                 this.setOwner(player);
+                this.applyStatModifiers(this.entity);
+                this.entityId = this.entity.getId();
                 System.out.println("Bound entity successfully");
 
             }else{
@@ -158,6 +216,8 @@ public class PetEntityData implements ISerializable {
 
                     this.entity = entityLoaded;
                     this.setOwner(player);
+                    this.applyStatModifiers(this.entity);
+                    this.entityId = this.entity.getId();
                     Relipets.LOGGER.debug("Bound entity successfully after loading it");
                     System.out.println("Bound entity successfully");
 
@@ -179,6 +239,7 @@ public class PetEntityData implements ISerializable {
         }
     }
 
+    //TODO: fix this code. This does not cover all the possible recall scenarios
     public boolean recallEntity(ServerWorld currentWorld, Function<Boolean, Boolean> setRecalledState){
 
         saveEntityData();
@@ -194,7 +255,8 @@ public class PetEntityData implements ISerializable {
         LivingEntity entityFound = (LivingEntity) world.getEntity(UUID.fromString(this.entityUUID));
 
         if(entityFound != null){
-            entityFound.remove(Entity.RemovalReason.DISCARDED);
+            cleanEntityBeforeSaving();
+            removeEntity(entityFound);
             this.entity = null;
             return true;
         }else{
@@ -206,7 +268,8 @@ public class PetEntityData implements ISerializable {
                 //try loading the last place they were seen at
 
                 loadEntityAndPerformAction(currentWorld.getServer(),(entityLoaded)->{
-                    entityLoaded.remove(Entity.RemovalReason.DISCARDED);
+                    cleanEntityBeforeSaving();
+                    removeEntity(entityLoaded);
                     this.entity = null;
                     Relipets.LOGGER.debug("Loaded entity and removed it");
                     setRecalledState.apply(true);
@@ -218,6 +281,12 @@ public class PetEntityData implements ISerializable {
         }
 
         return false;
+    }
+
+    private void removeEntity(LivingEntity entity){
+
+        entity.remove(Entity.RemovalReason.DISCARDED);
+
     }
 
     public void updateTracker(){
@@ -233,6 +302,7 @@ public class PetEntityData implements ISerializable {
         this.entityNbt = nbt.getCompound(ENTITY_NBT_KEY);
         this.entityType = nbt.getString(ENTITY_TYPE_KEY);
         this.entityUUID = nbt.getString(ENTITY_UUID_KEY);
+        this.entityId = nbt.getInt(ENTITY_ID_KEY);
         this.tracker = new PetEntityTracker();
         if(nbt.contains(ENTITY_TRACKER_KEY))
             this.tracker.readFromNbt(nbt.getCompound(ENTITY_TRACKER_KEY));
@@ -246,8 +316,35 @@ public class PetEntityData implements ISerializable {
         nbt.put(ENTITY_NBT_KEY, entityNbt);
         nbt.putString(ENTITY_UUID_KEY, entityUUID);
         nbt.put(ENTITY_TRACKER_KEY, this.tracker.writeToNbt());
+        nbt.putInt(ENTITY_ID_KEY, this.entityId);
 
         return nbt;
+    }
+
+    public void applyStatModifiers(LivingEntity entity) {
+        Optional<PetMetadataComponent> petMetadataComponent = CardinalComponentsRegistry.PET_METADATA_KEY.maybeGet(entity);
+
+        if(petMetadataComponent.isPresent()) {
+            PetMetadataComponent petMetadata = petMetadataComponent.get();
+            UpgradableStats stats = petMetadata.getStatUpgrades();
+
+            Multimap<EntityAttribute, EntityAttributeModifier> statModifiersMap = ArrayListMultimap.create();
+
+            double healthBuffValue = UpgradableStats
+                    .getStatScalingByCategory(
+                            StatsEnum.HEALTH,
+                            UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.HEALTH);
+
+            EntityAttributeModifier healthModifier = new EntityAttributeModifier(
+                    UUID.fromString("a09b45d1-ca1a-4ff6-8f67-e7ad1415f664"),
+                    "relipets_health_modifier",
+                    healthBuffValue,
+                    EntityAttributeModifier.Operation.ADDITION);
+
+            statModifiersMap.put(EntityAttributes.GENERIC_MAX_HEALTH, healthModifier);
+            entity.getAttributes().addTemporaryModifiers(statModifiersMap);
+            CardinalComponentsRegistry.PET_METADATA_KEY.sync(entity);
+        }
     }
 
     @Getter

@@ -2,20 +2,41 @@ package net.daniel.relipets.cca_components;
 
 import dev.onyxstudios.cca.api.v3.component.Component;
 import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import net.daniel.relipets.cca_components.parts.*;
+import net.daniel.relipets.entity.cores.abilities.CoreAbility;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.minecraft.nbt.NbtCompound;
 import org.jetbrains.annotations.Nullable;
 
-public class PartSystemComponent implements Component, AutoSyncedComponent {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-    public PetPart armPart = PetPart.EMPTY_ARM_PART;
-    public PetPart headPart = PetPart.EMPTY_HEAD_PART;
-    public PetPart legPart = PetPart.EMPTY_LEG_PART;
-    public PetPart wingPart = PetPart.EMPTY_WING_PART;
-    public PetPart tailPart = PetPart.EMPTY_TAIL_PART;
-    public PetPart torsoPart = PetPart.EMPTY_TORSO_PART;
+public class PartSystemComponent implements Component, AutoSyncedComponent {
+    //TODO: refactor this to use a dynamic amount of parts instead of having one variable for each type
+    @Getter
+    @Setter
+    private PetPart armPart = PetPart.EMPTY_ARM_PART;
+    @Getter
+    @Setter
+    private PetPart headPart = PetPart.EMPTY_HEAD_PART;
+    @Getter
+    @Setter
+    private PetPart legPart = PetPart.EMPTY_LEG_PART;
+    @Getter
+    @Setter
+    private PetPart wingPart = PetPart.EMPTY_WING_PART;
+    @Getter
+    @Setter
+    private PetPart tailPart = PetPart.EMPTY_TAIL_PART;
+    @Getter
+    @Setter
+    private PetPart torsoPart = PetPart.EMPTY_TORSO_PART;
 
 
     private final Object provider;
@@ -135,7 +156,6 @@ public class PartSystemComponent implements Component, AutoSyncedComponent {
         return part != null && part.isValid();
     }
 
-
     public @Nullable PetPart removeNextPart(){
 
         PetPart partRemoved = null;
@@ -164,4 +184,39 @@ public class PartSystemComponent implements Component, AutoSyncedComponent {
         return partRemoved;
     }
 
+    public List<PetPart> getEquippedParts(){
+        List<PetPart> parts = new ArrayList<>();
+
+        if(this.getHeadPart().isValid()){
+            parts.add(this.getHeadPart());
+        }
+
+        if(this.getLegPart().isValid()){
+            parts.add(this.getLegPart());
+        }
+
+        if(this.getArmPart().isValid()){
+            parts.add(this.getArmPart());
+        }
+
+        if(this.getTailPart().isValid()){
+            parts.add(this.getTailPart());
+        }
+
+        if(this.getWingPart().isValid()){
+            parts.add(this.getWingPart());
+        }
+
+        if(this.getTorsoPart().isValid()){
+            parts.add(this.getTorsoPart());
+        }
+
+        return parts;
+    }
+
+    public List<CoreAbility> getAllAbilities(){
+        List<PetPart> parts = this.getEquippedParts();
+
+        return parts.stream().map(PetPart::getSignatureAbility).filter(Objects::nonNull).toList();
+    }
 }

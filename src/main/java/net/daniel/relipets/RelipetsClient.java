@@ -1,7 +1,7 @@
 package net.daniel.relipets;
 
 import net.daniel.relipets.entity.cores.CyanCoreRenderer;
-import net.daniel.relipets.gui.hud.PetHud;
+import net.daniel.relipets.gui.hud.NewPetHud;
 import net.daniel.relipets.items.client.PetificatorProjectileRenderer;
 import net.daniel.relipets.items.special.PetificatorProjectile;
 import net.daniel.relipets.registries.KeyBindingsRegistry;
@@ -20,7 +20,7 @@ public class RelipetsClient implements ClientModInitializer {
         EntityRendererRegistry.register(RelipetsEntityRegistry.PETIFICATOR_PROJECTILE, PetificatorProjectileRenderer::new);
 
         KeyBindingsRegistry.onInitialize();
-        HudRenderCallback.EVENT.register(PetHud::renderCallback);
-
+        //HudRenderCallback.EVENT.register(PetHud::renderCallback);
+        HudRenderCallback.EVENT.register(NewPetHud::tick);
     }
 }

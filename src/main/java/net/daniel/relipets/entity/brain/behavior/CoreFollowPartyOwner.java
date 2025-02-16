@@ -34,7 +34,6 @@ public class CoreFollowPartyOwner extends ExtendedBehaviour<BaseCore> {
     @Override
     protected void start(BaseCore entity) {
         super.start(entity);
-        Relipets.LOGGER.info("Starting FollowPartyOwner");
         PlayerEntity owner = BrainUtils.getMemory(entity.getBrain(), RelipetsMemoryTypes.PARTY_OWNER);
         entity.getNavigation().startMovingTo(owner, entity.getMovementSpeed());
         setWalkTarget(owner, entity);
@@ -49,7 +48,6 @@ public class CoreFollowPartyOwner extends ExtendedBehaviour<BaseCore> {
     @Override
     protected void stop(BaseCore entity) {
         super.stop(entity);
-        Relipets.LOGGER.info("Stopping FollowPartyOwner");
         entity.getNavigation().stop();
         BrainUtils.clearMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET);
     }

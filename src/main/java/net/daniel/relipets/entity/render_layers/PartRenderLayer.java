@@ -19,6 +19,8 @@ import software.bernie.geckolib.core.object.Axis;
 import software.bernie.geckolib.renderer.GeoRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
+import java.util.HashMap;
+
 public class PartRenderLayer extends GeoRenderLayer<BaseCore> {
 
     @Getter
@@ -31,12 +33,23 @@ public class PartRenderLayer extends GeoRenderLayer<BaseCore> {
         this.partType = partType;
     }
 
-    private BasePart dummyPart  = new BasePart();
+
+    HashMap<String, BasePart> dummyParts = new HashMap<>();
+
+    private String buildBasePartName(BaseCore core){
+        return core.getUuidAsString();
+    }
 
     @Override
     public void render(MatrixStack poseStack, BaseCore core, BakedGeoModel bakedModel, RenderLayer renderType, VertexConsumerProvider bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
 
         PetPart part = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(core).getPartByType(partType);
+        String basePartName = buildBasePartName(core);
+        if(!dummyParts.containsKey(basePartName)){
+            dummyParts.put(basePartName, new BasePart());
+        }
+
+        BasePart dummyPart = dummyParts.get(basePartName);
 
         dummyPart.core = core;
         dummyPart.partType = partType;

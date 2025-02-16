@@ -1,6 +1,7 @@
 package net.daniel.relipets.entity.render_layers;
 
 import net.daniel.relipets.Relipets;
+import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
@@ -21,7 +22,7 @@ public class PartRenderer extends GeoObjectRenderer<BasePart> {
     public boolean variantChangeSinceLastRender = true;
 
     public PartRenderer() {
-        super(null);
+        super(new PartModel(new Identifier(Relipets.MOD_ID, "head_avian_basic"), PetPart.HEAD_PART));
     }
 
     public void setPartVariant(String variantId, String partType) {

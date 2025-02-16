@@ -1,0 +1,7 @@
+package net.daniel.relipets.entity.cores.progression;
+
+public enum MobCategoryEnum {
+    ORDINARY,
+    KINDA_TANK,
+    TANK
+}
