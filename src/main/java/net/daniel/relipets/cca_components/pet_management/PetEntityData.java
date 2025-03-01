@@ -6,9 +6,10 @@ import lombok.Setter;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
-import net.daniel.relipets.entity.cores.progression.StatsEnum;
-import net.daniel.relipets.entity.cores.progression.UpgradableStats;
+import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
+import net.daniel.relipets.cca_components.pet_management.progression.UpgradableStats;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.utils.SetTimeoutManager;
 import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -24,6 +25,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.stat.Stat;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -98,7 +100,7 @@ public class PetEntityData implements ISerializable {
                     world.setChunkForced(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z, false);
                 }
             }
-        }, 60);
+        }, Utils.secondToTick(5));
 
     }
 
@@ -154,7 +156,7 @@ public class PetEntityData implements ISerializable {
         }
     }
 
-    public void spawnEntity(ServerWorld world, Vec3d pos, PlayerEntity player){
+    public void spawnEntity(ServerWorld world, Vec3d pos, PlayerEntity player, PetData petData){
         Identifier entityTypeId = new Identifier(this.entityType);
 
         EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
@@ -172,8 +174,11 @@ public class PetEntityData implements ISerializable {
         createdEntity.setOnFire(false);
         createdEntity.setGlowing(false);
         world.getServer().execute(()->{
-            this.applyStatModifiers(createdEntity);
             world.spawnEntity(createdEntity);
+            SetTimeoutManager.setTimeout(()-> {
+                this.applyStatModifiers(createdEntity, petData);
+                Utils.message("Summoned " + createdEntity.getDisplayName().getString() + ".", player);
+            }, Utils.secondToTick(1));
         });
 
         this.setEntity(createdEntity);
@@ -181,52 +186,54 @@ public class PetEntityData implements ISerializable {
         this.setOwner(player);
     }
 
+    private void applyBinding(PlayerEntity player, LivingEntity entity, PetData petData){
+        this.entity = entity;
+        this.setOwner(player);
+        this.applyStatModifiers(this.entity, petData);
+        this.entityId = this.entity.getId();
+    }
+
     //TODO: fix this code. It does not work if the entity is in an unloaded chunk when attempting to bind them
-    public void bindEntity(ServerWorld world, PlayerEntity player){
-        //search in current world
-        LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(this.getEntityUUID()));
-
-        if(entity != null){
-            this.entity = entity;
-            this.setOwner(player);
-            this.applyStatModifiers(this.entity);
-            this.entityId = this.entity.getId();
-
-            Relipets.LOGGER.debug("Bound entity successfully");
-            System.out.println("Bound entity successfully");
-        }else{
-            //search in the world of the tracker
-            ServerWorld trackerWorld = this.getTracker().getWorld(world.getServer());
-
-            if(trackerWorld != null){
-                entity = (LivingEntity) trackerWorld.getEntity(UUID.fromString(this.getEntityUUID()));
-            }
-
+    public void bindEntity(ServerWorld world, PlayerEntity player, PetData petData){
+        //SetTimeoutManager.setTimeout(()-> {
+            //search in current world
+            LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(this.getEntityUUID()));
 
             if(entity != null){
 
-                this.entity = entity;
-                this.setOwner(player);
-                this.applyStatModifiers(this.entity);
-                this.entityId = this.entity.getId();
-                System.out.println("Bound entity successfully");
+                applyBinding(player, entity, petData);
 
+                Relipets.LOGGER.debug("Bound entity successfully");
+                System.out.println("Bound entity successfully from player world");
             }else{
-                this.loadEntityAndPerformAction(world.getServer(), (entityLoaded)-> {
+                //search in the world of the tracker
+                ServerWorld trackerWorld = this.getTracker().getWorld(world.getServer());
 
-                    this.entity = entityLoaded;
-                    this.setOwner(player);
-                    this.applyStatModifiers(this.entity);
-                    this.entityId = this.entity.getId();
-                    Relipets.LOGGER.debug("Bound entity successfully after loading it");
-                    System.out.println("Bound entity successfully");
+                if(trackerWorld != null){
+                    entity = (LivingEntity) trackerWorld.getEntity(UUID.fromString(this.getEntityUUID()));
+                }
 
-                    return true;
-                });
+
+                if(entity != null){
+
+                    applyBinding(player, entity, petData);
+                    System.out.println("Bound entity successfully from tracker");
+
+                }else{
+                    this.loadEntityAndPerformAction(world.getServer(), (entityLoaded)-> {
+
+                        applyBinding(player, entityLoaded, petData);
+                        Relipets.LOGGER.debug("Bound entity successfully after loading it");
+                        System.out.println("Bound entity successfully after loading chunks");
+
+                        return true;
+                    });
+
+                }
 
             }
+        //}, Utils.secondToTick(2));
 
-        }
     }
 
     public void setOwner(PlayerEntity player){
@@ -240,7 +247,7 @@ public class PetEntityData implements ISerializable {
     }
 
     //TODO: fix this code. This does not cover all the possible recall scenarios
-    public boolean recallEntity(ServerWorld currentWorld, Function<Boolean, Boolean> setRecalledState){
+    public boolean recallEntity(ServerWorld currentWorld, PlayerEntity player, Function<Boolean, Boolean> setRecalledState){
 
         saveEntityData();
 
@@ -255,9 +262,11 @@ public class PetEntityData implements ISerializable {
         LivingEntity entityFound = (LivingEntity) world.getEntity(UUID.fromString(this.entityUUID));
 
         if(entityFound != null){
+            Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);
             cleanEntityBeforeSaving();
             removeEntity(entityFound);
             this.entity = null;
+
             return true;
         }else{
 
@@ -268,6 +277,7 @@ public class PetEntityData implements ISerializable {
                 //try loading the last place they were seen at
 
                 loadEntityAndPerformAction(currentWorld.getServer(),(entityLoaded)->{
+                    Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);
                     cleanEntityBeforeSaving();
                     removeEntity(entityLoaded);
                     this.entity = null;
@@ -321,7 +331,7 @@ public class PetEntityData implements ISerializable {
         return nbt;
     }
 
-    public void applyStatModifiers(LivingEntity entity) {
+    public void applyStatModifiers(LivingEntity entity, PetData pet) {
         Optional<PetMetadataComponent> petMetadataComponent = CardinalComponentsRegistry.PET_METADATA_KEY.maybeGet(entity);
 
         if(petMetadataComponent.isPresent()) {
@@ -330,21 +340,108 @@ public class PetEntityData implements ISerializable {
 
             Multimap<EntityAttribute, EntityAttributeModifier> statModifiersMap = ArrayListMultimap.create();
 
-            double healthBuffValue = UpgradableStats
-                    .getStatScalingByCategory(
-                            StatsEnum.HEALTH,
-                            UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.HEALTH);
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.HEALTH)){
 
-            EntityAttributeModifier healthModifier = new EntityAttributeModifier(
-                    UUID.fromString("a09b45d1-ca1a-4ff6-8f67-e7ad1415f664"),
-                    "relipets_health_modifier",
-                    healthBuffValue,
-                    EntityAttributeModifier.Operation.ADDITION);
+                //====== health ===
+                double healthBuffValue = UpgradableStats
+                        .getStatScalingByCategory(
+                                StatsEnum.HEALTH,
+                                UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.HEALTH);
 
-            statModifiersMap.put(EntityAttributes.GENERIC_MAX_HEALTH, healthModifier);
+                EntityAttributeModifier healthModifier = new EntityAttributeModifier(
+                        UUID.fromString("a09b45d1-ca1a-4ff6-8f67-e7ad1415f664"),
+                        "relipets_health_modifier",
+                        healthBuffValue,
+                        EntityAttributeModifier.Operation.ADDITION);
+
+                statModifiersMap.put(EntityAttributes.GENERIC_MAX_HEALTH, healthModifier);
+                //==========
+            }
+
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.ATTACK)){
+
+                //====== Attack ===
+                double attackBuff = UpgradableStats
+                        .getStatScalingByCategory(
+                                StatsEnum.ATTACK,
+                                UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ATTACK);
+
+                EntityAttributeModifier attackModifier = new EntityAttributeModifier(
+                        UUID.fromString("2f7b00e9-8f9f-46e4-84e8-f2e765222df0"),
+                        "relipets_attack_modifier",
+                        attackBuff,
+                        EntityAttributeModifier.Operation.ADDITION);
+
+                statModifiersMap.put(EntityAttributes.GENERIC_ATTACK_DAMAGE, attackModifier);
+            }
+
+            //==========
+
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.ARMOR)) {
+
+                //====== Armor ===
+                double armorBuff = UpgradableStats
+                        .getStatScalingByCategory(
+                                StatsEnum.ARMOR,
+                                UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ARMOR);
+
+                EntityAttributeModifier armorModifier = new EntityAttributeModifier(
+                        UUID.fromString("6b01e11d-0e74-4840-b8e7-d31be3c08be1"),
+                        "relipets_armor_modifier",
+                        armorBuff,
+                        EntityAttributeModifier.Operation.ADDITION);
+
+                statModifiersMap.put(EntityAttributes.GENERIC_ARMOR, armorModifier);
+
+                //==========
+
+            }
+
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.ARMOR_TOUGHNESS)) {
+                //====== Armor toughness ===
+                double armorToughnessBuff = UpgradableStats
+                        .getStatScalingByCategory(
+                                StatsEnum.ARMOR_TOUGHNESS,
+                                UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ARMOR_TOUGHNESS);
+
+                EntityAttributeModifier armorToughnessModifier = new EntityAttributeModifier(
+                        UUID.fromString("d2017fa1-9d52-4afd-8dc2-ecef7a6cd220"),
+                        "relipets_armor_tough_modifier",
+                        armorToughnessBuff,
+                        EntityAttributeModifier.Operation.ADDITION);
+
+                statModifiersMap.put(EntityAttributes.GENERIC_ARMOR_TOUGHNESS, armorToughnessModifier);
+
+                //==========
+            }
+
+
             entity.getAttributes().addTemporaryModifiers(statModifiersMap);
+
+            //===== Health regen
+            double healthRegenBuffValue = UpgradableStats
+                    .getStatScalingByCategory(
+                            StatsEnum.HEALTH_REGEN,
+                            UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.HEALTH_REGEN);
+
+            healthRegenBuffValue += PetData.BASE_NATURAL_HEALING;
+
+            pet.setNaturalHealing(
+                    (int) healthRegenBuffValue
+            );
+
             CardinalComponentsRegistry.PET_METADATA_KEY.sync(entity);
         }
+    }
+
+    public boolean entityHasStat(World world, StatsEnum stat) {
+        Entity entity = world.getEntityById(this.getEntityId());
+
+        if(entity instanceof LivingEntity living){
+            return UpgradableStats.entityHasStat(living, stat);
+        }
+
+        return false;
     }
 
     @Getter

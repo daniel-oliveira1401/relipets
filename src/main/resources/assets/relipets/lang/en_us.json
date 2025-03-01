@@ -9,5 +9,6 @@
   "item.relipets.head_part_item": "Head Part Item",
   "item.relipets.arm_part_item": "Arm Part Item",
   "item.relipets.tail_part_item": "Tail Part Item",
-  "item.relipets.torso_part_item": "Torso Part Item"
+  "item.relipets.torso_part_item": "Torso Part Item",
+  "item.relipets.add_pet_slot": "Add +1 pet slot"
 }

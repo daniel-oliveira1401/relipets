@@ -7,9 +7,12 @@ import lombok.Getter;
 import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
+import net.daniel.relipets.registries.S2CPacketHandlers;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
@@ -27,6 +30,7 @@ public class PetOwnerComponent implements Component, AutoSyncedComponent, Common
     //TODO: override the packet assembling method for making it more lightweight to update things
     public void onPartyModified(){
         CardinalComponentsRegistry.PET_OWNER_KEY.sync(player);
+
     }
 
     @Override

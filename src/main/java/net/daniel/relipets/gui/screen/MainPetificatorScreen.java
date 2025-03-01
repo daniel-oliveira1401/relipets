@@ -34,14 +34,45 @@ public class MainPetificatorScreen extends BaseOwoScreen<FlowLayout> {
         label.margins(Insets.bottom(15));
         rootComponent.child(label);
 
-        ButtonComponent levelPointsBtn = Components.button(Text.literal("Level Points"), this::goToLevelPointsScreen);
+        if(this.client == null || this.client.player == null) return;
+
+        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
+        PetData selectedPet = petOwner.getPetParty().getSelectedPet();
+
+        String levelPointsText = "Level Points";
+
+        if(selectedPet != null){
+
+            if(selectedPet.isSummonedNoEntityValidation()){
+                levelPointsText += " (" + selectedPet.getPetInfo().getPetName() + ")";
+            }else{
+                levelPointsText += " (Requires pet summoned)";
+            }
+
+        }else{
+            levelPointsText += " (Requires pet selected)";
+        }
+
+        ButtonComponent levelPointsBtn = Components.button(Text.literal(levelPointsText), this::goToLevelPointsScreen);
+        levelPointsBtn.margins(Insets.bottom(10));
         rootComponent.child(levelPointsBtn);
+
+        ButtonComponent reorderPetsBtn = Components.button(Text.of("Reorder Pets"), this::goToReorderPetsScreen);
+        rootComponent.child(reorderPetsBtn);
     }
 
     private void goToLevelPointsScreen(ButtonComponent buttonComponent){
 
         if(this.client != null && this.client.player != null){
             this.client.setScreen(new LevelPointsScreen(this));
+
+        }
+    }
+
+    private void goToReorderPetsScreen(ButtonComponent buttonComponent){
+
+        if(this.client != null && this.client.player != null){
+            this.client.setScreen(new ReorderPetsScreen(this));
 
         }
     }

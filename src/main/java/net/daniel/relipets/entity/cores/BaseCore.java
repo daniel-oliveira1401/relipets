@@ -15,7 +15,6 @@ import net.daniel.relipets.entity.brain.sensor.models.WeightedList;
 import net.daniel.relipets.entity.cores.abilities.AbilityRunningStateEnum;
 import net.daniel.relipets.entity.cores.abilities.CoreAbility;
 import net.daniel.relipets.entity.cores.abilities.CoreAbilityStats;
-import net.daniel.relipets.entity.cores.progression.LevelProgression;
 import net.daniel.relipets.items.PartItem;
 import net.daniel.relipets.items.PartItemFactory;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -29,9 +28,7 @@ import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.pathing.EntityNavigation;
-import net.minecraft.entity.attribute.AttributeContainer;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
-import net.minecraft.entity.attribute.DefaultAttributeRegistry;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
@@ -101,6 +98,16 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public static DefaultAttributeContainer.Builder createBaseCoreAttributes() {
         return createMobAttributes()
                 .add(EntityAttributes.GENERIC_MAX_HEALTH, 100.0); // 40 HP (20 hearts)
+    }
+
+    @Override
+    public int getSafeFallDistance() {
+        return 999999;
+    }
+
+    @Override
+    protected int computeFallDamage(float fallDistance, float damageMultiplier) {
+        return 0;
     }
 
     @Nullable
@@ -178,7 +185,6 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     }
 
     public void performBasicAttack(LivingEntity attackTarget){
-        System.out.println("Attacked target!! >.>");
         attackTarget.damage(this.getWorld().getDamageSources().magic(), 1);
         this.setVelocity(attackTarget.getPos().subtract(this.getPos()).normalize().multiply(0.5));
         this.jump();

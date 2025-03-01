@@ -1,11 +1,12 @@
 package net.daniel.relipets.registries;
 
 import net.daniel.relipets.Relipets;
-import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
-import net.daniel.relipets.entity.cores.progression.StatsEnum;
-import net.daniel.relipets.entity.cores.progression.StatsOperationEnum;
+import net.daniel.relipets.cca_components.pet_management.PetParty;
+import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
+import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
+import net.daniel.relipets.cca_components.pet_management.progression.StatsOperationEnum;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -15,6 +16,7 @@ public class C2SPacketHandlers {
     public static final Identifier TOGGLE_SUMMON_PET = new Identifier(Relipets.MOD_ID, "toggle_summon_pet");
     public static final Identifier CYCLE_PET_SLOT = new Identifier(Relipets.MOD_ID, "cycle_pet_slot");
     public static final Identifier STAT_POINT_CHANGE = new Identifier(Relipets.MOD_ID, "stat_point_change");
+    public static final Identifier REORDER_PETS = new Identifier(Relipets.MOD_ID, "reorder_pets");
 
     public static void onInitialize(){
 
@@ -42,11 +44,21 @@ public class C2SPacketHandlers {
 
         });
 
+        ServerPlayNetworking.registerGlobalReceiver(REORDER_PETS, (server, player, handler, buf, responseSender) -> {
+
+            //read operation and stat from buf
+            int originIndex = buf.readInt();
+            int destinationIndex = buf.readInt();
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            petOwnerComponent.getPetParty().reorderPets(originIndex, destinationIndex);
+
+        });
+
         ServerPlayNetworking.registerGlobalReceiver(CYCLE_PET_SLOT, (server, player, handler, buf, responseSender) -> {
 
             PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
             int direction = buf.readInt();
-            Relipets.LOGGER.debug("Received direction in server " + direction);
             petOwnerSystem.getPetParty().cyclePetSlot(direction);
 
         });

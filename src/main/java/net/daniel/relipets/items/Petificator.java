@@ -5,26 +5,33 @@ import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.items.client.PetificatorRenderer;
 import net.daniel.relipets.items.special.PetificatorProjectile;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.registries.KeyBindingsRegistry;
 import net.daniel.relipets.registries.RelipetsEntityRegistry;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.item.TooltipContext;
 import net.minecraft.client.render.item.BuiltinModelItemRenderer;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.text.LiteralTextContent;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoItem;
 import software.bernie.geckolib.animatable.client.RenderProvider;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -72,7 +79,6 @@ public class Petificator extends Item implements GeoItem {
 
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        System.out.println("called this");
         if(user.isSneaking()){
             PetificatorProjectile proj = new PetificatorProjectile(RelipetsEntityRegistry.PETIFICATOR_PROJECTILE, user.getWorld());
             //proj.setPos(user.getX(), user.getY()+1.3f, user.getZ());
@@ -111,7 +117,6 @@ public class Petificator extends Item implements GeoItem {
     @Override
     public ActionResult useOnBlock(ItemUsageContext context) {
         if(context.getPlayer() != null && !context.getWorld().isClient() && !context.getPlayer().isSneaking()){
-            System.out.println("Called use on block");
             PlayerEntity player = context.getPlayer();
             PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
             PetData pet = petOwner.getPetParty().getSelectedPet();
@@ -121,5 +126,24 @@ public class Petificator extends Item implements GeoItem {
             return ActionResult.CONSUME;
         }
         return super.useOnBlock(context);
+    }
+
+    @Override
+    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+        tooltip.add(getTooltipText("[Sneak + Right Click] To throw a pet capsule"));
+        tooltip.add(getTooltipText("[Sneak + Left Click] A summoned pet to release it from your pet party"));
+        tooltip.add(getTooltipText("[Sneak + Scroll] While holding the wand to cycle through the pets"));
+
+        var summonKey = KeyBindingsRegistry.toggleCurrentPetSummonStateKeyBinding.getBoundKeyLocalizedText().getString();
+        tooltip.add(getTooltipText("["+summonKey + "] To summon/recall the selected pet"));
+
+        var openConfigScreenKey = KeyBindingsRegistry.openPetConfigurationScreen.getBoundKeyLocalizedText().getString();
+        tooltip.add(getTooltipText("["+openConfigScreenKey + "] To open the config screen"));
+        tooltip.add(getTooltipText("[Right Click] A block with a summoned pet selected to tp it to the block"));
+        super.appendTooltip(stack, world, tooltip, context);
+    }
+
+    private MutableText getTooltipText(String text){
+        return MutableText.of(new LiteralTextContent(text));
     }
 }

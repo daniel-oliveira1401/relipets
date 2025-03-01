@@ -7,10 +7,15 @@ import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.daniel.relipets.registries.RelipetsItemRegistry;
+import net.daniel.relipets.registries.S2CPacketHandlers;
 import net.daniel.relipets.utils.Utils;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.Vec3d;
@@ -18,6 +23,16 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
+/*
+
+How unlocking more slots will work:
+
+    player crafts an item
+
+    When the player uses the item, the item is consumed and the player gets one more slot
+
+ */
 
 public class PetParty implements ISerializable {
 
@@ -34,7 +49,7 @@ public class PetParty implements ISerializable {
     PetPartyEventListener onPetPartyModifiedListener;
 
     private PlayerEntity player;
-    private int baseSlotCount = 10;
+    private static final int baseSlotCount = 10;
     int partyUpdateCooldown = 0;
     int petSummonCooldown = 0;
     int naturalHealingCooldown = 0;
@@ -110,6 +125,14 @@ public class PetParty implements ISerializable {
 
     }
 
+    public void pushChangesToClient(){
+        if(player instanceof ServerPlayerEntity serverPlayer){
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeNbt(this.writeToNbt());
+            serverPlayer.networkHandler.sendPacket(new CustomPayloadS2CPacket(S2CPacketHandlers.PARTY_UPDATE, buf));
+        }
+    }
+
     public void setOnPartyModifiedListener(PetPartyEventListener listener){
         this.onPetPartyModifiedListener = listener;
     }
@@ -135,7 +158,7 @@ public class PetParty implements ISerializable {
 
         NbtCompound slotManagerNbt = slotManager.writeToNbt();
 
-        if(this.slotCount < this.baseSlotCount) this.slotCount = this.baseSlotCount;
+        if(this.slotCount < baseSlotCount) this.slotCount = baseSlotCount;
 
         nbt.putInt(RelipetsConstantsRegistry.PET_SLOT_COUNT_KEY, this.slotCount);
         nbt.put(RelipetsConstantsRegistry.PET_SLOT_MANAGER_KEY, slotManagerNbt);
@@ -182,20 +205,18 @@ public class PetParty implements ISerializable {
         boolean operationExecuted = false;
 
         if(selectedPet.isSummoned()){
-            selectedPet.recall(world);
+            selectedPet.recall(world, player);
             operationExecuted = true;
-            Utils.message("Recalled " + selectedPet.getPetInfo().getPetName() + ".", player);
         }else if (selectedPet.isRecalled()){
             selectedPet.summon(world, pos, player);
             operationExecuted = true;
-            Utils.message("Summoned " + selectedPet.getPetInfo().getPetName() + ".", player);
 
         }else if(selectedPet.isHealing()){
             Relipets.LOGGER.debug("The selected pet is healing");
             Utils.message(selectedPet.getPetInfo().getPetName() + " is healing. Wait "+ Utils.tickToSecond(selectedPet.getHealingCooldown()) + "s.", player);
 
         }else{
-            Utils.message("Summoned " + selectedPet.getPetInfo().getPetName() + ".", player);
+            Utils.message("Summoned from an unknown state " + selectedPet.getPetInfo().getPetName() + ".", player);
             //create a copy of the pet using the last known state of the pet
             selectedPet.summon(world, pos, player);
         }
@@ -215,7 +236,7 @@ public class PetParty implements ISerializable {
         PetData petData = getPetByEntityUUID(petEntity.getUuidAsString());
         if(petData != null){
 
-            petData.onFaint(petEntity, world);
+            petData.onFaint(petEntity, world, player);
             Relipets.LOGGER.debug("Recalled pet that was about to die");
             Utils.message("Pet " + petData.getPetInfo().getPetName() + " fainted! They are healing now...", player);
         }else{
@@ -259,9 +280,10 @@ public class PetParty implements ISerializable {
 
             Relipets.LOGGER.debug(entity.getDisplayName().getString() + " has been petified!");
             newPet.updateVolatilePetInfoIfPossible();
-            newPet.recall((ServerWorld) entity.getWorld());
+            newPet.recall((ServerWorld) entity.getWorld(), player);
             Utils.message("Added " + newPet.getPetInfo().getPetName() + " to party!", player);
             triggerOnPartyModifiedEvent();
+            this.pushChangesToClient();
         }else{
             Relipets.LOGGER.debug("Can not add this entity to party. All slots are full");
         }
@@ -295,6 +317,8 @@ public class PetParty implements ISerializable {
         }
 
         this.getSlotManager().getSlotAt(petIndex).clear();
+        triggerOnPartyModifiedEvent();
+        this.pushChangesToClient();
 
         Relipets.LOGGER.debug("Pet released");
 
@@ -318,6 +342,30 @@ public class PetParty implements ISerializable {
         triggerOnPartyModifiedEvent();
     }
 
+    public void reorderPets(int originIndex, int destinationIndex) {
+        //get the content at origin
+        //get the content at destination
+        //place the content from origin in destination
+        //place the content from destination in origin
+
+        PetData originData = this.getSlotManager().getSlotAt(originIndex).getContent();
+
+        PetData destinationData = this.getSlotManager().getSlotAt(destinationIndex).getContent();
+
+        this.getSlotManager().getSlotAt(destinationIndex).setContent(originData);
+        this.getSlotManager().getSlotAt(originIndex).setContent(destinationData);
+
+        this.onPetPartyModifiedListener.onPetPartyEvent();
+        this.pushChangesToClient();
+    }
+
+    public void addPetSlot() {
+        this.slotCount++;
+        this.getSlotManager().addSlot();
+        this.onPetPartyModifiedListener.onPetPartyEvent();
+        this.pushChangesToClient();
+    }
+
     public interface PetPartyEventListener{
         void onPetPartyEvent();
     }
@@ -325,3 +373,12 @@ public class PetParty implements ISerializable {
 
 
 }
+
+/*
+Problem: The data in the client is different from the data in the server.
+
+How does data goes from the server to the client?
+    Server writes the data to NBT.
+    Client reads the data from NBT.
+
+ */

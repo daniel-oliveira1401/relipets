@@ -13,7 +13,7 @@ import org.lwjgl.glfw.GLFW;
 
 public class KeyBindingsRegistry {
 
-    private static final KeyBinding toggleCurrentPetSummonStateKeyBinding = KeyBindingHelper.registerKeyBinding(
+    public static final KeyBinding toggleCurrentPetSummonStateKeyBinding = KeyBindingHelper.registerKeyBinding(
             new DebouncedKeyBinding(
                     KeyBindingsRegistry.formatKeyBindingLangKey("toggle_current_summon"),
                     InputUtil.Type.KEYSYM,
@@ -23,7 +23,7 @@ public class KeyBindingsRegistry {
             )
     );
 
-    private static final KeyBinding openPetConfigurationScreen = KeyBindingHelper.registerKeyBinding(
+    public static final KeyBinding openPetConfigurationScreen = KeyBindingHelper.registerKeyBinding(
             new DebouncedKeyBinding(
                     KeyBindingsRegistry.formatKeyBindingLangKey("open_pet_configuration_screen"),
                     InputUtil.Type.KEYSYM,

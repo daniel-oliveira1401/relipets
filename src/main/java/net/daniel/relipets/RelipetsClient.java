@@ -6,6 +6,7 @@ import net.daniel.relipets.items.client.PetificatorProjectileRenderer;
 import net.daniel.relipets.items.special.PetificatorProjectile;
 import net.daniel.relipets.registries.KeyBindingsRegistry;
 import net.daniel.relipets.registries.RelipetsEntityRegistry;
+import net.daniel.relipets.registries.S2CPacketHandlers;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
@@ -20,6 +21,7 @@ public class RelipetsClient implements ClientModInitializer {
         EntityRendererRegistry.register(RelipetsEntityRegistry.PETIFICATOR_PROJECTILE, PetificatorProjectileRenderer::new);
 
         KeyBindingsRegistry.onInitialize();
+        S2CPacketHandlers.onInitialize();
         //HudRenderCallback.EVENT.register(PetHud::renderCallback);
         HudRenderCallback.EVENT.register(NewPetHud::tick);
     }

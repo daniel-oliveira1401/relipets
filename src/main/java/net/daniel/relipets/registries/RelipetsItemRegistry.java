@@ -3,7 +3,6 @@ package net.daniel.relipets.registries;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.items.*;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.item.EggItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.item.SpawnEggItem;
@@ -21,6 +20,7 @@ public class RelipetsItemRegistry {
     public static final Item ARM_PART_ITEM = registerItem(new ArmPartItem(new Item.Settings().maxCount(1)),"arm_part_item");
     public static final Item PETIFICATOR_ITEM = registerItem(new Petificator(new Item.Settings().maxCount(1)),"petificator");
     public static final Item CYAN_CORE_EGG = registerItem(new SpawnEggItem(RelipetsEntityRegistry.CYAN_CORE, 0x5DE2E7, 0x1D8B90, new Item.Settings()),"cyan_core_spawn_egg");
+    public static final Item ADD_SLOT_ITEM = registerItem(new AddPetSlotItem(new Item.Settings()),"add_pet_slot");
 
     public static Item registerItem(Item item, String id){
         Identifier itemId = Identifier.of(Relipets.MOD_ID, id);
@@ -36,6 +36,7 @@ public class RelipetsItemRegistry {
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register((itemGroup) -> itemGroup.add(TORSO_PART_ITEM));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register((itemGroup) -> itemGroup.add(ARM_PART_ITEM));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register((itemGroup) -> itemGroup.add(PETIFICATOR_ITEM));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register((itemGroup) -> itemGroup.add(ADD_SLOT_ITEM));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.SPAWN_EGGS).register((itemGroup) -> itemGroup.add(CYAN_CORE_EGG));
     }
 }

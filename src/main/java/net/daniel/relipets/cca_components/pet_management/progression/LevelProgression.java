@@ -1,4 +1,4 @@
-package net.daniel.relipets.entity.cores.progression;
+package net.daniel.relipets.cca_components.pet_management.progression;
 
 import lombok.Getter;
 import lombok.Setter;

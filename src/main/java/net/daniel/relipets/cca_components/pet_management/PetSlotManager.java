@@ -108,10 +108,10 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
 
     @Override
     public void readFromNbt(NbtCompound nbt) {
-        int i = 0;
-        for(String key : nbt.getKeys()){
 
-            PetSlot<T> slot = this.getSlotAt(i);
+        for(String key : nbt.getKeys()){
+            int index = Integer.parseInt(key);
+            PetSlot<T> slot = this.getSlotAt(index);
 
             if(slot != null){
 
@@ -124,7 +124,6 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
                     slot.setContent(content);
                 }
             }
-            i++;
         }
     }
 
@@ -144,5 +143,9 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
         }
 
         return nbt;
+    }
+
+    public void addSlot() {
+        this.slots.add(new PetSlot<>());
     }
 }

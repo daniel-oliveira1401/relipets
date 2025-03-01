@@ -9,6 +9,8 @@ import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
+import net.daniel.relipets.cca_components.pet_management.PetParty;
+import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.items.Petificator;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.Utils;
@@ -60,6 +62,11 @@ public class NewPetHud {
     private static int slotsSize;
     private static boolean scrollToSelectedPetNextRenderPass;
     private static LabelComponent levelLabel;
+    private static PetPartyUpdateNotifier.Subscriber sub;
+    private static int slotTickCooldown = 0;
+
+    static boolean partyUpdated = false;
+    private static PetParty tempUpdatedParty;
 
     public static boolean shouldRender(){
         if(MinecraftClient.getInstance().player != null && MinecraftClient.getInstance().player.getMainHandStack() != null){
@@ -72,7 +79,12 @@ public class NewPetHud {
     public static void init(){
         if(!Hud.hasComponent(HUD_ID)){
             addedLayout = true;
+            sub = (party)-> {
+                partyUpdated = true;
+                tempUpdatedParty = party;
+            };
 
+            PetPartyUpdateNotifier.getInstance().subscribe(sub);
             hudLayout = Containers.verticalFlow(Sizing.content(5), Sizing.content(5));
 
             //add label showing the entity name
@@ -142,6 +154,7 @@ public class NewPetHud {
             //remove hud layout if present
             if(Hud.hasComponent(HUD_ID)){
                 Hud.remove(HUD_ID);
+                PetPartyUpdateNotifier.getInstance().unsubscribe(sub);
             }
             return;
         }
@@ -154,8 +167,12 @@ public class NewPetHud {
 
         PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);//shouldRender already handles player being null
         PetData selectedPet = petOwner.getPetParty().getSelectedPet();
+        buildSlotsIfNeeded(petOwner.getPetParty());
+        if(slotTickCooldown <= 0){
+            slotTickCooldown = 20;
+        }
 
-        buildSlotsIfNeeded(petOwner, petOwner.getPetParty().getSelectedPetIndex());
+        slotTickCooldown = Math.max(0, slotTickCooldown-1);
 
         if(selectedPet != null){
 
@@ -176,7 +193,7 @@ public class NewPetHud {
         //This is here to fix the fact that you cant add the components and scroll to them at the same time.
         //With this the hud scrolls to the selected pet when you equip the wand. Very handy.
         if(scrollToSelectedPetNextRenderPass){
-            scrollToSelectedPet(petOwner);
+            scrollToSelectedPet(petOwner.getPetParty());
             scrollToSelectedPetNextRenderPass = false;
         }
 
@@ -189,16 +206,20 @@ public class NewPetHud {
 
     }
 
-    private static void scrollToSelectedPet(PetOwnerComponent petOwner){
-        int currentSlotCount = petOwner.getPetParty().getSlotManager().getSlots().size();
+    private static void scrollToSelectedPet(PetParty petParty){
+        int currentSlotCount = petParty.getSlotManager().getSlots().size();
         float percent = ((float) (slotSize * selectedPetSlot) / ((currentSlotCount-1) * slotSize));
         slotsLayout.scrollTo(percent);
     }
 
-    private static void buildSlotsIfNeeded(PetOwnerComponent petOwner, int actualSelectedPetSlot) {
-        int currentSlotCount = petOwner.getPetParty().getSlotManager().getSlots().size();
-        if(addedLayout || (selectedPetSlot != actualSelectedPetSlot) || slotsLayout.child().children().size() != currentSlotCount){
-            selectedPetSlot = actualSelectedPetSlot;
+    private static void buildSlotsIfNeeded(PetParty petParty) {
+        int currentSlotCount = petParty.getSlotManager().getSlots().size();
+        if(partyUpdated || addedLayout || (selectedPetSlot != petParty.getSelectedPetIndex()) || slotsLayout.child().children().size() != currentSlotCount){
+            if(partyUpdated){
+                petParty = tempUpdatedParty;
+                partyUpdated = false;
+            }
+            selectedPetSlot = petParty.getSelectedPetIndex();
             slotsLayout.child().clearChildren();
 
             for(int i = 0; i < currentSlotCount; i++){
@@ -210,11 +231,10 @@ public class NewPetHud {
 
                 FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
                 slotContainer.surface(slotSurface);
-                        //.margins(Insets.right(slotSpacing));
 
                 slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
 
-                PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
+                PetData petData = petParty.getSlotManager().getSlotAt(i).getContent();
 
                 if(petData != null && petData.getPetEntityData().isValid()){
                     Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
@@ -233,7 +253,9 @@ public class NewPetHud {
 
             }
 
-            scrollToSelectedPet(petOwner);
+            scrollToSelectedPet(petParty);
+
+            tempUpdatedParty = null;
 
         }
 
@@ -274,7 +296,7 @@ public class NewPetHud {
         String text = "0";
         if(xpOverride == null){
 
-            currentXpPercent = (int)(80 * (float) selectedPet.getPetInfo().getLevelProgression().getCurrentXp() /
+            currentXpPercent = (int)(70 * (float) selectedPet.getPetInfo().getLevelProgression().getCurrentXp() /
                     selectedPet.getPetInfo().getLevelProgression().getXpRequiredForNextLevel());
 
             text = String.valueOf(selectedPet.getPetInfo().getLevelProgression().getCurrentLevel());
@@ -285,7 +307,7 @@ public class NewPetHud {
 
 
         xpBarWhite.sizing(Sizing.fill(currentXpPercent), Sizing.fixed(6));
-        xpBarGray.sizing(Sizing.fill(80 - currentXpPercent), Sizing.fixed(6));
+        xpBarGray.sizing(Sizing.fill(70 - currentXpPercent), Sizing.fixed(6));
         levelLabel.text(Text.literal(text));
     }
 

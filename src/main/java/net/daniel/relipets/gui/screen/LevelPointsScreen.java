@@ -10,8 +10,8 @@ import io.wispforest.owo.ui.core.*;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
-import net.daniel.relipets.entity.cores.progression.StatsEnum;
-import net.daniel.relipets.entity.cores.progression.StatsOperationEnum;
+import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
+import net.daniel.relipets.cca_components.pet_management.progression.StatsOperationEnum;
 import net.daniel.relipets.registries.C2SPacketHandlers;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -24,11 +24,15 @@ import org.jetbrains.annotations.Nullable;
 
 public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
+    String statCurrentValueSuffix = "_current_value";
+
     BaseOwoScreen<?> parent;
     private FlowLayout bodyContainer;
     private @Nullable LabelComponent healthStatLabel;
     private @Nullable LabelComponent healthCurrentStatValue;
     private LabelComponent pointsRemaining;
+
+    FlowLayout rootComponent;
 
     public LevelPointsScreen(@NotNull BaseOwoScreen<?> parent){
         this.parent = parent;
@@ -46,6 +50,8 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     protected void build(FlowLayout rootComponent) {
+        this.rootComponent = rootComponent;
+
         rootComponent.surface(Surface.VANILLA_TRANSLUCENT);
         rootComponent.padding(Insets.both(15, 15));
 
@@ -66,14 +72,9 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
             PetMetadataComponent petMetadata = selectedPet.getPetEntityData().getMetadata(this.client.player.getWorld());
             if(petMetadata != null){
 
-                buildParams(rootComponent, petMetadata);
+                buildParams(rootComponent, petMetadata, selectedPet);
 
-                //add the label that says how many points you have left
-                this.pointsRemaining = Components.label(Text.of("0"));
-                this.pointsRemaining.margins(Insets.top(10));
-                this.pointsRemaining.sizing(Sizing.fill(100), Sizing.content());
-                this.pointsRemaining.horizontalTextAlignment(HorizontalAlignment.CENTER);
-                this.bodyContainer.child(pointsRemaining);
+                buildPointsLeftLabel();
 
             }else{
                 bodyContainer.child(Components.label(Text.of("Could not find metadata for selected pet")));
@@ -87,15 +88,57 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
     }
 
-    public void buildParams(FlowLayout rootComponent, PetMetadataComponent petMetadata){
-        rootComponent.child(Components.label(Text.literal("Level Points")));
+    private void buildPointsLeftLabel() {
+        this.pointsRemaining = Components.label(Text.of("0"));
+        this.pointsRemaining.margins(Insets.top(10));
+        this.pointsRemaining.sizing(Sizing.fill(100), Sizing.content());
+        this.pointsRemaining.horizontalTextAlignment(HorizontalAlignment.CENTER);
+        this.bodyContainer.child(pointsRemaining);
+    }
 
-        FlowLayout healthStat = createParam("Health",
-                petMetadata.getStatUpgrades().getStatValue(StatsEnum.HEALTH),
-                StatsEnum.HEALTH);
-        this.healthStatLabel = healthStat.childById(LabelComponent.class, "Health");
-        this.healthCurrentStatValue = healthStat.childById(LabelComponent.class, "Health_current_stat");
-        bodyContainer.child(healthStat);
+    public void buildParams(FlowLayout rootComponent, PetMetadataComponent petMetadata, PetData selectedPet){
+
+        rootComponent.child(Components.label(Text.literal("Level Points for "+ selectedPet.getPetInfo().getPetName())));
+
+
+        petMetadata.getStatUpgrades().getStats().keySet().forEach((stat)-> {
+            if(this.client != null && this.client.player != null){
+
+                if(selectedPet.getPetEntityData().entityHasStat(this.client.player.getWorld(), stat)){
+
+                    FlowLayout healthStat = createParam(formatStatName(stat.name()),
+                            petMetadata.getStatUpgrades().getStatValue(stat),
+                            stat);
+
+
+                    bodyContainer.child(healthStat);
+                }
+
+
+            }
+
+        });
+
+    }
+
+    public String formatStatName(String input) {
+        if (input == null || input.isEmpty()) {
+            return "";
+        }
+
+        // Split by underscores, convert first letter of each word to uppercase, rest to lowercase
+        String[] words = input.split("_");
+        StringBuilder formatted = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                formatted.append(Character.toUpperCase(word.charAt(0))) // Capitalize first letter
+                        .append(word.substring(1).toLowerCase()) // Lowercase the rest
+                        .append(" "); // Add space
+            }
+        }
+
+        return formatted.toString().trim(); // Remove trailing space
     }
 
     @Override
@@ -111,25 +154,44 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
                 if(petMetadata != null){
 
-                    if(healthStatLabel != null)
-                        healthStatLabel.text(Text.of(String.valueOf(petMetadata.getStatUpgrades().getStatValue(StatsEnum.HEALTH))));
+                    //updateHealthStat(petMetadata, selectedPet);
+                    updateStats(this.rootComponent, petMetadata, selectedPet);
 
-                    if(healthCurrentStatValue != null)
-                        healthCurrentStatValue.text(Text.of(String.valueOf(selectedPet.getPetInfo().getMaxHealth())));
+                    updateTotalPointsUsed(petMetadata);
 
-                    if(this.pointsRemaining != null){
-                        int totalPoints = petMetadata.getLevelProgression().getCurrentLevel();
-                        int totalPointsUsed = petMetadata.getStatUpgrades().getTotalPointsUsed();
-
-                        String pointsText = "Total points used: " + totalPointsUsed + "/" + totalPoints;
-
-                        this.pointsRemaining.text(Text.of(pointsText));
-                    }
                 }
             }
         }
 
         super.render(context, mouseX, mouseY, delta);
+    }
+
+    private void updateTotalPointsUsed(PetMetadataComponent petMetadata) {
+        if(this.pointsRemaining != null){
+            int totalPoints = petMetadata.getLevelProgression().getCurrentLevel();
+            int totalPointsUsed = petMetadata.getStatUpgrades().getTotalPointsUsed();
+
+            String pointsText = "Total points used: " + totalPointsUsed + "/" + totalPoints;
+
+            this.pointsRemaining.text(Text.of(pointsText));
+        }
+    }
+
+    private void updateStats(FlowLayout rootComponent, PetMetadataComponent petMetadata, PetData selectedPet){
+        petMetadata.getStatUpgrades().getStats().forEach((stat, statValue)-> {
+            LabelComponent statValueLabel = rootComponent.childById(LabelComponent.class, formatStatName(stat.name()));
+
+            if(statValueLabel != null)
+                statValueLabel.text(Text.of(String.valueOf(petMetadata.getStatUpgrades().getStatValue(stat))));
+
+            LabelComponent statCurrentValue = rootComponent.childById(LabelComponent.class, formatStatName(stat.name()) + statCurrentValueSuffix);
+            if(statCurrentValue != null)
+                statCurrentValue.text(Text.of(formatDisplayValue(petMetadata.getCurrentValueByStatName(stat, selectedPet))));
+        });
+    }
+
+    public String formatDisplayValue(float statValue){
+        return String.format("%.2f", statValue);
     }
 
     private void backToMainScreen(ButtonComponent btn){
@@ -147,7 +209,7 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
         container.child(paramLabel);
 
         LabelComponent paramValue = Components.label(Text.of(String.valueOf(pValue)));
-        paramValue.sizing(Sizing.fixed(20), Sizing.content());
+        paramValue.sizing(Sizing.fixed(30), Sizing.content());
         paramValue.id(paramName);
         container.child(paramValue);
 
@@ -160,8 +222,8 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
 
         LabelComponent currentStatValue = Components.label(Text.of(""));
-        currentStatValue.sizing(Sizing.fixed(20), Sizing.content());
-        currentStatValue.id(paramName+"_current_stat");
+        currentStatValue.sizing(Sizing.fixed(30), Sizing.content());
+        currentStatValue.id(paramName+ statCurrentValueSuffix);
         container.child(currentStatValue);
 
         return container;
