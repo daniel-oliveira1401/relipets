@@ -32,15 +32,15 @@ public class PetPartRegistry {
             Head -> utility
             Leg -> utility
          */
-        PART_VARIANTS.add(new PetPartRegistryEntry("arm_test"));
+        //PART_VARIANTS.add(new PetPartRegistryEntry("arm_test"));
 
         //==== avian set (fighter mage) =======
         PART_VARIANTS.add(new PetPartRegistryEntry("wing_basic_avian"
                 , new ThrowEnemyUpAbility()
         ));
         PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_avian"
-                , new CreateLockdownAreaAbility())
-        );
+                , new HealOwnerAbility()
+        ));
         PART_VARIANTS.add(new PetPartRegistryEntry("tail_basic_avian"
                 , new ThrowFireballAbility()
         ));
@@ -53,13 +53,15 @@ public class PetPartRegistry {
                 , new SlowDownTargetAbility()
         ));
         PART_VARIANTS.add(new PetPartRegistryEntry("torso_basic_quadruped", new StrengthenSelfAbility()));
-        PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_quadruped", new CreateLockdownAreaAbility()));
+        PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_quadruped"
+                , new HealOwnerAbility()
+        ));
         PART_VARIANTS.add(new PetPartRegistryEntry("tail_basic_quadruped"));
 
         //======== bee set (mage based on effects) =========
         PART_VARIANTS.add(new PetPartRegistryEntry("leg_basic_bee", new SlowDownTargetAbility()));
         PART_VARIANTS.add(new PetPartRegistryEntry("torso_basic_bee", new StrengthenSelfAbility()));
-        PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_bee"));
+        PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_bee", new HealOwnerAbility()));
         PART_VARIANTS.add(new PetPartRegistryEntry("tail_basic_bee", new PoisonTargetAbility()));
         PART_VARIANTS.add(new PetPartRegistryEntry("arm_basic_bee"
                 , new SetEnemyOnFireAbility()

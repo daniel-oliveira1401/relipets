@@ -11,11 +11,23 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
+import java.util.UUID;
+
 public class C2SPacketHandlers {
 
     public static final Identifier TOGGLE_SUMMON_PET = new Identifier(Relipets.MOD_ID, "toggle_summon_pet");
     public static final Identifier CYCLE_PET_SLOT = new Identifier(Relipets.MOD_ID, "cycle_pet_slot");
     public static final Identifier STAT_POINT_CHANGE = new Identifier(Relipets.MOD_ID, "stat_point_change");
+
+    public static final Identifier CREATE_GROUP = new Identifier(Relipets.MOD_ID, "create_group");
+    public static final Identifier REMOVE_GROUP = new Identifier(Relipets.MOD_ID, "remove_group");
+    public static final Identifier ADD_SLOT_TO_GROUP = new Identifier(Relipets.MOD_ID, "add_slot_to_group");
+    public static final Identifier REMOVE_SLOT_FROM_GROUP = new Identifier(Relipets.MOD_ID, "remove_slot_from_group");
+    public static final Identifier CHANGE_GROUP_COLOR = new Identifier(Relipets.MOD_ID, "change_group_color");
+    public static final Identifier CHANGE_GROUP_NAME = new Identifier(Relipets.MOD_ID, "change_group_name");
+    public static final Identifier SUMMON_GROUP = new Identifier(Relipets.MOD_ID, "summon_group");
+    public static final Identifier RECALL_GROUP = new Identifier(Relipets.MOD_ID, "recall_group");
+
     public static final Identifier REORDER_PETS = new Identifier(Relipets.MOD_ID, "reorder_pets");
 
     public static void onInitialize(){
@@ -41,6 +53,121 @@ public class C2SPacketHandlers {
                 petData.changeStatPoint(operation, stat, player.getWorld());
                 petOwnerComponent.onPartyModified();
             }
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CREATE_GROUP, (server, player, handler, buf, responseSender) -> {
+
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+
+            if(petOwnerComponent.getPetParty().getPetGroupManager() != null){
+                petOwnerComponent.getPetParty().getPetGroupManager().addGroup();
+                petOwnerComponent.getPetParty().pushChangesToClient();
+            }
+
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(REMOVE_GROUP, (server, player, handler, buf, responseSender) -> {
+
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            String stringUuid = buf.readString();
+
+            if(petOwnerComponent.getPetParty().getPetGroupManager() != null){
+                petOwnerComponent.getPetParty().getPetGroupManager().removeGroup(UUID.fromString(stringUuid));
+                petOwnerComponent.getPetParty().pushChangesToClient();
+            }
+
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(SUMMON_GROUP, (server, player, handler, buf, responseSender) -> {
+
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            String stringUuid = buf.readString();
+
+            if(petOwnerComponent.getPetParty().getPetGroupManager() != null){
+                petOwnerComponent.getPetParty().summonGroup(UUID.fromString(stringUuid), (ServerWorld) player.getWorld(), player.getPos() ,player);
+                petOwnerComponent.getPetParty().pushChangesToClient();
+            }
+
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(RECALL_GROUP, (server, player, handler, buf, responseSender) -> {
+
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            String stringUuid = buf.readString();
+
+            if(petOwnerComponent.getPetParty().getPetGroupManager() != null){
+                petOwnerComponent.getPetParty().recallGroup(UUID.fromString(stringUuid), (ServerWorld) player.getWorld(), player.getPos() ,player);
+                petOwnerComponent.getPetParty().pushChangesToClient();
+            }
+
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CHANGE_GROUP_COLOR, (server, player, handler, buf, responseSender) -> {
+
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            String stringUuid = buf.readString();
+            int color = buf.readInt();
+
+            if(petOwnerComponent.getPetParty().getPetGroupManager() != null){
+                petOwnerComponent.getPetParty().getPetGroupManager().changeGroupColor(UUID.fromString(stringUuid), color);
+                petOwnerComponent.getPetParty().pushChangesToClient();
+            }
+
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CHANGE_GROUP_NAME, (server, player, handler, buf, responseSender) -> {
+
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            String stringUuid = buf.readString();
+            String name = buf.readString();
+
+            if(petOwnerComponent.getPetParty().getPetGroupManager() != null){
+                petOwnerComponent.getPetParty().getPetGroupManager().changeGroupName(UUID.fromString(stringUuid), name);
+                petOwnerComponent.getPetParty().pushChangesToClient();
+            }
+
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(ADD_SLOT_TO_GROUP, (server, player, handler, buf, responseSender) -> {
+
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            String stringUuid = buf.readString();
+            int slotIndex = buf.readInt();
+
+            if(petOwnerComponent.getPetParty().getPetGroupManager() != null){
+                petOwnerComponent.getPetParty().getPetGroupManager().addSlotToGroup(UUID.fromString(stringUuid), slotIndex);
+                petOwnerComponent.getPetParty().pushChangesToClient();
+            }
+
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(REMOVE_SLOT_FROM_GROUP, (server, player, handler, buf, responseSender) -> {
+
+
+            PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+            String stringUuid = buf.readString();
+            int slotIndex = buf.readInt();
+
+            if(petOwnerComponent.getPetParty().getPetGroupManager() != null){
+                petOwnerComponent.getPetParty().getPetGroupManager().removeSlotFromGroup(UUID.fromString(stringUuid), slotIndex);
+                petOwnerComponent.getPetParty().pushChangesToClient();
+            }
+
 
         });
 

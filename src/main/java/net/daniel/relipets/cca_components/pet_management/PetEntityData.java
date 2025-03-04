@@ -67,14 +67,14 @@ public class PetEntityData implements ISerializable {
         ServerWorld world = this.getTracker().getWorld(server);
 
         if(world == null){
-            Relipets.LOGGER.debug("Could not find world this entity was last seen at. World: " + this.getTracker().getDimension().toString());
+            System.out.println("Could not find world this entity was last seen at. World: " + this.getTracker().getDimension().toString());
             return;
         }
 
 
         ChunkPos lastKnownChunkPos = this.getTracker().getChunkPos();
 
-        Relipets.LOGGER.debug("Loaded 3x3 area around entity last known pos");
+        System.out.println("Loaded 3x3 area around entity last known pos");
         //load 3x3 area around the last know chunk
         for(int x = -1 ; x <= 1; x++){
             for(int z = -1 ; z <= 1; z++){
@@ -88,19 +88,19 @@ public class PetEntityData implements ISerializable {
 
             LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(entityUUID));
             if(entity != null){
-                Relipets.LOGGER.debug("Performing action");
+                System.out.println("Performing action");
                 actionToPerform.apply(entity);
             }else{
-                Relipets.LOGGER.debug("Could not find entity even after loading the area aroudn it.");
+                System.out.println("Could not find entity even after loading the area aroudn it.");
             }
 
-            Relipets.LOGGER.debug("Unloading 3x3 area around entity last known pos");
+            System.out.println("Unloading 3x3 area around entity last known pos");
             for(int x = -1 ; x <= 1; x++){
                 for(int z = -1 ; z <= 1; z++){
                     world.setChunkForced(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z, false);
                 }
             }
-        }, Utils.secondToTick(5));
+        }, Utils.secondToTick(3));
 
     }
 
@@ -157,33 +157,36 @@ public class PetEntityData implements ISerializable {
     }
 
     public void spawnEntity(ServerWorld world, Vec3d pos, PlayerEntity player, PetData petData){
-        Identifier entityTypeId = new Identifier(this.entityType);
+        world.getServer().execute(()-> {
+            Identifier entityTypeId = new Identifier(this.entityType);
 
-        EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
+            EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
-        LivingEntity createdEntity = entityType.create(world);
+            LivingEntity createdEntity = entityType.create(world);
 
-        if(createdEntity == null) return;
+            if(createdEntity == null) return;
 
-        createdEntity.readNbt(entityNbt);
+            createdEntity.readNbt(entityNbt);
 
-        if(createdEntity instanceof MobEntity mob) mob.setPersistent(); //idk if this actually works. Too hard to test
+            if(createdEntity instanceof MobEntity mob) mob.setPersistent(); //idk if this actually works. Too hard to test
 
-        createdEntity.setPosition(pos);
-        createdEntity.setVelocity(0, 0, 0);
-        createdEntity.setOnFire(false);
-        createdEntity.setGlowing(false);
-        world.getServer().execute(()->{
+            createdEntity.setPosition(pos);
+            createdEntity.setVelocity(0, 0, 0);
+            createdEntity.setOnFire(false);
+            createdEntity.setGlowing(false);
+            createdEntity.fallDistance = 0;
+
             world.spawnEntity(createdEntity);
+            Utils.message("Summoned " + createdEntity.getDisplayName().getString() + ".", player);
             SetTimeoutManager.setTimeout(()-> {
                 this.applyStatModifiers(createdEntity, petData);
-                Utils.message("Summoned " + createdEntity.getDisplayName().getString() + ".", player);
             }, Utils.secondToTick(1));
+
+            this.setEntity(createdEntity);
+
+            this.setOwner(player);
         });
 
-        this.setEntity(createdEntity);
-
-        this.setOwner(player);
     }
 
     private void applyBinding(PlayerEntity player, LivingEntity entity, PetData petData){
@@ -251,15 +254,15 @@ public class PetEntityData implements ISerializable {
 
         saveEntityData();
 
-        ServerWorld world = this.getTracker().getWorld(currentWorld.getServer());
+        ServerWorld trackerWorld = this.getTracker().getWorld(currentWorld.getServer());
 
-        if(world == null){
+        if(trackerWorld == null){
             Relipets.LOGGER.debug("Could not find world: " + this.getTracker().getDimension().toString());
             return false;
         }
 
         //try retrieving from the world the entity was last seen at
-        LivingEntity entityFound = (LivingEntity) world.getEntity(UUID.fromString(this.entityUUID));
+        LivingEntity entityFound = (LivingEntity) trackerWorld.getEntity(UUID.fromString(this.entityUUID));
 
         if(entityFound != null){
             Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);
@@ -273,8 +276,17 @@ public class PetEntityData implements ISerializable {
             //try retrieving from the current world
             entityFound = (LivingEntity) currentWorld.getEntity(UUID.fromString(this.entityUUID));
 
-            if(entityFound == null){
+            if(entityFound != null){
+                Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);
+                cleanEntityBeforeSaving();
+                removeEntity(entityFound);
+                this.entity = null;
+                return true;
+            }else {
                 //try loading the last place they were seen at
+                String entityName = this.getEntity().getDisplayName().getString();
+                Utils.message(entityName + " was last seen at " + trackerWorld.getDimensionKey().getValue().toString()
+                        + ". Trying to recall them from there.", player);
 
                 loadEntityAndPerformAction(currentWorld.getServer(),(entityLoaded)->{
                     Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);

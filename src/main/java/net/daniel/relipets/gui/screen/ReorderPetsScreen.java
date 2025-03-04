@@ -133,7 +133,9 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
         if(this.client == null || this.client.player == null) return;
 
         this.sub = (p)-> {
-            updateSlots(p);
+            this.rootComponent.queue(()-> {
+                updateSlots(p);
+            });
         };
 
         PetPartyUpdateNotifier.getInstance().subscribe(sub);
@@ -149,7 +151,10 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
 
         var bodyContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
         bodyContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
-
+        bodyContainer.child(
+                Components.label(Text.of("Click on a slot to select it. Then click on the slot you wish to move the first slot to."))
+                        .maxWidth(150).horizontalTextAlignment(HorizontalAlignment.CENTER)
+        );
         PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
         PetParty party = petOwner.getPetParty();
         //6 slots per row

@@ -21,7 +21,9 @@ import net.minecraft.util.Util;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /*
@@ -37,6 +39,7 @@ How unlocking more slots will work:
 public class PetParty implements ISerializable {
 
     public static final String SELECTED_PET_INDEX = "selected_pet_index";
+    public static final String PET_GROUP_MANAGER = "pet_group_manager";
 
     private int slotCount = 10;
 
@@ -47,6 +50,9 @@ public class PetParty implements ISerializable {
     private PetSlotManager<PetData> slotManager = new PetSlotManager<>(slotCount, PetData::new);
 
     PetPartyEventListener onPetPartyModifiedListener;
+
+    @Getter
+    private PetGroupManager petGroupManager = new PetGroupManager();
 
     private PlayerEntity player;
     private static final int baseSlotCount = 10;
@@ -151,6 +157,8 @@ public class PetParty implements ISerializable {
         this.slotManager.readFromNbt(nbt.getCompound(RelipetsConstantsRegistry.PET_SLOT_MANAGER_KEY));
 
         this.selectedPetIndex = nbt.getInt(SELECTED_PET_INDEX);
+
+        this.petGroupManager = new PetGroupManager(nbt.getCompound(PET_GROUP_MANAGER));
     }
 
     public NbtCompound writeToNbt(){
@@ -163,6 +171,9 @@ public class PetParty implements ISerializable {
         nbt.putInt(RelipetsConstantsRegistry.PET_SLOT_COUNT_KEY, this.slotCount);
         nbt.put(RelipetsConstantsRegistry.PET_SLOT_MANAGER_KEY, slotManagerNbt);
         nbt.putInt(SELECTED_PET_INDEX, this.selectedPetIndex);
+
+        if(this.petGroupManager != null)
+            nbt.put(PET_GROUP_MANAGER, this.petGroupManager.writeToNbt());
 
         return nbt;
     }
@@ -190,10 +201,7 @@ public class PetParty implements ISerializable {
     }
 
     public void toggleSummonSelectedPet(ServerWorld world, Vec3d pos, PlayerEntity player){
-        if(petSummonCooldown > 0){
-            Relipets.LOGGER.debug("Pet summon is on cooldown");
-            return;
-        }
+
 
         PetData selectedPet = this.getSelectedPet();
 
@@ -223,12 +231,7 @@ public class PetParty implements ISerializable {
 
         if(operationExecuted){
             player.getItemCooldownManager().set(RelipetsItemRegistry.PETIFICATOR_ITEM.asItem(), 20);
-            petSummonCooldown = 20;
-        }else{
-            petSummonCooldown = 10;
         }
-
-        triggerOnPartyModifiedEvent();
 
     }
 
@@ -366,6 +369,48 @@ public class PetParty implements ISerializable {
         this.pushChangesToClient();
     }
 
+    public void recallAllPets(ServerWorld world, PlayerEntity player) {
+        this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).forEach((p)-> p.recall(world, player));
+    }
+
+    public void summonGroup(UUID uuid, ServerWorld world, Vec3d pos, PlayerEntity player) {
+        PetGroup group = this.getPetGroupManager().getGroupById(uuid);
+        if(group != null){
+            List<Integer> slots = group.getSlots();
+            if(!slots.isEmpty()){
+                for(int slot : slots){
+                    PetData petData = this.getSlotManager().getSlotAt(slot).getContent();
+
+                    if(petData != null){
+                        petData.summon(world, pos, player);
+                    }
+                }
+
+                Utils.message("Summoned group "+ group.getName(), player);
+
+            }
+        }
+    }
+
+    public void recallGroup(UUID uuid, ServerWorld world, Vec3d pos, PlayerEntity player) {
+        PetGroup group = this.getPetGroupManager().getGroupById(uuid);
+        if(group != null){
+            List<Integer> slots = group.getSlots();
+            if(!slots.isEmpty()){
+                for(int slot : slots){
+                    PetData petData = this.getSlotManager().getSlotAt(slot).getContent();
+
+                    if(petData != null){
+                        petData.recall(world, player);
+                    }
+                }
+
+                Utils.message("Recalled group "+ group.getName(), player);
+
+            }
+        }
+    }
+
     public interface PetPartyEventListener{
         void onPetPartyEvent();
     }
@@ -380,5 +425,44 @@ Problem: The data in the client is different from the data in the server.
 How does data goes from the server to the client?
     Server writes the data to NBT.
     Client reads the data from NBT.
+
+ */
+
+/*
+Pet Groups:
+
+
+        There will be a screen for creating/updating and deleting pet groups.
+
+        The screen will have a Title saying "Pet Groups"
+
+        Then there will be a button for creating a new pet group.
+
+        [+ New Group]
+
+        Once clicked, a new pet group will appear in the list of pet groups. The group will be empty.
+        The group will have a name and a color associated to them
+
+        {color} Group 1 [Add Slot] [Remove Slot]                [Delete Group]
+        [][][][][][]
+
+        {color} Group 2 [Add Slot] [Remove Slot]                [Delete Group]
+        [][]
+
+        On the right side there will be a panel listing all the slots the player currently has and the slots will
+        be colored based on which group they belong to.
+
+
+        Party
+
+            - Groups
+
+                {
+                    color: "",
+                    name: "",
+                    slots: [0, 3, 5],
+
+                }
+
 
  */

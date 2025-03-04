@@ -12,6 +12,7 @@ import net.daniel.relipets.registries.*;
 import net.daniel.relipets.utils.SetTimeoutManager;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -82,5 +83,12 @@ public class Relipets implements ModInitializer {
 
 		});
 
+		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, oldWorld, newWorld) -> {
+			System.out.println("Player went from "+ oldWorld.getDimensionKey().getValue().toString() + " to " + newWorld.getDimensionKey().getValue().toString());
+			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+			petOwnerComponent.getPetParty().recallAllPets(oldWorld, player);
+		});
+
 	}
+
 }

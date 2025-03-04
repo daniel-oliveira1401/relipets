@@ -23,7 +23,11 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.TypeFilter;
+import net.minecraft.util.Util;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
 import net.tslat.smartbrainlib.util.BrainUtils;
 
@@ -129,15 +133,21 @@ public class PetData implements ISerializable {
     public void followOwner(PlayerEntity player){
         LivingEntity entity = this.getPetEntityData().getEntity();
         if(!(entity instanceof BaseCore) && entity instanceof PathAwareEntity pathAwareEntity){
+            boolean sameDimension = entity.getWorld().getDimensionKey().getValue().compareTo(player.getWorld().getDimensionKey().getValue()) == 0;
+            if(!sameDimension) return;
             double distance = pathAwareEntity.squaredDistanceTo(player);
-            if(!pathAwareEntity.getNavigation().isFollowingPath() && distance > (this.teleportDistance * this.teleportDistance)){
+            if(distance > (this.teleportDistance * this.teleportDistance)){
+                pathAwareEntity.getNavigation().stop();
                 //recall pets if it is not safe to teleport
-                if(player.getWorld().getBlockState(player.getBlockPos().down()).isAir()){
-                    this.recall((ServerWorld) player.getWorld(), player);
-                }else{
+                BlockPos safePosToTeleport = findRandomSafePositionAroundPlayer((ServerWorld) player.getWorld(), player.getBlockPos(), 8, player.getWorld().getRandom());
+                if(safePosToTeleport != null){
                     pathAwareEntity.teleport(
-                            player.getX(), player.getY(), player.getZ()
+                            safePosToTeleport.getX() + 0.5,
+                            safePosToTeleport.getY(),
+                            safePosToTeleport.getZ() + 0.5
                     );
+                }else{
+                    this.recall((ServerWorld) player.getWorld(), player);
                 }
             }else if(!pathAwareEntity.getNavigation().isFollowingPath() && distance > (this.followDistance * this.followDistance)){
                 FuzzyTargeting.findTo(pathAwareEntity, 10, 5, player.getPos());
@@ -145,6 +155,32 @@ public class PetData implements ISerializable {
 
             }
         }
+    }
+
+    private BlockPos findRandomSafePositionAroundPlayer(ServerWorld world, BlockPos center, int radius, Random random) {
+        int maxAttempts = radius * radius * radius; // cube of the radius
+        for (int i = 0; i < maxAttempts; i++) {
+            int dx = random.nextInt(2 * radius + 1) - radius;
+            int dy = random.nextInt(2 * radius + 1) - radius;
+            int dz = random.nextInt(2 * radius + 1) - radius;
+            BlockPos candidate = center.add(dx, dy, dz);
+            if (isSafe(world, candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private boolean isSafe(ServerWorld world, BlockPos pos) {
+        // Ensure the block below is solid (not air)
+        if (world.getBlockState(pos.down()).isAir()) {
+            return false;
+        }
+        // Check the block at the position and the one above are empty enough for the entity.
+        // Depending on the entity's bounding box, you might need to do more complex collision checks.
+        VoxelShape shape = world.getBlockState(pos).getCollisionShape(world, pos);
+        VoxelShape shapeAbove = world.getBlockState(pos.up()).getCollisionShape(world, pos.up());
+        return shape.isEmpty() && shapeAbove.isEmpty();
     }
 
     private void retributeHostilityIfApplicable(PlayerEntity player) {
@@ -317,23 +353,27 @@ public class PetData implements ISerializable {
     }
 
     public void summon(ServerWorld world, Vec3d pos, PlayerEntity player){
-        this.summonState = SUMMONED;
-        this.getPetEntityData().spawnEntity(world, pos, player, this);
-        this.getPetEntityData().setOwner(player);
-        System.out.println("spawned entity with health:" + this.getPetEntityData().getEntity().getMaxHealth());
+        if(this.isRecalled()){
+            this.summonState = SUMMONED;
+            this.getPetEntityData().spawnEntity(world, pos, player, this);
+            this.getPetEntityData().setOwner(player);
+        }else if(this.isHealing()){
+            Utils.message(this.getPetInfo().getPetName() + " is healing. Wait "+ Utils.tickToSecond(this.getHealingCooldown()) + "s.", player);
+
+        }
     }
 
     public void recall(ServerWorld world, PlayerEntity player){
+        if(this.isSummoned()){
+            boolean recalled = this.getPetEntityData().recallEntity(world, player, (e)-> {
+                this.summonState = RECALLED;
 
-        boolean recalled = this.getPetEntityData().recallEntity(world, player, (e)-> {
-            this.summonState = RECALLED;
-            Utils.message("Recalled " + this.getPetInfo().getPetName() + ".", player);
+                return true;
+            });
 
-            return true;
-        });
-
-        if(recalled)
-            this.summonState = RECALLED;
+            if(recalled)
+                this.summonState = RECALLED;
+        }
 
     }
 
@@ -367,7 +407,7 @@ public class PetData implements ISerializable {
         entity.setVelocity(0, 0, 0 );
         this.recall(world, player);
         this.summonState = HEALING;
-        this.healingCooldown = 800;
+        this.healingCooldown = (this.getPetInfo().getMaxHealth() / this.getNaturalHealing()) * Utils.secondToTick(1);
     }
 
     @Override
