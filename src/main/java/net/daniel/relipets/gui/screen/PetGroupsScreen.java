@@ -4,6 +4,7 @@ import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.*;
 import io.wispforest.owo.ui.container.*;
 import io.wispforest.owo.ui.core.*;
+import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.cca_components.pet_management.PetGroup;
@@ -30,8 +31,10 @@ import java.util.List;
 
 public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
+    static final Identifier defaultPaneBg = new Identifier(Relipets.MOD_ID, "textures/gui/pane_bg.png");
     static int slotSize = 22;
     static int groupBarSize = 6;
+    public static final Surface defaultSlotSurface = Surface.tiled(new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png"), slotSize, slotSize);
     BaseOwoScreen<FlowLayout> parent;
     private FlowLayout rootComponent;
     private int rows;
@@ -39,10 +42,10 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     private PetPartyUpdateNotifier.Subscriber sub;
     private FlowLayout groupsContainer;
     private FlowLayout leftPaneContainer;
-    private OverlayContainer<GridLayout> addSlotToGroupOverlay;
-    private OverlayContainer<GridLayout> removeSlotFromGroupOverlay;
+    private OverlayContainer<FlowLayout> addSlotToGroupOverlay;
+    private OverlayContainer<FlowLayout> removeSlotFromGroupOverlay;
 
-    int disabledSlotColor = 0xffcccccc;
+    int disabledSlotColor = 0xffdd5555;
 
     public PetGroupsScreen(BaseOwoScreen<FlowLayout> parent){
         this.parent = parent;
@@ -191,7 +194,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
             FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
             slotContainer.margins(Insets.both(5, 5));
 
-            slotContainer.surface(Surface.outline(group.getColor()));
+            slotContainer.surface(defaultSlotSurface.and(Surface.outline(group.getColor())));
 
             slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
 
@@ -230,18 +233,6 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
     }
 
-    private void recallGroup(PetGroup group) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
-        ClientPlayNetworking.send(C2SPacketHandlers.RECALL_GROUP, buf);
-    }
-
-    private void summonGroup(PetGroup group) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
-        ClientPlayNetworking.send(C2SPacketHandlers.SUMMON_GROUP, buf);
-    }
-
     private boolean openColorPicker(PetGroup group) {
         System.out.println("Open color picker :)");
         ColorPickerComponent colorPicker = new ColorPickerComponent();
@@ -258,6 +249,310 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         );
 
         return true;
+    }
+
+    private void openSelectSlotToRemoveModal(PetGroup group) {
+        //build a grid with the slots
+        GridLayout grid = buildSlotsToRemoveGrid(group);
+        if(grid != null){
+            grid.padding(Insets.of(25));
+
+            grid.surface(((context, component) -> {
+                context.drawTexture(defaultPaneBg, component.x(), component.y(), 0, 0, component.width(), component.height(), component.width(), component.height());
+            }));
+
+            var container = Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                    Components.label(Text.of("Select the slot to Remove from the group "+ group.getName())).maxWidth(150).margins(Insets.bottom(5))
+            ).child(
+                    grid
+            );
+
+            container.horizontalAlignment(HorizontalAlignment.CENTER);
+
+            this.removeSlotFromGroupOverlay = Containers.overlay(
+                    container
+            );
+            this.removeSlotFromGroupOverlay.zIndex(999);
+
+            this.rootComponent.child(
+                    this.removeSlotFromGroupOverlay
+            );
+
+        }
+    }
+
+    private void openSelectSlotToAddModal(PetGroup group) {
+
+        //build a grid with the slots
+        GridLayout grid = buildSlotsToAddGrid(group);
+
+        if(grid != null){
+            grid.padding(Insets.of(25));
+
+            grid.surface(((context, component) -> {
+                context.drawTexture(defaultPaneBg, component.x(), component.y(), 0, 0, component.width(), component.height(), component.width(), component.height());
+            }));
+
+            var container = Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                    Components.label(Text.of("Select the slot to Add to the group "+ group.getName())).maxWidth(150).margins(Insets.bottom(5))
+            ).child(
+                    grid
+            );
+
+            container.horizontalAlignment(HorizontalAlignment.CENTER);
+
+            this.addSlotToGroupOverlay = Containers.overlay(
+                    container
+            );
+
+            this.addSlotToGroupOverlay.zIndex(999);
+
+            this.rootComponent.child(
+                    this.addSlotToGroupOverlay
+            );
+
+        }
+        //when a slot is clicked, add that slot
+    }
+
+    public void buildRightPanel(){
+        if(this.client == null || this.client.player == null || this.rightPaneContainer == null) return;
+
+        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
+        PetParty party = petOwner.getPetParty();
+
+        for(int i = 0; i <party.getSlotManager().getSlotCount(); i++){
+
+            int currentRow = (int) Math.floor((double)i / columnCount);
+
+            int currentColumn = i - currentRow * columnCount;
+
+            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize + groupBarSize));
+            slotContainer.margins(Insets.both(5, 5));
+
+            slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.BOTTOM);
+
+            PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
+            FlowLayout entityContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
+            entityContainer.surface(defaultSlotSurface);
+            slotContainer.child(entityContainer);
+
+            EntityComponent<LivingEntity> entityComponent = buildSlotEntity(petData);
+
+            if(entityComponent != null){
+                entityContainer.child(
+                        entityComponent
+                );
+            }
+
+            slotContainer.child(
+                    Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(groupBarSize)).id("groupBar")
+            );
+
+            this.rightPaneContainer.child(slotContainer, currentRow, currentColumn);
+        }
+
+    }
+
+    @Nullable
+    private EntityComponent<LivingEntity> buildSlotEntity(PetData petData){
+        if(petData != null && petData.getPetEntityData().isValid()){
+            Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+
+            EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
+
+            return Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
+                    .scaleToFit(true);
+        }
+
+        return null;
+    }
+
+    @Nullable
+    public GridLayout buildSlotsToAddGrid(PetGroup group){
+
+        if(this.client == null || this.client.player == null || this.rightPaneContainer == null) return null;
+        int columnCount = 5;
+        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
+        PetParty party = petOwner.getPetParty();
+
+        this.rows = (int) Math.ceil((double) party.getSlotManager().getSlots().size() / columnCount);
+
+        GridLayout grid = Containers.grid(Sizing.content(), Sizing.content(), rows, columnCount);
+
+        for(int i = 0; i <party.getSlotManager().getSlotCount(); i++){
+
+            int currentRow = (int) Math.floor((double)i / columnCount);
+
+            int currentColumn = i - currentRow * columnCount;
+
+            Surface slotSurface = defaultSlotSurface;
+
+            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
+            slotContainer.margins(Insets.both(5, 5));
+
+            if(group.getSlots().contains(Integer.valueOf(i))){
+                slotSurface = Surface.flat(disabledSlotColor);
+            }else{
+                int finalI = i;
+                slotContainer.mouseDown().subscribe((a, b, c)-> this.addSlotToGroup(group, finalI));
+            }
+
+            slotContainer.surface(slotSurface);
+
+            //.margins(Insets.right(slotSpacing));
+
+            slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
+
+            PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
+            EntityComponent<LivingEntity> entityComponent = buildSlotEntity(petData);
+
+            if(entityComponent != null){
+                slotContainer.child(
+                        entityComponent
+                );
+            }
+
+            grid.child(slotContainer, currentRow, currentColumn);
+        }
+
+        return grid;
+    }
+
+    @Nullable
+    public GridLayout buildSlotsToRemoveGrid(PetGroup group){
+
+        if(this.client == null || this.client.player == null || this.rightPaneContainer == null) return null;
+        int columnCount = 5;
+        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
+        PetParty party = petOwner.getPetParty();
+
+        this.rows = (int) Math.ceil((double) party.getSlotManager().getSlots().size() / columnCount);
+
+        GridLayout grid = Containers.grid(Sizing.content(), Sizing.content(), rows, columnCount);
+
+        for(int i = 0; i <party.getSlotManager().getSlotCount(); i++){
+
+            int currentRow = (int) Math.floor((double)i / columnCount);
+
+            int currentColumn = i - currentRow * columnCount;
+
+            Surface slotSurface = defaultSlotSurface;
+
+            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
+            slotContainer.margins(Insets.both(5, 5));
+
+
+            if(!group.getSlots().contains(Integer.valueOf(i))){
+                slotSurface = Surface.flat(this.disabledSlotColor);
+            }else{
+                int finalI = i;
+                slotContainer.mouseDown().subscribe((a, b, c)-> this.removeSlotFromGroup(group, finalI));
+            }
+
+            slotContainer.surface(slotSurface);
+
+            //.margins(Insets.right(slotSpacing));
+
+            slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
+
+            PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
+
+            EntityComponent<LivingEntity> entityComponent = buildSlotEntity(petData);
+
+            if(entityComponent != null){
+                slotContainer.child(
+                        entityComponent
+                );
+            }
+
+            grid.child(slotContainer, currentRow, currentColumn);
+        }
+
+        return grid;
+    }
+
+    public void onPartyUpdated(PetParty party){
+        if(this.client == null || this.client.player == null || this.rightPaneContainer == null) return;
+
+        // ============== Update the slots for the right panel ============
+        for(int i = 0; i < this.rightPaneContainer.children().size(); i++){
+
+            FlowLayout slotContainer = (FlowLayout) this.rightPaneContainer.children().get(i);
+
+            slotContainer.clearChildren();
+
+            PetData petData = party.getSlotManager().getSlotAt(i).getContent();
+            FlowLayout entityContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
+            entityContainer.surface(defaultSlotSurface);
+            slotContainer.child(entityContainer);
+
+            EntityComponent<LivingEntity> entityComponent = buildSlotEntity(petData);
+
+            if(entityComponent != null){
+                entityContainer.child(
+                        entityComponent
+                );
+            }
+
+            FlowLayout groupBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(groupBarSize));
+
+            if(party.getPetGroupManager() != null){
+                List<PetGroup> groups = party.getPetGroupManager().getSlotGroups(i);
+                if(groups != null && !groups.isEmpty()){
+
+                    groupBar.clearChildren();
+                    groups.forEach((g)-> {
+                        int color = g.getColor();
+                        BoxComponent bgBox = Components.box(Sizing.fill((int)Math.floor(100.0f/ groups.size())), Sizing.fill(100));
+                        bgBox.fill(true);
+                        bgBox.color(Color.ofArgb(color));
+                        groupBar.child(bgBox);
+                    });
+
+                }
+            }
+
+            slotContainer.child(
+                    groupBar
+            );
+        }
+
+        //============== update the left panel ==========
+        buildGroups(party);
+    }
+
+    int columnCount = 3;
+
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        try{
+
+            super.render(context, mouseX, mouseY, delta);
+        }catch (Exception e){
+            System.out.println("Owo lib exploded");
+        }
+        //iterate over the slots
+        //  if the slot index matches the selected slot, then paint it with another color
+
+    }
+
+    private void backToMainScreen(ButtonComponent btn){
+        if(this.client != null){
+            this.client.setScreen(this.parent);
+        }
+    }
+
+    private void recallGroup(PetGroup group) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeString(group.getId().toString());
+        ClientPlayNetworking.send(C2SPacketHandlers.RECALL_GROUP, buf);
+    }
+
+    private void summonGroup(PetGroup group) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeString(group.getId().toString());
+        ClientPlayNetworking.send(C2SPacketHandlers.SUMMON_GROUP, buf);
     }
 
     private void setGroupColor(PetGroup group, Color color) {
@@ -281,204 +576,9 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
     }
 
-    private void openSelectSlotToRemoveModal(PetGroup group) {
-        //build a grid with the slots
-        GridLayout grid = buildSlotsToRemoveGrid(group);
-        if(grid != null){
-            grid.padding(Insets.of(10));
-            grid.surface(Surface.PANEL_INSET);
-
-            this.removeSlotFromGroupOverlay = Containers.overlay(grid);
-            this.removeSlotFromGroupOverlay.zIndex(99);
-
-            this.rootComponent.child(
-                    this.removeSlotFromGroupOverlay
-            );
-
-        }
+    public void addGroup(){
+        ClientPlayNetworking.send(C2SPacketHandlers.CREATE_GROUP, PacketByteBufs.empty());
     }
-
-    private void openSelectSlotToAddModal(PetGroup group) {
-
-        //build a grid with the slots
-        GridLayout grid = buildSlotsToAddGrid(group);
-        if(grid != null){
-            grid.padding(Insets.of(10));
-            grid.surface(Surface.PANEL_INSET);
-
-            this.addSlotToGroupOverlay = Containers.overlay(grid);
-            this.addSlotToGroupOverlay.zIndex(99);
-
-            this.rootComponent.child(
-                this.addSlotToGroupOverlay
-            );
-
-        }
-        //when a slot is clicked, add that slot
-    }
-
-    public void buildRightPanel(){
-        if(this.client == null || this.client.player == null || this.rightPaneContainer == null) return;
-
-        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
-        PetParty party = petOwner.getPetParty();
-
-        for(int i = 0; i <party.getSlotManager().getSlotCount(); i++){
-
-            int currentRow = (int) Math.floor((double)i / columnCount);
-
-            int currentColumn = i - currentRow * columnCount;
-
-            Surface slotSurface = Surface.VANILLA_TRANSLUCENT;
-
-            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize + groupBarSize));
-            slotContainer.margins(Insets.both(5, 5));
-            slotContainer.surface(slotSurface);
-            int finalI = i;
-            slotContainer.mouseDown().subscribe((a, b, c)-> this.onSlotClicked(finalI));
-            //.margins(Insets.right(slotSpacing));
-
-            slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.BOTTOM);
-
-            PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
-
-            if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
-
-                EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
-
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
-                        .scaleToFit(true);
-
-                slotContainer.child(
-                        component
-                );
-            }
-
-            slotContainer.child(
-                    Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(groupBarSize)).id("groupBar")
-            );
-
-            this.rightPaneContainer.child(slotContainer, currentRow, currentColumn);
-        }
-
-    }
-
-    @Nullable
-    public GridLayout buildSlotsToAddGrid(PetGroup group){
-
-        if(this.client == null || this.client.player == null || this.rightPaneContainer == null) return null;
-
-        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
-        PetParty party = petOwner.getPetParty();
-
-        this.rows = (int) Math.ceil((double) party.getSlotManager().getSlots().size() / columnCount);
-
-        GridLayout grid = Containers.grid(Sizing.content(), Sizing.content(), rows, 5);
-
-        for(int i = 0; i <party.getSlotManager().getSlotCount(); i++){
-
-            int currentRow = (int) Math.floor((double)i / columnCount);
-
-            int currentColumn = i - currentRow * columnCount;
-
-            Surface slotSurface = Surface.VANILLA_TRANSLUCENT;
-
-            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
-            slotContainer.margins(Insets.both(5, 5));
-
-            if(group.getSlots().contains(Integer.valueOf(i))){
-                slotSurface = Surface.flat(disabledSlotColor);
-            }else{
-                int finalI = i;
-                slotContainer.mouseDown().subscribe((a, b, c)-> this.addSlotToGroup(group, finalI));
-            }
-
-            slotContainer.surface(slotSurface);
-
-            //.margins(Insets.right(slotSpacing));
-
-            slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
-
-            PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
-
-            if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
-
-                EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
-
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
-                        .scaleToFit(true);
-
-                slotContainer.child(
-                        component
-                );
-            }
-
-            grid.child(slotContainer, currentRow, currentColumn);
-        }
-
-        return grid;
-    }
-
-    @Nullable
-    public GridLayout buildSlotsToRemoveGrid(PetGroup group){
-
-        if(this.client == null || this.client.player == null || this.rightPaneContainer == null) return null;
-
-        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
-        PetParty party = petOwner.getPetParty();
-
-        this.rows = (int) Math.ceil((double) party.getSlotManager().getSlots().size() / columnCount);
-
-        GridLayout grid = Containers.grid(Sizing.content(), Sizing.content(), rows, 5);
-
-        for(int i = 0; i <party.getSlotManager().getSlotCount(); i++){
-
-            int currentRow = (int) Math.floor((double)i / columnCount);
-
-            int currentColumn = i - currentRow * columnCount;
-
-            Surface slotSurface = Surface.VANILLA_TRANSLUCENT;
-
-            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
-            slotContainer.margins(Insets.both(5, 5));
-
-
-            if(!group.getSlots().contains(Integer.valueOf(i))){
-                slotSurface = Surface.flat(this.disabledSlotColor);
-            }else{
-                int finalI = i;
-                slotContainer.mouseDown().subscribe((a, b, c)-> this.removeSlotFromGroup(group, finalI));
-            }
-
-            slotContainer.surface(slotSurface);
-
-            //.margins(Insets.right(slotSpacing));
-
-            slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
-
-            PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
-
-            if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
-
-                EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
-
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
-                        .scaleToFit(true);
-
-                slotContainer.child(
-                        component
-                );
-            }
-
-            grid.child(slotContainer, currentRow, currentColumn);
-        }
-
-        return grid;
-    }
-
 
     private boolean addSlotToGroup(PetGroup group, int slotIndex) {
         PacketByteBuf buf = PacketByteBufs.create();
@@ -496,132 +596,6 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         ClientPlayNetworking.send(C2SPacketHandlers.REMOVE_SLOT_FROM_GROUP, buf);
         this.removeSlotFromGroupOverlay.remove();
         return true;
-    }
-
-    public void onPartyUpdated(PetParty party){
-        if(this.client == null || this.client.player == null || this.rightPaneContainer == null) return;
-
-        // ============== Update the slots for the right panel ============
-        for(int i = 0; i < this.rightPaneContainer.children().size(); i++){
-
-            FlowLayout slotContainer = (FlowLayout) this.rightPaneContainer.children().get(i);
-            //get the group that this slot belongs to (if any)
-
-
-            slotContainer.clearChildren();
-
-            PetData petData = party.getSlotManager().getSlotAt(i).getContent();
-
-            if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
-
-                EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
-
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
-                        .scaleToFit(true);
-
-                slotContainer.child(
-                        component
-                );
-            }
-
-            if(party.getPetGroupManager() != null){
-                List<PetGroup> groups = party.getPetGroupManager().getSlotGroups(i);
-                if(groups != null && !groups.isEmpty()){
-
-                    FlowLayout groupBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(groupBarSize));
-
-                    if(groupBar != null){
-
-                        groupBar.clearChildren();
-                        groups.forEach((g)-> {
-                            int color = g.getColor();
-                            BoxComponent bgBox = Components.box(Sizing.fill((int)Math.floor(100.0f/ groups.size())), Sizing.fill(100));
-                            bgBox.fill(true);
-                            bgBox.color(Color.ofArgb(color));
-                            groupBar.child(bgBox);
-                        });
-
-                        slotContainer.child(
-                                groupBar
-                        );
-
-                    }
-
-                }
-            }
-
-        }
-
-        //============== update the left panel ==========
-        buildGroups(party);
-    }
-
-    int columnCount = 3;
-
-    public void addGroup(){
-        ClientPlayNetworking.send(C2SPacketHandlers.CREATE_GROUP, PacketByteBufs.empty());
-    }
-
-    @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        try{
-
-            super.render(context, mouseX, mouseY, delta);
-        }catch (Exception e){
-            System.out.println("Owo lib exploded");
-        }
-        //iterate over the slots
-        //  if the slot index matches the selected slot, then paint it with another color
-
-    }
-
-
-
-    int selectedSlot = -1;
-
-    public boolean onSlotClicked(int slotIndex){
-        return true;
-        //check if there is a slot selected
-        //if there isnt, then select one
-//        if(this.selectedSlot == slotIndex){
-//            this.selectedSlot = -1;
-//        }else if(this.selectedSlot == -1){
-//            this.selectedSlot = slotIndex;
-//        }else {
-//            PacketByteBuf buf = PacketByteBufs.create();
-//            buf.writeInt(this.selectedSlot); //origin
-//            buf.writeInt(slotIndex); //destination
-//            ClientPlayNetworking.send(C2SPacketHandlers.REORDER_PETS, buf);
-//            this.selectedSlot = -1;
-//        }
-//
-//        if(this.rootComponent != null){
-//            if(rightPaneContainer != null){
-//
-//                for(int i = 0; i < rightPaneContainer.children().size(); i++){
-//
-//                    var slot = rightPaneContainer.children().get(i);
-//                    if(slot instanceof FlowLayout flowSlot){
-//                        flowSlot.surface(Surface.VANILLA_TRANSLUCENT);
-//                        if(i == this.selectedSlot){
-//                            flowSlot.surface(Surface.PANEL);
-//                        }
-//                    }
-//
-//                }
-//
-//
-//            }
-//        }
-//
-//        return true;
-    }
-
-    private void backToMainScreen(ButtonComponent btn){
-        if(this.client != null){
-            this.client.setScreen(this.parent);
-        }
     }
 
     @Override

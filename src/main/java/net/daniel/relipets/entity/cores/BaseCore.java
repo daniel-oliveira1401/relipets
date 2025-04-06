@@ -54,12 +54,9 @@ import software.bernie.geckolib.animatable.GeoEntity;
 
 import java.util.*;
 
-//TODO: move progression system to PetMetadaComponent
-
 public abstract class BaseCore extends PathAwareEntity implements GeoEntity, SmartBrainOwner<BaseCore> {
 
     public static final String ABILITY_STATS_KEY = "ability_stats";
-    public static final String LEVEL_PROGRESSION_KEY = "level_progression";
 
     public static final String ANIM_IDLE = "idle";
     public static final String ANIM_WALK = "walk";
@@ -108,6 +105,11 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     @Override
     protected int computeFallDamage(float fallDistance, float damageMultiplier) {
         return 0;
+    }
+
+    @Override
+    public boolean canBreatheInWater() {
+        return true;
     }
 
     @Nullable

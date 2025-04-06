@@ -37,6 +37,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
+@Getter
 public class PetEntityData implements ISerializable {
 
     public static final String ENTITY_NBT_KEY = "entity_nbt";
@@ -45,21 +46,15 @@ public class PetEntityData implements ISerializable {
     public static final String ENTITY_TRACKER_KEY = "entity_tracker";
     private static final String ENTITY_ID_KEY = "entity_id";
 
-    @Getter
     NbtCompound entityNbt;
 
-    @Getter
     LivingEntity entity;
 
-    @Getter
     String entityType;
-    @Getter
     String entityUUID;
 
-    @Getter
     int entityId;
 
-    @Getter
     PetEntityTracker tracker = new PetEntityTracker();
 
     public void loadEntityAndPerformAction(MinecraftServer server, Function<LivingEntity, Boolean> actionToPerform){
@@ -196,7 +191,6 @@ public class PetEntityData implements ISerializable {
         this.entityId = this.entity.getId();
     }
 
-    //TODO: fix this code. It does not work if the entity is in an unloaded chunk when attempting to bind them
     public void bindEntity(ServerWorld world, PlayerEntity player, PetData petData){
         //SetTimeoutManager.setTimeout(()-> {
             //search in current world
@@ -249,7 +243,6 @@ public class PetEntityData implements ISerializable {
         }
     }
 
-    //TODO: fix this code. This does not cover all the possible recall scenarios
     public boolean recallEntity(ServerWorld currentWorld, PlayerEntity player, Function<Boolean, Boolean> setRecalledState){
 
         saveEntityData();
@@ -285,8 +278,10 @@ public class PetEntityData implements ISerializable {
             }else {
                 //try loading the last place they were seen at
                 String entityName = this.getEntity().getDisplayName().getString();
-                Utils.message(entityName + " was last seen at " + trackerWorld.getDimensionKey().getValue().toString()
-                        + ". Trying to recall them from there.", player);
+                Utils.message(entityName + " was last seen at " +
+                        trackerWorld.getDimensionKey().getValue().toString() +
+                        " " + tracker.getPosition().toShortString() +
+                        ". Trying to recall them from there.", player);
 
                 loadEntityAndPerformAction(currentWorld.getServer(),(entityLoaded)->{
                     Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);

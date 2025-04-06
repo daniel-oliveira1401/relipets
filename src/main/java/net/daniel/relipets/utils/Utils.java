@@ -2,8 +2,11 @@ package net.daniel.relipets.utils;
 
 import net.daniel.relipets.Relipets;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.shape.VoxelShape;
 
 public class Utils {
 
@@ -37,6 +40,32 @@ public class Utils {
 
     public static int secondToTick(float second){
         return (int)(second * 20);
+    }
+
+    public static BlockPos findRandomSafePositionAroundPlayer(ServerWorld world, BlockPos center, int radius, Random random) {
+        int maxAttempts = radius * radius * radius; // cube of the radius
+        for (int i = 0; i < maxAttempts; i++) {
+            int dx = random.nextInt(2 * radius + 1) - radius;
+            int dy = random.nextInt(2 * radius + 1) - radius;
+            int dz = random.nextInt(2 * radius + 1) - radius;
+            BlockPos candidate = center.add(dx, dy, dz);
+            if (isSafe(world, candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    public static boolean isSafe(ServerWorld world, BlockPos pos) {
+        // Ensure the block below is solid (not air)
+        if (world.getBlockState(pos.down()).isAir()) {
+            return false;
+        }
+        // Check the block at the position and the one above are empty enough for the entity.
+        // Depending on the entity's bounding box, you might need to do more complex collision checks.
+        VoxelShape shape = world.getBlockState(pos).getCollisionShape(world, pos);
+        VoxelShape shapeAbove = world.getBlockState(pos.up()).getCollisionShape(world, pos.up());
+        return shape.isEmpty() && shapeAbove.isEmpty();
     }
 
 }

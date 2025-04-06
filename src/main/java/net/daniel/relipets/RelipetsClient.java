@@ -1,17 +1,14 @@
 package net.daniel.relipets;
 
-import net.daniel.relipets.entity.cores.CyanCoreRenderer;
+import net.daniel.relipets.entity.cores.client.CyanCoreRenderer;
 import net.daniel.relipets.gui.hud.NewPetHud;
 import net.daniel.relipets.items.client.PetificatorProjectileRenderer;
-import net.daniel.relipets.items.special.PetificatorProjectile;
 import net.daniel.relipets.registries.KeyBindingsRegistry;
 import net.daniel.relipets.registries.RelipetsEntityRegistry;
 import net.daniel.relipets.registries.S2CPacketHandlers;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
 
 public class RelipetsClient implements ClientModInitializer {
 

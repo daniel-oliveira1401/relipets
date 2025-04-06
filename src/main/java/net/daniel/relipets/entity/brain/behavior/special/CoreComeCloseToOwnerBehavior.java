@@ -1,14 +1,20 @@
 package net.daniel.relipets.entity.brain.behavior.special;
 
 import com.mojang.datafixers.util.Pair;
+import jdk.jshell.execution.Util;
+import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.entity.brain.behavior.ContinuousTimedBehavior;
 import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.brain.sensor.models.BehaviorDefinition;
 import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.WalkTarget;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.tslat.smartbrainlib.util.BrainUtils;
 
 import java.util.List;
@@ -16,12 +22,13 @@ import java.util.List;
 public class CoreComeCloseToOwnerBehavior extends SpecialBehavior {
 
     int minDistance = 1;
+    int tpDistance = 20;
 
     public CoreComeCloseToOwnerBehavior(){
         super(BaseCore.COME_CLOSE_TO_OWNER);
     }
 
-    public CoreComeCloseToOwnerBehavior(int minDistance){
+    public CoreComeCloseToOwnerBehavior(int minDistance, int tpDistance){
         super(BaseCore.COME_CLOSE_TO_OWNER);
         this.minDistance = minDistance;
     }
@@ -53,7 +60,29 @@ public class CoreComeCloseToOwnerBehavior extends SpecialBehavior {
 
         PlayerEntity owner = BrainUtils.getMemory(entity.getBrain(), RelipetsMemoryTypes.PARTY_OWNER);
         if(owner != null){
-            if(entity.squaredDistanceTo(owner) > this.minDistance * this.minDistance){
+            double distance = entity.squaredDistanceTo(owner);
+
+            //entity is too far away. Teleport it close to the owner
+            if(distance > this.tpDistance * this.tpDistance){
+                BlockPos safePosToTp = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), owner.getBlockPos(), 5, entity.getWorld().getRandom());
+
+                if(safePosToTp == null){
+                    PetData pet = CardinalComponentsRegistry.PET_OWNER_KEY.get(owner).getPetParty().getPetByEntityUUID(entity.getUuidAsString());
+                    if(pet != null){
+                        pet.recall((ServerWorld) entity.getWorld(), owner);
+                    }
+
+                }else{
+                    entity.teleport(
+                            safePosToTp.getX(),
+                            safePosToTp.getY(),
+                            safePosToTp.getZ()
+                    );
+
+                }
+
+            }else if(distance > this.minDistance * this.minDistance){
+                //entity is far but not too far away
                 entity.getNavigation().startMovingTo(owner, entity.getMovementSpeed());
                 BrainUtils.setMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET, new WalkTarget(owner.getPos(), entity.getMovementSpeed(), minDistance));
             }

@@ -10,6 +10,7 @@ import io.wispforest.owo.ui.core.*;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
+import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsOperationEnum;
 import net.daniel.relipets.registries.C2SPacketHandlers;

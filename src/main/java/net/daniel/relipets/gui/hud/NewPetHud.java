@@ -215,7 +215,7 @@ public class NewPetHud {
     private static void buildSlotsIfNeeded(PetParty petParty) {
         int currentSlotCount = petParty.getSlotManager().getSlots().size();
         if(partyUpdated || addedLayout || (selectedPetSlot != petParty.getSelectedPetIndex()) || slotsLayout.child().children().size() != currentSlotCount){
-            if(partyUpdated){
+            if(partyUpdated && tempUpdatedParty != null){
                 petParty = tempUpdatedParty;
                 partyUpdated = false;
             }
@@ -223,7 +223,7 @@ public class NewPetHud {
             slotsLayout.child().clearChildren();
 
             for(int i = 0; i < currentSlotCount; i++){
-                Surface slotSurface = Surface.VANILLA_TRANSLUCENT;
+                Surface slotSurface = Surface.tiled(new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png"), slotSize, slotSize);
 
                 if(i == selectedPetSlot){
                     slotSurface = Surface.PANEL;

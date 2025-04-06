@@ -139,7 +139,7 @@ public class PetData implements ISerializable {
             if(distance > (this.teleportDistance * this.teleportDistance)){
                 pathAwareEntity.getNavigation().stop();
                 //recall pets if it is not safe to teleport
-                BlockPos safePosToTeleport = findRandomSafePositionAroundPlayer((ServerWorld) player.getWorld(), player.getBlockPos(), 8, player.getWorld().getRandom());
+                BlockPos safePosToTeleport = Utils.findRandomSafePositionAroundPlayer((ServerWorld) player.getWorld(), player.getBlockPos(), 8, player.getWorld().getRandom());
                 if(safePosToTeleport != null){
                     pathAwareEntity.teleport(
                             safePosToTeleport.getX() + 0.5,
@@ -155,32 +155,6 @@ public class PetData implements ISerializable {
 
             }
         }
-    }
-
-    private BlockPos findRandomSafePositionAroundPlayer(ServerWorld world, BlockPos center, int radius, Random random) {
-        int maxAttempts = radius * radius * radius; // cube of the radius
-        for (int i = 0; i < maxAttempts; i++) {
-            int dx = random.nextInt(2 * radius + 1) - radius;
-            int dy = random.nextInt(2 * radius + 1) - radius;
-            int dz = random.nextInt(2 * radius + 1) - radius;
-            BlockPos candidate = center.add(dx, dy, dz);
-            if (isSafe(world, candidate)) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    private boolean isSafe(ServerWorld world, BlockPos pos) {
-        // Ensure the block below is solid (not air)
-        if (world.getBlockState(pos.down()).isAir()) {
-            return false;
-        }
-        // Check the block at the position and the one above are empty enough for the entity.
-        // Depending on the entity's bounding box, you might need to do more complex collision checks.
-        VoxelShape shape = world.getBlockState(pos).getCollisionShape(world, pos);
-        VoxelShape shapeAbove = world.getBlockState(pos.up()).getCollisionShape(world, pos.up());
-        return shape.isEmpty() && shapeAbove.isEmpty();
     }
 
     private void retributeHostilityIfApplicable(PlayerEntity player) {

@@ -1,27 +1,19 @@
-package net.daniel.relipets.entity.cores;
+package net.daniel.relipets.entity.cores.client;
 
 
 import net.daniel.relipets.Relipets;
-import net.daniel.relipets.cca_components.PartSystemComponent;
 import net.daniel.relipets.cca_components.parts.PetPart;
+import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.entity.render_layers.PartModel;
 import net.daniel.relipets.entity.render_layers.PartRenderLayer;
-import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsEntityRegistry;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.texture.TextureManager;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
-import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.core.object.Color;
 import software.bernie.geckolib.model.DefaultedEntityGeoModel;
-import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
-import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer;
 
 public class CyanCoreRenderer extends GeoEntityRenderer<BaseCore> {
 

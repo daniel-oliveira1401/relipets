@@ -7,6 +7,8 @@ import net.daniel.relipets.items.special.PetificatorProjectile;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.KeyBindingsRegistry;
 import net.daniel.relipets.registries.RelipetsEntityRegistry;
+import net.daniel.relipets.registries.RelipetsItemRegistry;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.client.render.item.BuiltinModelItemRenderer;
@@ -80,6 +82,23 @@ public class Petificator extends Item implements GeoItem {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
         if(user.isSneaking()){
+
+            //get the capsule from the player inventory
+            boolean hasCapsule = user.getInventory().main.stream()
+                    .anyMatch(stack -> !stack.isEmpty() && stack.isOf(RelipetsItemRegistry.CAPSULE));
+
+            if(!hasCapsule){
+                Utils.message("Capsule required for capturing pets", user);
+                return TypedActionResult.fail(user.getStackInHand(hand));
+            }
+
+            for(ItemStack itemStack : user.getInventory().main){
+                if(itemStack.getItem() instanceof CapsuleItem){
+                    itemStack.decrement(1);
+                    break;
+                }
+            }
+
             PetificatorProjectile proj = new PetificatorProjectile(RelipetsEntityRegistry.PETIFICATOR_PROJECTILE, user.getWorld());
             //proj.setPos(user.getX(), user.getY()+1.3f, user.getZ());
 
@@ -121,7 +140,7 @@ public class Petificator extends Item implements GeoItem {
             PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
             PetData pet = petOwner.getPetParty().getSelectedPet();
             if(pet != null){
-                pet.teleport(context.getHitPos());
+                pet.teleport(context.getBlockPos().up().toCenterPos());
             }
             return ActionResult.CONSUME;
         }

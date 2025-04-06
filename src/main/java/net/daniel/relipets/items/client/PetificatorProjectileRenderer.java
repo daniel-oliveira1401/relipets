@@ -14,6 +14,6 @@ import software.bernie.geckolib.renderer.GeoItemRenderer;
 public class PetificatorProjectileRenderer extends GeoEntityRenderer<PetificatorProjectile> {
 
     public PetificatorProjectileRenderer(EntityRendererFactory.Context renderManager) {
-        super(renderManager, new DefaultedEntityGeoModel<>(Identifier.of(Relipets.MOD_ID, "petificator_projectile")));
+        super(renderManager, new DefaultedEntityGeoModel<>(Identifier.of(Relipets.MOD_ID, "capsule")));
     }
 }
