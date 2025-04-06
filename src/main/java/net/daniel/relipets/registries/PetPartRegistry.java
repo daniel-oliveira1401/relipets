@@ -36,38 +36,38 @@ public class PetPartRegistry {
 
         //==== avian set (fighter mage) =======
         PART_VARIANTS.add(new PetPartRegistryEntry("wing_basic_avian"
-                , new ThrowEnemyUpAbility()
+                , new ThrowEnemyUpAbility(), 1, 1.8f
         ));
         PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_avian"
-                , new HealOwnerAbility()
+                , new HealOwnerAbility(), 1, 1.8f
         ));
         PART_VARIANTS.add(new PetPartRegistryEntry("tail_basic_avian"
-                , new ThrowFireballAbility()
+                , new ThrowFireballAbility(), 1, 1.8f
         ));
         PART_VARIANTS.add(new PetPartRegistryEntry("torso_basic_avian"
-                , new HealSelfAbility()
+                , new HealSelfAbility(), 1, 1.8f
         ));
 
         //====== quadruped set ('tanky' support) =======
         PART_VARIANTS.add(new PetPartRegistryEntry("leg_basic_quadruped"
-                , new SlowDownTargetAbility()
+                , new SlowDownTargetAbility(), 1, 1.8f
         ));
-        PART_VARIANTS.add(new PetPartRegistryEntry("torso_basic_quadruped", new StrengthenSelfAbility()));
+        PART_VARIANTS.add(new PetPartRegistryEntry("torso_basic_quadruped", new StrengthenSelfAbility(), 1, 1.8f));
         PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_quadruped"
-                , new HealOwnerAbility()
+                , new HealOwnerAbility(), 1, 1.8f
         ));
-        PART_VARIANTS.add(new PetPartRegistryEntry("tail_basic_quadruped"));
+        PART_VARIANTS.add(new PetPartRegistryEntry("tail_basic_quadruped", 1.0f, 1.8f));
 
         //======== bee set (mage based on effects) =========
-        PART_VARIANTS.add(new PetPartRegistryEntry("leg_basic_bee", new SlowDownTargetAbility()));
-        PART_VARIANTS.add(new PetPartRegistryEntry("torso_basic_bee", new StrengthenSelfAbility()));
-        PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_bee", new HealOwnerAbility()));
-        PART_VARIANTS.add(new PetPartRegistryEntry("tail_basic_bee", new PoisonTargetAbility()));
+        PART_VARIANTS.add(new PetPartRegistryEntry("leg_basic_bee", new SlowDownTargetAbility(), 1, 1.8f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("torso_basic_bee", new StrengthenSelfAbility(), 1, 1.8f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("head_basic_bee", new HealOwnerAbility(), 1, 1.8f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("tail_basic_bee", new PoisonTargetAbility(), 1, 1.8f));
         PART_VARIANTS.add(new PetPartRegistryEntry("arm_basic_bee"
-                , new SetEnemyOnFireAbility()
+                , new SetEnemyOnFireAbility(), 1, 1.8f
         ));
         PART_VARIANTS.add(new PetPartRegistryEntry("wing_basic_bee"
-                , new ThrowEnemyUpAbility()
+                , new ThrowEnemyUpAbility(), 1, 1.8f
         ));
     }
 
@@ -84,6 +84,9 @@ public class PetPartRegistry {
         final private String name;
 
         @Nullable private CoreAbility ability;
+
+        final float cyanCoreScale;
+        final float yellowCoreScale;
     }
 
 }

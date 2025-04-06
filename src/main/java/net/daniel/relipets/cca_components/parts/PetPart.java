@@ -55,6 +55,10 @@ public class PetPart {
 
     public Vec3d baseCenterOffset = new Vec3d(-0.5, -0.5, -0.5);
 
+    //default values. These should be changed in the constructor
+    public float cyanCoreScale = 1.0f;
+    public float yellowCoreScale = 1.8f;
+
     public PetPart(){
 
     }
@@ -72,11 +76,11 @@ public class PetPart {
         this.partType = partType;
     }
 
-    //TODO: add abilities. Make abilities serializable
     public NbtCompound writeToNbt (){
 
         NbtCompound tag = new NbtCompound();
-
+        tag.putFloat("cyanCoreScale", this.cyanCoreScale);
+        tag.putFloat("yellowCoreScale", this.yellowCoreScale);
         tag.putString(RelipetsConstantsRegistry.PART_TYPE, this.partType);
 
         if(this.modelPartId != null)
@@ -93,8 +97,13 @@ public class PetPart {
         //get the registry entry from the registry
         //read the ability from it
         Optional<PetPartRegistry.PetPartRegistryEntry> partEntry = PetPartRegistry.getPartRegistryEntryByVariantId(emptyPart.getModelPartId());
+        emptyPart.cyanCoreScale = tag.getFloat("cyanCoreScale");
 
-        partEntry.ifPresent(petPartRegistryEntry -> emptyPart.setSignatureAbility(petPartRegistryEntry.getAbility()));
+        partEntry.ifPresent(petPartRegistryEntry -> {
+            emptyPart.setSignatureAbility(petPartRegistryEntry.getAbility());
+            emptyPart.yellowCoreScale = petPartRegistryEntry.getYellowCoreScale();
+            emptyPart.cyanCoreScale = petPartRegistryEntry.getCyanCoreScale();
+        });
 
         return emptyPart;
     }

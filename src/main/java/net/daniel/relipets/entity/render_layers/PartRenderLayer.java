@@ -4,6 +4,8 @@ package net.daniel.relipets.entity.render_layers;
 import lombok.Getter;
 import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.entity.cores.CyanCore;
+import net.daniel.relipets.entity.cores.YellowCore;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
@@ -69,12 +71,20 @@ public class PartRenderLayer extends GeoRenderLayer<BaseCore> {
 
         poseStack.multiply(RotationAxis.NEGATIVE_Y.rotationDegrees(lerpBodyRot));
 
+        float scale = 1;
+
+        if(core instanceof YellowCore){
+            scale = part.yellowCoreScale;
+        }else if (core instanceof CyanCore){
+            scale = part.cyanCoreScale;
+        }
+        poseStack.scale(scale, scale , scale);
+
         poseStack.translate(
-                part.baseCenterOffset.x,
-                part.baseCenterOffset.y,
-                part.baseCenterOffset.z
+                -0.5f,
+                -0.5f,
+                -0.5f
         );
-        //poseStack.scale(1.5f, 1.5f , 1.5f);
         this.partRenderer.render(
                 poseStack,
                 dummyPart,
