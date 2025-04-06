@@ -32,6 +32,6 @@ public class RelipetsEntityRegistry {
     );
 
     public static void onInitialize() {
-        FabricDefaultAttributeRegistry.register(RelipetsEntityRegistry.CYAN_CORE, BaseCore.createMobAttributes());
+        FabricDefaultAttributeRegistry.register(RelipetsEntityRegistry.CYAN_CORE, BaseCore.createBaseCoreAttributes());
     }
 }

@@ -1,6 +1,7 @@
 package net.daniel.relipets.registries;
 
 import net.daniel.relipets.Relipets;
+import net.daniel.relipets.cca_components.parts.PetPartSetType;
 import net.daniel.relipets.items.*;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.item.Item;
@@ -23,6 +24,8 @@ public class RelipetsItemRegistry {
     public static final Item ADD_SLOT_ITEM = registerItem(new AddPetSlotItem(new Item.Settings()),"add_pet_slot");
     public static final Item CAPSULE = registerItem(new CapsuleItem(new Item.Settings()),"capsule");
 
+    public static final Item PART_PACK = registerItem(new PartPackItem(new Item.Settings()),"part_pack");
+
     public static Item registerItem(Item item, String id){
         Identifier itemId = Identifier.of(Relipets.MOD_ID, id);
 
@@ -40,5 +43,6 @@ public class RelipetsItemRegistry {
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register((itemGroup) -> itemGroup.add(ADD_SLOT_ITEM));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.SPAWN_EGGS).register((itemGroup) -> itemGroup.add(CYAN_CORE_EGG));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register((itemGroup) -> itemGroup.add(CAPSULE));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register((itemGroup) -> itemGroup.add(PART_PACK));
     }
 }

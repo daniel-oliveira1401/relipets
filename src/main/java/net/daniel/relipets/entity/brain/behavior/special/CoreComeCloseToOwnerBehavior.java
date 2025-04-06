@@ -67,19 +67,15 @@ public class CoreComeCloseToOwnerBehavior extends SpecialBehavior {
                 BlockPos safePosToTp = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), owner.getBlockPos(), 5, entity.getWorld().getRandom());
 
                 if(safePosToTp == null){
-                    PetData pet = CardinalComponentsRegistry.PET_OWNER_KEY.get(owner).getPetParty().getPetByEntityUUID(entity.getUuidAsString());
-                    if(pet != null){
-                        pet.recall((ServerWorld) entity.getWorld(), owner);
-                    }
-
-                }else{
-                    entity.teleport(
-                            safePosToTp.getX(),
-                            safePosToTp.getY(),
-                            safePosToTp.getZ()
-                    );
+                    safePosToTp = owner.getBlockPos();
 
                 }
+
+                entity.teleport(
+                        safePosToTp.getX(),
+                        safePosToTp.getY(),
+                        safePosToTp.getZ()
+                );
 
             }else if(distance > this.minDistance * this.minDistance){
                 //entity is far but not too far away
