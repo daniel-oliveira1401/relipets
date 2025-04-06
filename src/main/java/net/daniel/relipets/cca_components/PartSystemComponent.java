@@ -170,13 +170,13 @@ public class PartSystemComponent implements Component, AutoSyncedComponent {
             this.armPart = PetPart.EMPTY_PARTS.get(this.armPart.partType);
         }else if(this.wingPart.isValid()){
             partRemoved = this.wingPart.getCopy();
-            this.wingPart = PetPart.EMPTY_PARTS.get(this.headPart.partType);
+            this.wingPart = PetPart.EMPTY_PARTS.get(this.wingPart.partType);
         }else if(this.torsoPart.isValid()){
             partRemoved = this.torsoPart.getCopy();
-            this.torsoPart = PetPart.EMPTY_PARTS.get(this.headPart.partType);
+            this.torsoPart = PetPart.EMPTY_PARTS.get(this.torsoPart.partType);
         }else if(this.tailPart.isValid()){
             partRemoved = this.tailPart.getCopy();
-            this.tailPart = PetPart.EMPTY_PARTS.get(this.headPart.partType);
+            this.tailPart = PetPart.EMPTY_PARTS.get(this.tailPart.partType);
         }
 
         CardinalComponentsRegistry.PART_SYSTEM_KEY.sync(this.provider);

@@ -27,6 +27,9 @@ import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
+import net.minecraft.entity.ai.control.FlightMoveControl;
+import net.minecraft.entity.ai.control.MoveControl;
+import net.minecraft.entity.ai.pathing.BirdNavigation;
 import net.minecraft.entity.ai.pathing.EntityNavigation;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -86,15 +89,14 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
     public BaseCore(EntityType<? extends PathAwareEntity> entityType, World world) {
         super(entityType, world);
-
         this.dataTracker.startTracking(CURRENT_ANIM, ANIM_IDLE);
-
         this.abilityStats = new CoreAbilityStats(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     public static DefaultAttributeContainer.Builder createBaseCoreAttributes() {
         return createMobAttributes()
-                .add(EntityAttributes.GENERIC_MAX_HEALTH, 100.0); // 40 HP (20 hearts)
+                .add(EntityAttributes.GENERIC_FLYING_SPEED, 1.5f)
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 20); // 40 HP (20 hearts)
     }
 
     @Override
@@ -132,6 +134,32 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         this.dataTracker.set(CURRENT_ANIM, animName);
     }
 
+    public void applyEffectsFromParts(World world){
+        PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
+
+        //apply flying effect if core has wing
+        PetPart wing = partSystem.getPartByType(PetPart.WING_PART);
+
+        if(wing != null && wing.isValid()){
+            //TODO: change flying speed depending on the attribute of the part
+            setupCoreForFlight(wing, world);
+        }else{
+            setupCoreForGroundMovement(world);
+        }
+    }
+
+    private void setupCoreForFlight(PetPart currentWing, World world){
+        this.moveControl = new FlightMoveControl(this, 20, true);
+        this.navigation = new BirdNavigation(this, world);
+        this.setNoGravity(true);
+    }
+
+    private void setupCoreForGroundMovement(World world){
+        this.moveControl = new MoveControl(this);
+        this.navigation = new SmoothGroundNavigation(this, world);
+        this.setNoGravity(false);
+    }
+
     @Override
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
         if(!player.getWorld().isClient() && hand == Hand.MAIN_HAND){
@@ -146,7 +174,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
                 PetPart partRemoved = partSystem.removeNextPart();
                 if(partRemoved != null){
                     dropPetPart(partRemoved);
-
+                    applyEffectsFromParts(player.getWorld());
                 }
 
             }else if (mainHandItem.getItem() instanceof PartItem){
@@ -165,6 +193,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
                 partSystem.addOrUpdatePart(partInHand);
                 mainHandItem.decrement(1);
+                applyEffectsFromParts(player.getWorld());
             }
 
 
@@ -175,6 +204,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
     @Override
     protected EntityNavigation createNavigation(World world) {
+        //This is a default fallback. The true current navigation is defined by the parts
         return new SmoothGroundNavigation(this, world);
     }
 
@@ -193,11 +223,16 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         attackTarget.setAttacker(this);
     }
 
+    boolean appliedEffectsFromParts = false;
     @Override
     protected void mobTick() {
         super.mobTick();
 
         if (!this.getWorld().isClient()){
+            if(!this.appliedEffectsFromParts){
+                this.applyEffectsFromParts(this.getWorld());
+                this.appliedEffectsFromParts = true;
+            }
             tickBrain(this);
 
             tickRunningAbilities();
@@ -333,7 +368,6 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         super.readCustomDataFromNbt(nbt);
 
         this.abilityStats = new CoreAbilityStats(nbt.getCompound(ABILITY_STATS_KEY));
-
     }
 
     @Override
