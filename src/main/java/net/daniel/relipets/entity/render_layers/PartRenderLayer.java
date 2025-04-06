@@ -74,7 +74,7 @@ public class PartRenderLayer extends GeoRenderLayer<BaseCore> {
                 part.baseCenterOffset.y,
                 part.baseCenterOffset.z
         );
-
+        //poseStack.scale(1.5f, 1.5f , 1.5f);
         this.partRenderer.render(
                 poseStack,
                 dummyPart,

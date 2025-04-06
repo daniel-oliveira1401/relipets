@@ -1,6 +1,7 @@
 package net.daniel.relipets;
 
 import net.daniel.relipets.entity.cores.client.CyanCoreRenderer;
+import net.daniel.relipets.entity.cores.client.YellowCoreRenderer;
 import net.daniel.relipets.gui.hud.NewPetHud;
 import net.daniel.relipets.items.client.PetificatorProjectileRenderer;
 import net.daniel.relipets.registries.KeyBindingsRegistry;
@@ -15,6 +16,7 @@ public class RelipetsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         EntityRendererRegistry.register(RelipetsEntityRegistry.CYAN_CORE, CyanCoreRenderer::new);
+        EntityRendererRegistry.register(RelipetsEntityRegistry.YELLOW_CORE, YellowCoreRenderer::new);
         EntityRendererRegistry.register(RelipetsEntityRegistry.PETIFICATOR_PROJECTILE, PetificatorProjectileRenderer::new);
 
         KeyBindingsRegistry.onInitialize();
