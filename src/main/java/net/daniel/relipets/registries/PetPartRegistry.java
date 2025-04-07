@@ -69,6 +69,15 @@ public class PetPartRegistry {
         PART_VARIANTS.add(new PetPartRegistryEntry("wing_basic_bee"
                 , new ThrowEnemyUpAbility(), 1, 1.8f
         ));
+
+        //============= Standard Avian Set (yellow core) ================
+        PART_VARIANTS.add(new PetPartRegistryEntry("leg_standard_avian", new SlowDownTargetAbility(), 0.5f, 1.0f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("torso_standard_avian", new StrengthenSelfAbility(), 0.5f, 1.0f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("head_standard_avian", new HealOwnerAbility(), 0.5f, 1.0f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("tail_standard_avian", new PoisonTargetAbility(), 0.5f, 1.0f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("wing_standard_avian"
+                , new ThrowEnemyUpAbility(), 0.5f, 1.0f
+        ));
     }
 
     public static Optional<PetPartRegistryEntry> getPartRegistryEntryByVariantId(String variantId){
