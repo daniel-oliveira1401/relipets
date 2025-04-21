@@ -267,7 +267,7 @@ public class NewPetHud {
         }else{
             String summonState = selectedPet.getSummonState();
             if(summonState.equals(PetData.HEALING)){
-                summonState += " " + String.format(" %.1fs", Utils.tickToSecond(selectedPet.getHealingCooldown()));
+                summonState = " " + String.format("%.1fs", Utils.tickToSecond(selectedPet.getHealingCooldown()));
             }
             String selectedPetName = selectedPet.getPetInfo().getPetName() + " (" + summonState + ")";
             entityNameLabel.text(Text.of(selectedPetName));

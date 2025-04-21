@@ -1,6 +1,8 @@
 package net.daniel.relipets.cca_components.pet_management.progression;
 
 import lombok.Getter;
+import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.entity.cores.YellowCore;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
@@ -30,6 +32,11 @@ public class UpgradableStats {
         stats.put(StatsEnum.ATTACK, 0);
         stats.put(StatsEnum.ARMOR, 0);
         stats.put(StatsEnum.ARMOR_TOUGHNESS, 0);
+        stats.put(StatsEnum.ABILITY_DURATION, 1);
+        stats.put(StatsEnum.ABILITY_RANGE, 1);
+        stats.put(StatsEnum.ABILITY_STRENGTH, 1);
+        stats.put(StatsEnum.MINIMUM_BOOST_SPEED, 1);
+        stats.put(StatsEnum.MAXIMUM_BOOST_SPEED, 1);
 
         stats.replaceAll((key, v) -> compound.contains(key.name()) ? compound.getInt(key.name()) : 0);
 
@@ -72,6 +79,9 @@ public class UpgradableStats {
             case ATTACK -> entity.getAttributes().hasAttribute(EntityAttributes.GENERIC_ATTACK_DAMAGE);
             case ARMOR -> entity.getAttributes().hasAttribute(EntityAttributes.GENERIC_ARMOR);
             case ARMOR_TOUGHNESS -> entity.getAttributes().hasAttribute(EntityAttributes.GENERIC_ARMOR_TOUGHNESS);
+            case ABILITY_RANGE, ABILITY_STRENGTH, ABILITY_DURATION -> entity instanceof BaseCore;
+            case MINIMUM_BOOST_SPEED, MAXIMUM_BOOST_SPEED -> entity instanceof YellowCore;
+            default -> false;
         };
     }
 
@@ -115,6 +125,12 @@ public class UpgradableStats {
                     case KINDA_TANK, TANK, ORDINARY -> 0.2f;
                     default -> 0;
                 };
+
+            case ABILITY_RANGE, ABILITY_DURATION, ABILITY_STRENGTH:
+                return 0.1f;
+
+            case MAXIMUM_BOOST_SPEED, MINIMUM_BOOST_SPEED:
+                return 0.05f;
 
             default:
                 return 1;

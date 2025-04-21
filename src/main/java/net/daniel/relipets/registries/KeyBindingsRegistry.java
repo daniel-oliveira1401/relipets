@@ -1,14 +1,18 @@
 package net.daniel.relipets.registries;
 
 import net.daniel.relipets.Relipets;
+import net.daniel.relipets.entity.cores.YellowCore;
 import net.daniel.relipets.gui.screen.MainPetificatorScreen;
+import net.daniel.relipets.gui.screen.RadialMenuScreen;
 import net.daniel.relipets.items.Petificator;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.registry.Registries;
 import org.lwjgl.glfw.GLFW;
 
 public class KeyBindingsRegistry {
@@ -33,6 +37,16 @@ public class KeyBindingsRegistry {
             )
     );
 
+    public static final KeyBinding boostFlight = KeyBindingHelper.registerKeyBinding(
+            new DebouncedKeyBinding(
+                    KeyBindingsRegistry.formatKeyBindingLangKey("boost_pet_flight"),
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_SPACE,
+                    getKeyCategory()
+
+            )
+    );
+
     private static String formatKeyBindingLangKey(String key){
         return "key." + Relipets.MOD_ID + "." + key;
     }
@@ -50,7 +64,17 @@ public class KeyBindingsRegistry {
             }
 
             if(client.player != null && openPetConfigurationScreen.wasPressed() && client.player.getMainHandStack().getItem() instanceof Petificator){
-                client.setScreen(new MainPetificatorScreen());
+                //TODO: uncomment this once testing is done
+                //client.setScreen(new MainPetificatorScreen());
+                client.setScreen(new RadialMenuScreen());
+            }
+
+            if(client.player != null && client.options.jumpKey.wasPressed() && client.player.getVehicle() instanceof YellowCore core){
+                if(core.getMovementMode() == YellowCore.MovementMode.GROUND){
+                    core.boost();
+                    ClientPlayNetworking.send(C2SPacketHandlers.BOOST_PET_FLIGHT, PacketByteBufs.empty());
+                }
+
             }
 
         });

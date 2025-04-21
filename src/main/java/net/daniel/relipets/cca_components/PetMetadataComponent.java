@@ -9,6 +9,8 @@ import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.cca_components.pet_management.progression.LevelProgression;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
 import net.daniel.relipets.cca_components.pet_management.progression.UpgradableStats;
+import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.entity.cores.YellowCore;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -56,13 +58,50 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
             case HEALTH:
                 return (float) this.getPetEntity().getAttributeValue(EntityAttributes.GENERIC_MAX_HEALTH);
             case ATTACK:
-                return (float) this.getPetEntity().getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+                float attack = (float)this.getPetEntity().getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+
+                return  attack;
             case ARMOR:
                 return (float) this.getPetEntity().getAttributeValue(EntityAttributes.GENERIC_ARMOR);
             case ARMOR_TOUGHNESS:
                 return (float) this.getPetEntity().getAttributeValue(EntityAttributes.GENERIC_ARMOR_TOUGHNESS);
             case HEALTH_REGEN:
                 return pet.getNaturalHealing();
+
+            case ABILITY_RANGE:
+                if(this.getPetEntity() instanceof BaseCore core){
+                    return core.getAbilityStats().getAbilityRange();
+                }
+
+                return 0;
+
+            case ABILITY_DURATION:
+                if(this.getPetEntity() instanceof BaseCore core){
+                    return core.getAbilityStats().getAbilityDuration();
+                }
+
+                return 0;
+
+            case ABILITY_STRENGTH:
+                if(this.getPetEntity() instanceof BaseCore core){
+                    return core.getAbilityStats().getAbilityStrength();
+                }
+
+                return 0;
+
+            case MINIMUM_BOOST_SPEED:
+                if(this.getPetEntity() instanceof YellowCore core){
+                    return core.getYellowCoreStats().getMinBoostSpeed();
+                }
+
+                return 0;
+
+            case MAXIMUM_BOOST_SPEED:
+                if(this.getPetEntity() instanceof YellowCore core){
+                    return core.getYellowCoreStats().getMaxBoostSpeed();
+                }
+
+                return 0;
 
             default: return 0;
         }
@@ -92,7 +131,7 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
             tag.put(STAT_UPGRADES_KEY, this.statUpgrades.writeToNbt());
     }
 
-    public void clear(){
+    public void clearPlayerUUID(){
         this.playerUUID = "";
     }
 

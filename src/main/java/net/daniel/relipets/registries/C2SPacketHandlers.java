@@ -7,6 +7,7 @@ import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsOperationEnum;
+import net.daniel.relipets.entity.cores.YellowCore;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -29,8 +30,71 @@ public class C2SPacketHandlers {
     public static final Identifier RECALL_GROUP = new Identifier(Relipets.MOD_ID, "recall_group");
 
     public static final Identifier REORDER_PETS = new Identifier(Relipets.MOD_ID, "reorder_pets");
+    public static final Identifier BOOST_PET_FLIGHT = new Identifier(Relipets.MOD_ID, "boost_pet_flight");
+    public static final Identifier RECALL_ALL_PETS = new Identifier(Relipets.MOD_ID, "recall_all_pets");
+    public static final Identifier RENAME_PET = new Identifier(Relipets.MOD_ID, "rename_pet");
+    public static final Identifier RELEASE_PET = new Identifier(Relipets.MOD_ID, "release_pet");
+    public static final Identifier RECOVER_PET = new Identifier(Relipets.MOD_ID, "recover_pet");
 
     public static void onInitialize(){
+
+        ServerPlayNetworking.registerGlobalReceiver(RELEASE_PET, (server, player, handler, buf, responseSender) -> {
+
+            int slot = buf.readInt();
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                PetData pet = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(slot).getContent();
+                if(pet != null){
+                    petOwnerSystem.getPetParty().releasePetFromParty(pet);
+                }
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(RECOVER_PET, (server, player, handler, buf, responseSender) -> {
+
+            int slot = buf.readInt();
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                PetData pet = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(slot).getContent();
+                if(pet != null){
+                    pet.forceSummon((ServerWorld) player.getWorld(), player.getPos(), player);
+                }
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(RENAME_PET, (server, player, handler, buf, responseSender) -> {
+
+            int slot = buf.readInt();
+            String name = buf.readString();
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+
+                petOwnerSystem.getPetParty().renamePet(slot, name);
+
+
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(RECALL_ALL_PETS, (server, player, handler, buf, responseSender) -> {
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+
+                petOwnerSystem.getPetParty().recallAllPets((ServerWorld) player.getWorld(), player);
+
+
+            });
+
+        });
 
         ServerPlayNetworking.registerGlobalReceiver(TOGGLE_SUMMON_PET, (server, player, handler, buf, responseSender) -> {
             server.execute(()-> {
@@ -234,6 +298,19 @@ public class C2SPacketHandlers {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
                 petOwnerSystem.getPetParty().cyclePetSlot(direction);
+
+
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(BOOST_PET_FLIGHT, (server, player, handler, buf, responseSender) -> {
+
+            server.execute(()-> {
+
+                if(player.getVehicle() instanceof YellowCore core){
+                    core.boost();
+                }
 
 
             });

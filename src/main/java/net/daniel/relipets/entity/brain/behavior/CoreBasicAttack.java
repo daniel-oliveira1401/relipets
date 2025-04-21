@@ -13,7 +13,6 @@ import net.tslat.smartbrainlib.util.BrainUtils;
 import java.util.List;
 
 public class CoreBasicAttack extends ExtendedBehaviour<BaseCore> {
-    int attackRange = 2;
     public static final List<Pair<MemoryModuleType<?>, MemoryModuleState>> MEMORIES = List.of(
             Pair.of(MemoryModuleType.ATTACK_TARGET, MemoryModuleState.VALUE_PRESENT),
             Pair.of(RelipetsMemoryTypes.WANTS_TO_USE_ABILITY, MemoryModuleState.VALUE_ABSENT)
@@ -24,8 +23,8 @@ public class CoreBasicAttack extends ExtendedBehaviour<BaseCore> {
         return MEMORIES;
     }
 
-    public CoreBasicAttack(int attackRange){
-        this.attackRange = attackRange;
+    public CoreBasicAttack(){
+
     }
 
     @Override
@@ -36,7 +35,7 @@ public class CoreBasicAttack extends ExtendedBehaviour<BaseCore> {
 
         if(target == null) return;
 
-        if(entity.squaredDistanceTo(target) <= this.attackRange * this.attackRange || entity.getBoundingBox().intersects(target.getBoundingBox())){
+        if(entity.squaredDistanceTo(target) <= entity.getAttackingRange() * entity.getAttackingRange() || entity.getBoundingBox().intersects(target.getBoundingBox())){
             entity.getNavigation().stop();
             BrainUtils.clearMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET);
             entity.getLookControl().lookAt(target);

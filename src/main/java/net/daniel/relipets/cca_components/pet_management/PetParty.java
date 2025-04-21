@@ -17,14 +17,11 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /*
 
@@ -226,7 +223,7 @@ public class PetParty implements ISerializable {
         }else{
             Utils.message("Summoned from an unknown state " + selectedPet.getPetInfo().getPetName() + ".", player);
             //create a copy of the pet using the last known state of the pet
-            selectedPet.summon(world, pos, player);
+            selectedPet.forceSummon(world, pos, player);
         }
 
         if(operationExecuted){
@@ -261,35 +258,30 @@ public class PetParty implements ISerializable {
 
     public void addPetToParty(LivingEntity entity, PlayerEntity player){
 
-        if(!this.getSlotManager().isFull()){
-            PetData newPet = new PetData();
-            newPet.fillFromEntity(entity, player);
 
-            if(this.getSlotManager().getSlotAt(this.selectedPetIndex).isEmpty()){
-                this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
-            }else{
-                Relipets.LOGGER.debug("Released pet from party to put another one in place");
-                //add a strategy here?
-                PetData currentPetInSlot = this.getSlotManager().getSlotAt(this.selectedPetIndex).getContent();
-                if(currentPetInSlot != null && currentPetInSlot.isRecalled()){
-                    currentPetInSlot.summon((ServerWorld) player.getWorld(), entity.getPos(), player);
-                }
+        PetData newPet = new PetData();
+        newPet.fillFromEntity(entity, player);
 
-                this.releasePetFromParty(currentPetInSlot);
-
-                this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
-                //this.getSlotManager().getFirstEmptySlot().setContent(newPet);
-            }
-
-            Relipets.LOGGER.debug(entity.getDisplayName().getString() + " has been petified!");
-            newPet.updateVolatilePetInfoIfPossible();
-            newPet.recall((ServerWorld) entity.getWorld(), player);
-            Utils.message("Added " + newPet.getPetInfo().getPetName() + " to party!", player);
-            triggerOnPartyModifiedEvent();
-            this.pushChangesToClient();
+        if(this.getSlotManager().getSlotAt(this.selectedPetIndex).isEmpty()){
+            this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
+            Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
         }else{
-            Relipets.LOGGER.debug("Can not add this entity to party. All slots are full");
+
+            //search for a slot
+            PetSlot<PetData> emptySlot = this.getSlotManager().getFirstEmptySlot();
+            if(emptySlot != null){
+                emptySlot.setContent(newPet);
+                Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
+            }else{
+                Utils.message("There's no slot available for this pet. Either craft more slots or free up existing ones.", player);
+            }
         }
+
+        Relipets.LOGGER.debug(entity.getDisplayName().getString() + " has been petified!");
+        newPet.updateVolatilePetInfoIfPossible();
+        newPet.recall((ServerWorld) entity.getWorld(), player);
+        triggerOnPartyModifiedEvent();
+        this.pushChangesToClient();
 
     }
 
@@ -313,13 +305,19 @@ public class PetParty implements ISerializable {
         }
 
         PetData petToBeReleased = this.getSlotManager().getSlotAt(petIndex).getContent();
+
         if(petToBeReleased != null && petToBeReleased.getPetEntityData().getEntity() != null){
             PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(petToBeReleased.getPetEntityData().getEntity());
-            petMetadata.clear();
-            Utils.message("Released "+ petToBeReleased.getPetInfo().getPetName() + " from party", player);
+            petMetadata.clearPlayerUUID();
         }
 
-        this.getSlotManager().getSlotAt(petIndex).clear();
+        if(petToBeReleased != null){
+            Utils.message("Released "+ petToBeReleased.getPetInfo().getPetName() + " from party", player);
+            petToBeReleased.summonForRelease((ServerWorld) player.getWorld(), player.getPos(), player);
+            this.getSlotManager().getSlotAt(petIndex).clear();
+
+        }
+
         triggerOnPartyModifiedEvent();
         this.pushChangesToClient();
 
@@ -408,6 +406,17 @@ public class PetParty implements ISerializable {
                 Utils.message("Recalled group "+ group.getName(), player);
 
             }
+        }
+    }
+
+    public void renamePet(int slot, String name) {
+        PetData pet = this.getSlotManager().getSlotAt(slot).getContent();
+        if(pet != null){
+
+            pet.renamePet(name);
+
+            this.onPetPartyModifiedListener.onPetPartyEvent();
+            this.pushChangesToClient();
         }
     }
 

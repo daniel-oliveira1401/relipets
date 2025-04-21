@@ -92,7 +92,7 @@ public class BasePart implements GeoEntity {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<BasePart>(this, "part_anim_controller", 0, this::partAnimController));
+        controllers.add(new AnimationController<BasePart>(this, "part_anim_controller", 10, this::partAnimController));
     }
 
     @Override

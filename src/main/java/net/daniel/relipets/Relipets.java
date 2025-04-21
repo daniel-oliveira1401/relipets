@@ -7,21 +7,26 @@ import net.daniel.relipets.entity.brain.activity.CoreCustomActivities;
 import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.brain.sensor.RelipetsSensorTypes;
 import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.entity.cores.YellowCore;
 import net.daniel.relipets.events.PetFaintedCallback;
 import net.daniel.relipets.registries.*;
 import net.daniel.relipets.utils.SetTimeoutManager;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.WorldEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.fabricmc.api.ModInitializer;
@@ -45,6 +50,9 @@ public class Relipets implements ModInitializer {
 		LOGGER.info("Hello Fabric world!");
 		RelipetsItemRegistry.onInitialize();
 		CardinalComponentsRegistry.onInitialize();
+
+		TrackedDataHandlerRegistry.register(YellowCore.YELLOW_CORE_STATS_HANDLER);
+		TrackedDataHandlerRegistry.register(BaseCore.ABILITY_STATS_HANDLER);
 
 		RelipetsEntityRegistry.onInitialize();
 
@@ -88,6 +96,8 @@ public class Relipets implements ModInitializer {
 			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
 			petOwnerComponent.getPetParty().recallAllPets(oldWorld, player);
 		});
+
+
 
 	}
 

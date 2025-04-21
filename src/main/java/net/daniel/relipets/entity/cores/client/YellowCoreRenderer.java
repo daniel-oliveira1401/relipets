@@ -11,6 +11,8 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RotationAxis;
 import software.bernie.geckolib.core.object.Color;
 import software.bernie.geckolib.model.DefaultedEntityGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
@@ -33,7 +35,19 @@ public class YellowCoreRenderer extends GeoEntityRenderer<BaseCore> {
 
     @Override
     public void render(BaseCore entity, float entityYaw, float partialTick, MatrixStack poseStack, VertexConsumerProvider bufferSource, int packedLight) {
+        //poseStack.push();
+
+        //float lerpPitch = entity == null ? 0 : MathHelper.lerp(partialTick, entity.prevPitch, entity.getPitch());
+        //float lerpYaw = entity == null ? 0 : MathHelper.lerp(partialTick, entity.prevYaw, entity.getYaw());
+
+        // First rotate yaw around the Y-axis
+        //poseStack.multiply(RotationAxis.NEGATIVE_Y.rotationDegrees(entityYaw/2));
+
+        // Then rotate pitch around the X-axis (now local to the yaw)
+        //poseStack.multiply(RotationAxis.NEGATIVE_X.rotationDegrees(-lerpPitch));
+
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
+        //poseStack.pop();
     }
 
     @Override

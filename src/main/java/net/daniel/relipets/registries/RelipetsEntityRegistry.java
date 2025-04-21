@@ -4,6 +4,7 @@ import net.daniel.relipets.Relipets;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.entity.cores.CyanCore;
 import net.daniel.relipets.entity.cores.YellowCore;
+import net.daniel.relipets.entity.cores.related_entities.CyanCoreProjectile;
 import net.daniel.relipets.items.special.PetificatorProjectile;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.entity.EntityType;
@@ -38,6 +39,13 @@ public class RelipetsEntityRegistry {
             Identifier.of(Relipets.MOD_ID, "petificator_projectile"),
             EntityType.Builder.create(PetificatorProjectile::new, SpawnGroup.MISC).setDimensions(0.5f, 0.5f)
                     .build("petificator_projectile")
+    );
+
+    public static final EntityType<CyanCoreProjectile> CYAN_CORE_PROJECTILE = Registry.register(
+            Registries.ENTITY_TYPE,
+            Identifier.of(Relipets.MOD_ID, "cyan_core_projectile"),
+            EntityType.Builder.create(CyanCoreProjectile::new, SpawnGroup.MISC).setDimensions(0.5f, 0.5f)
+                    .build("cyan_core_projectile")
     );
 
     public static void onInitialize() {

@@ -8,6 +8,8 @@ import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
 import net.daniel.relipets.cca_components.pet_management.progression.UpgradableStats;
+import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.entity.cores.YellowCore;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.SetTimeoutManager;
 import net.daniel.relipets.utils.Utils;
@@ -26,6 +28,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.stat.Stat;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -170,6 +173,10 @@ public class PetEntityData implements ISerializable {
             createdEntity.setOnFire(false);
             createdEntity.setGlowing(false);
             createdEntity.fallDistance = 0;
+            createdEntity.setCustomName(Text.of(petData.getPetInfo().getPetName()));
+            UUID uuid = UUID.randomUUID();
+            createdEntity.setUuid(uuid);
+            this.entityUUID = uuid.toString();
 
             world.spawnEntity(createdEntity);
             Utils.message("Summoned " + createdEntity.getDisplayName().getString() + ".", player);
@@ -374,8 +381,8 @@ public class PetEntityData implements ISerializable {
                                 UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ATTACK);
 
                 EntityAttributeModifier attackModifier = new EntityAttributeModifier(
-                        UUID.fromString("2f7b00e9-8f9f-46e4-84e8-f2e765222df0"),
-                        "relipets_attack_modifier",
+                        UUID.fromString("30190be1-5f46-4706-8a9d-e46458edb3c1"),
+                        "relipets_attack_modifier_2",
                         attackBuff,
                         EntityAttributeModifier.Operation.ADDITION);
 
@@ -422,6 +429,73 @@ public class PetEntityData implements ISerializable {
                 //==========
             }
 
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.ABILITY_RANGE)) {
+                //====== Armor toughness ===
+                float abilityRange = UpgradableStats.getStatScalingByCategory(
+                        StatsEnum.ABILITY_RANGE,
+                        UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ABILITY_RANGE);
+
+                if(entity instanceof BaseCore core){
+                    core.getAbilityStats().setAbilityRange(abilityRange + 1);
+                }
+
+                //==========
+            }
+
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.ABILITY_STRENGTH)) {
+                //====== Strength ===
+                float abilityRange = UpgradableStats.getStatScalingByCategory(
+                        StatsEnum.ABILITY_STRENGTH,
+                        UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ABILITY_STRENGTH);
+
+                if(entity instanceof BaseCore core){
+                    core.getAbilityStats().setAbilityStrength(abilityRange + 1);
+                }
+
+                //==========
+            }
+
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.ABILITY_DURATION)) {
+                //====== Duration ===
+                float abilityRange = UpgradableStats.getStatScalingByCategory(
+                        StatsEnum.ABILITY_DURATION,
+                        UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ABILITY_DURATION);
+
+                if(entity instanceof BaseCore core){
+                    core.getAbilityStats().setAbilityDuration(abilityRange + 1);
+                }
+
+                //==========
+            }
+
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.MINIMUM_BOOST_SPEED)) {
+                //====== Duration ===
+                float abilityRange = UpgradableStats.getStatScalingByCategory(
+                        StatsEnum.MINIMUM_BOOST_SPEED,
+                        UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.MINIMUM_BOOST_SPEED);
+
+                if(entity instanceof YellowCore core){
+                    float speed = abilityRange + YellowCore.DEFAULT_MIN_BOOST_SPEED;
+                    core.getYellowCoreStats().setMinBoostSpeed(speed);
+                    //core.getDataTracker().set(YellowCore.MIN_BOOST_SPEED, speed);
+                }
+
+                //==========
+            }
+
+            if(this.entityHasStat(entity.getWorld(), StatsEnum.MAXIMUM_BOOST_SPEED)) {
+                //====== Duration ===
+                float abilityRange = UpgradableStats.getStatScalingByCategory(
+                        StatsEnum.MAXIMUM_BOOST_SPEED,
+                        UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.MAXIMUM_BOOST_SPEED);
+
+                if(entity instanceof YellowCore core){
+                    core.getYellowCoreStats().setMaxBoostSpeed(abilityRange + YellowCore.DEFAULT_MAX_BOOST_SPEED);
+                }
+
+                //==========
+            }
+
 
             entity.getAttributes().addTemporaryModifiers(statModifiersMap);
 
@@ -449,6 +523,41 @@ public class PetEntityData implements ISerializable {
         }
 
         return false;
+    }
+
+    public void spawnEntityForRelease(ServerWorld world, Vec3d pos, PlayerEntity player, PetData petData) {
+        world.getServer().execute(()-> {
+            Identifier entityTypeId = new Identifier(this.entityType);
+
+            EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
+
+            LivingEntity createdEntity = entityType.create(world);
+
+            if(createdEntity == null) return;
+
+            createdEntity.readNbt(entityNbt);
+
+            if(createdEntity instanceof MobEntity mob) mob.setPersistent(); //idk if this actually works. Too hard to test
+
+            createdEntity.setPosition(pos);
+            createdEntity.setVelocity(0, 0, 0);
+            createdEntity.setOnFire(false);
+            createdEntity.setGlowing(false);
+            createdEntity.fallDistance = 0;
+            createdEntity.setCustomName(Text.of(petData.getPetInfo().getPetName()));
+            UUID uuid = UUID.randomUUID();
+            createdEntity.setUuid(uuid);
+            this.entityUUID = uuid.toString();
+
+            world.spawnEntity(createdEntity);
+
+            SetTimeoutManager.setTimeout(()-> {
+                this.applyStatModifiers(createdEntity, petData);
+                PetMetadataComponent petMetadataComponent = CardinalComponentsRegistry.PET_METADATA_KEY.get(createdEntity);
+                petMetadataComponent.clearPlayerUUID();
+            }, Utils.secondToTick(1));
+
+        });
     }
 
     @Getter

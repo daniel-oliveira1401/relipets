@@ -79,8 +79,15 @@ public class CoreComeCloseToOwnerBehavior extends SpecialBehavior {
 
             }else if(distance > this.minDistance * this.minDistance){
                 //entity is far but not too far away
-                entity.getNavigation().startMovingTo(owner, entity.getMovementSpeed());
-                BrainUtils.setMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET, new WalkTarget(owner.getPos(), entity.getMovementSpeed(), minDistance));
+                BlockPos positionNearPlayer = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), owner.getBlockPos(), 5, entity.getWorld().getRandom());
+
+                if(positionNearPlayer != null){
+                    entity.getNavigation().startMovingTo(positionNearPlayer.getX(), positionNearPlayer.getY(),positionNearPlayer.getZ(), entity.getMovementSpeed());
+
+                    BrainUtils.setMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET, new WalkTarget(positionNearPlayer, entity.getMovementSpeed(), minDistance));
+                }
+            }else{
+                entity.getNavigation().stop();
             }
         }
 
