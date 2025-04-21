@@ -38,7 +38,7 @@ public class UseAttackAbilityBehavior extends ExtendedBehaviour<BaseCore> {
 
         //get abilities
         List<CoreAbility> abilities = entity.getPartSystem().getAllAbilities();
-
+        if(abilities.isEmpty()) return;
         //TODO: add a better way to choose which ability to run
         CoreAbility abilityToRun = abilities.get((int) Math.floor(Math.random() * abilities.size()));
 

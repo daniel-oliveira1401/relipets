@@ -168,7 +168,10 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
 
         buildSlots();
 
-        bodyContainer.child(body);
+        //container for the grid (for scrolling)
+        bodyContainer.child(
+                Containers.verticalScroll(Sizing.content(), Sizing.fixed(200), body)
+        );
 
         rootComponent.child(bodyContainer);
 

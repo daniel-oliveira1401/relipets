@@ -2,6 +2,7 @@ package net.daniel.relipets.items;
 
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -19,7 +20,6 @@ public class AddPetSlotItem extends Item {
 
         if(!world.isClient()){
 
-            System.out.println("Used item!!");
             //get party
             PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(user);
 
@@ -30,6 +30,8 @@ public class AddPetSlotItem extends Item {
             //decrease the amount of items in the stack
             ItemStack pointItem = user.getStackInHand(hand);
             pointItem.decrement(1);
+
+            Utils.message("+ 1 slot. Total slot count: " + petOwnerComponent.getPetParty().getSlotManager().getSlotCount(), user);
 
         }
 

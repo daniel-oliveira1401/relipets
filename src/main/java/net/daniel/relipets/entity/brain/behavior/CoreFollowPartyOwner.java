@@ -70,7 +70,7 @@ public class CoreFollowPartyOwner extends ExtendedBehaviour<BaseCore> {
     }
 
     private void setWalkTarget(PlayerEntity owner, BaseCore entity) {
-        BrainUtils.setMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET, new WalkTarget(owner, entity.getMovementSpeed(), 1));
+        BrainUtils.setMemory(entity.getBrain(), MemoryModuleType.WALK_TARGET, new WalkTarget(owner, entity.getMovementSpeed(), 4));
     }
 
     private void clearTarget(BaseCore entity) {

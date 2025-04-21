@@ -3,10 +3,14 @@ package net.daniel.relipets.entity.brain.behavior.special;
 import com.mojang.datafixers.util.Pair;
 import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
 import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.ai.NoPenaltyTargeting;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.WalkTarget;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.tslat.smartbrainlib.api.core.behaviour.ExtendedBehaviour;
 import net.tslat.smartbrainlib.util.BrainUtils;
@@ -24,8 +28,8 @@ public class CoreStrollAroundPartyOwner extends SpecialBehavior {
     protected List<Pair<MemoryModuleType<?>, MemoryModuleState>> getMemoryRequirements() {
         return List.of(
                 Pair.of(RelipetsMemoryTypes.PARTY_OWNER, MemoryModuleState.VALUE_PRESENT),
-                Pair.of(RelipetsMemoryTypes.PARTY_OWNER_NEARBY, MemoryModuleState.VALUE_PRESENT),
-                Pair.of(MemoryModuleType.WALK_TARGET, MemoryModuleState.VALUE_ABSENT)
+                Pair.of(RelipetsMemoryTypes.PARTY_OWNER_NEARBY, MemoryModuleState.VALUE_PRESENT)
+                //, Pair.of(MemoryModuleType.WALK_TARGET, MemoryModuleState.VALUE_ABSENT)
         );
     }
 
@@ -33,11 +37,14 @@ public class CoreStrollAroundPartyOwner extends SpecialBehavior {
     protected void start(BaseCore entity) {
         super.start(entity);
         int tries = 5;
-        Vec3d targetPos = null;
+        BlockPos targetPos = null;
+        PlayerEntity owner = BrainUtils.getMemory(entity.getBrain(), RelipetsMemoryTypes.PARTY_OWNER);
+
+        if(owner == null) return;
 
         while(tries > 0){
 
-            targetPos = NoPenaltyTargeting.find(entity, 5, 5);
+            targetPos = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), owner.getBlockPos(), 10, entity.getWorld().getRandom());
 
             if(targetPos != null) break;
 

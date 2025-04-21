@@ -15,6 +15,7 @@ import net.daniel.relipets.entity.brain.sensor.models.WeightedList;
 import net.daniel.relipets.entity.cores.abilities.AbilityRunningStateEnum;
 import net.daniel.relipets.entity.cores.abilities.CoreAbility;
 import net.daniel.relipets.entity.cores.abilities.CoreAbilityStats;
+import net.daniel.relipets.entity.cores.abilities.YellowCoreStats;
 import net.daniel.relipets.items.PartItem;
 import net.daniel.relipets.items.PartItemFactory;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -35,12 +36,14 @@ import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShearsItem;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
@@ -63,6 +66,9 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
     public static final String ANIM_IDLE = "idle";
     public static final String ANIM_WALK = "walk";
+    public static final String ANIM_FLY = "fly";
+    public static final String ANIM_GLIDE = "glide";
+    public static final String ANIM_FLY_FAST = "fly_fast";
 
     public static final int MIN_BEHAVIOR_SCAN_RATE = Utils.secondToTick(1);
     public static final int MAX_BEHAVIOR_SCAN_RATE = Utils.secondToTick(5);
@@ -74,14 +80,30 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public int minFollowDist = 15;
     public int maxFollowDist = 50;
 
+    public static final TrackedDataHandler<CoreAbilityStats> ABILITY_STATS_HANDLER = new TrackedDataHandler.ImmutableHandler<CoreAbilityStats>() {
+        public void write(PacketByteBuf packetByteBuf, CoreAbilityStats abilityStats) {
+            packetByteBuf.writeFloat(abilityStats.getAbilityDuration());
+            packetByteBuf.writeFloat(abilityStats.getAbilityEfficiency());
+            packetByteBuf.writeFloat(abilityStats.getAbilityRange());
+            packetByteBuf.writeFloat(abilityStats.getAbilityStrength());
+        }
+
+        public CoreAbilityStats read(PacketByteBuf packetByteBuf) {
+            return new CoreAbilityStats(packetByteBuf.readFloat(), packetByteBuf.readFloat(), packetByteBuf.readFloat(), packetByteBuf.readFloat());
+        }
+    };
+
+    private static final TrackedData<CoreAbilityStats> CORE_ABILITY_STATS = DataTracker.registerData(BaseCore.class, ABILITY_STATS_HANDLER);
+
+    public CoreAbilityStats getAbilityStats(){
+        return this.dataTracker.get(CORE_ABILITY_STATS);
+    }
+
     public int currentBehaviorDuration = 0;
 
     public static final TrackedData<String> CURRENT_ANIM = DataTracker.registerData(BaseCore.class, TrackedDataHandlerRegistry.STRING);
 
     //============= Abilities ===================
-
-    @Getter
-    public CoreAbilityStats abilityStats;
 
     public List<CoreAbility> runningAbilities = new ArrayList<>();
 
@@ -90,12 +112,15 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public BaseCore(EntityType<? extends PathAwareEntity> entityType, World world) {
         super(entityType, world);
         this.dataTracker.startTracking(CURRENT_ANIM, ANIM_IDLE);
-        this.abilityStats = new CoreAbilityStats(1.0f, 1.0f, 1.0f, 1.0f);
+        this.dataTracker.startTracking(CORE_ABILITY_STATS, new CoreAbilityStats(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
     public static DefaultAttributeContainer.Builder createBaseCoreAttributes() {
         return createMobAttributes()
-                .add(EntityAttributes.GENERIC_FLYING_SPEED, 1.5f)
+                .add(EntityAttributes.GENERIC_ARMOR, 0)
+                .add(EntityAttributes.GENERIC_ARMOR_TOUGHNESS, 0)
+                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE.setTracked(true), 1)
+                .add(EntityAttributes.GENERIC_FLYING_SPEED, 2.5f)
                 .add(EntityAttributes.GENERIC_MAX_HEALTH, 20); // 40 HP (20 hearts)
     }
 
@@ -134,13 +159,23 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         this.dataTracker.set(CURRENT_ANIM, animName);
     }
 
-    public void applyEffectsFromParts(World world){
+    public boolean hasWings(){
         PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
 
         //apply flying effect if core has wing
         PetPart wing = partSystem.getPartByType(PetPart.WING_PART);
 
-        if(wing != null && wing.isValid()){
+        return wing != null && wing.isValid();
+    }
+
+    public void applyEffectsFromParts(World world){
+
+        PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
+
+        //apply flying effect if core has wing
+        PetPart wing = partSystem.getPartByType(PetPart.WING_PART);
+
+        if(wing != null && wing.isValid() && !this.hasPassengers()){
             //TODO: change flying speed depending on the attribute of the part
             setupCoreForFlight(wing, world);
         }else{
@@ -148,13 +183,15 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         }
     }
 
-    private void setupCoreForFlight(PetPart currentWing, World world){
-        this.moveControl = new FlightMoveControl(this, 20, true);
+    public void setupCoreForFlight(PetPart currentWing, World world){
+
+        this.moveControl = new FlightMoveControl(this, 20, false);
         this.navigation = new BirdNavigation(this, world);
-        this.setNoGravity(true);
+        this.setNoGravity(false);
+
     }
 
-    private void setupCoreForGroundMovement(World world){
+    public void setupCoreForGroundMovement(World world){
         this.moveControl = new MoveControl(this);
         this.navigation = new SmoothGroundNavigation(this, world);
         this.setNoGravity(false);
@@ -177,6 +214,8 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
                     applyEffectsFromParts(player.getWorld());
                 }
 
+                return ActionResult.SUCCESS;
+
             }else if (mainHandItem.getItem() instanceof PartItem){
 
                 NbtCompound itemTag = mainHandItem.getOrCreateNbt().getCompound(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY);
@@ -194,18 +233,28 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
                 partSystem.addOrUpdatePart(partInHand);
                 mainHandItem.decrement(1);
                 applyEffectsFromParts(player.getWorld());
+
+                return ActionResult.SUCCESS;
+            }else{
+                return ActionResult.FAIL;
             }
 
 
+        }else{
+            return ActionResult.FAIL;
         }
 
-        return super.interactMob(player, hand);
+
     }
 
     @Override
     protected EntityNavigation createNavigation(World world) {
         //This is a default fallback. The true current navigation is defined by the parts
         return new SmoothGroundNavigation(this, world);
+    }
+
+    public int getAttackingRange(){
+        return 2;
     }
 
     private void dropPetPart(PetPart part){
@@ -272,7 +321,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
                         List.of(
                                 PredicateSensor.MemoryPair.of(RelipetsMemoryTypes.SHOULD_FOLLOW_OWNER,(e)-> true)
                         )
-                ),
+                ).setScanRate((e) -> 3),
                 new ChooseBehaviorSensor(RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM)
                         .withChoices(new WeightedList<BehaviorDefinition>()
                                 .addEntry(BehaviorDefinition.of(COME_CLOSE_TO_OWNER, Utils.secondToTick(4)), 30)
@@ -313,7 +362,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
          */
         AllApplicableBehaviours<BaseCore> possibleFightTasks = new AllApplicableBehaviours<>(
                 new UseAttackAbilityBehavior(),
-                new CoreBasicAttack(2).cooldownFor((e)-> Utils.secondToTick(1)));
+                new CoreBasicAttack().cooldownFor((e)-> Utils.secondToTick(1)));
 
         return BrainActivityGroup.fightTasks(
                 possibleFightTasks
@@ -360,14 +409,14 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
-        nbt.put(ABILITY_STATS_KEY, this.abilityStats.writeToNbt());
+        nbt.put(ABILITY_STATS_KEY, this.getAbilityStats().writeToNbt());
     }
 
     @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
 
-        this.abilityStats = new CoreAbilityStats(nbt.getCompound(ABILITY_STATS_KEY));
+        this.dataTracker.set(CORE_ABILITY_STATS, new CoreAbilityStats(nbt.getCompound(ABILITY_STATS_KEY)));
     }
 
     @Override

@@ -84,14 +84,14 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         backBtn.margins(Insets.bottom(10));
         rootComponent.child(backBtn);
 
-        var bodyContainer = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(80));
+        var bodyContainer = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
         bodyContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
 
         PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
         PetParty party = petOwner.getPetParty();
 
         //this is the container of the left pane
-        this.leftPaneContainer = Containers.verticalFlow(Sizing.fixed(300), Sizing.fill(100));
+        this.leftPaneContainer = Containers.verticalFlow(Sizing.fixed(350), Sizing.fill(100));
         leftPaneContainer.padding(Insets.both(5, 5));
         //leftPaneContainer.surface(Surface.flat(0xffff0000));
 
@@ -102,12 +102,15 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
         this.rightPaneContainer = Containers.grid(Sizing.content(), Sizing.content(), rows, columnCount);
         //rightPaneContainer.padding(Insets.both(2, 2));
-        rightPaneContainer.surface(Surface.PANEL_INSET);
+        //rightPaneContainer.surface(Surface.PANEL_INSET);
         rightPaneContainer.id("grid");
 
         buildRightPanel();
 
-        bodyContainer.child(rightPaneContainer);
+        bodyContainer.child(
+                Containers.verticalScroll(Sizing.content(), Sizing.fixed(300), rightPaneContainer)
+                        .scrollbar(ScrollContainer.Scrollbar.flat(Color.WHITE)).scrollbarThiccness(5).padding(Insets.of(3))
+        );
 
         bodyContainer.child(0, leftPaneContainer);
 
@@ -161,7 +164,8 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         colorBox.mouseDown().subscribe((a, b, c) -> openColorPicker(group));
 
         TextBoxComponent groupName = Components.textBox(Sizing.fixed(120), group.getName());
-        groupName.onChanged().subscribe((name) -> setGroupName(group, name));
+        //groupName.onChanged().subscribe((name) -> setGroupName(group, name));
+        groupName.id("groupName");
 
         groupContainer
                 //title
@@ -174,9 +178,11 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
                                                 colorBox
                                         ).child(
                                                 groupName
+                                        ).child(
+                                                Components.button(Text.of("Save"), (b)-> saveGroupName(group, groupContainer))
                                         ).verticalAlignment(VerticalAlignment.CENTER)
                                 ).child(
-                                        Containers.horizontalFlow(Sizing.fixed(100),Sizing.content()).child(
+                                        Containers.horizontalFlow(Sizing.fixed(120),Sizing.content()).child(
                                                 Components.label(Text.of("Slots")).margins(Insets.right(5))
                                         ).child(
                                                 Components.button(Text.of("+"), (b) -> openSelectSlotToAddModal(group))
@@ -231,6 +237,14 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
         return groupContainer;
 
+    }
+
+    private void saveGroupName(PetGroup group, FlowLayout groupContainer) {
+        TextBoxComponent groupLabel = groupContainer.childById(TextBoxComponent.class, "groupName");
+        if(groupLabel != null){
+            String name = groupLabel.getText();
+            setGroupName(group, name);
+        }
     }
 
     private boolean openColorPicker(PetGroup group) {

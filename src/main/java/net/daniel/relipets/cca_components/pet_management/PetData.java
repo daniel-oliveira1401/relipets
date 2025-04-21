@@ -22,6 +22,7 @@ import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
@@ -86,8 +87,8 @@ public class PetData implements ISerializable {
                         break;
                 }
 
-                CardinalComponentsRegistry.PET_METADATA_KEY.sync(this.getPetEntityData().getEntity());
                 this.getPetEntityData().applyStatModifiers(this.getPetEntityData().getEntity(), this);
+                CardinalComponentsRegistry.PET_METADATA_KEY.sync(this.getPetEntityData().getEntity());
             }
         }
     }
@@ -337,6 +338,12 @@ public class PetData implements ISerializable {
         }
     }
 
+    public void forceSummon(ServerWorld world, Vec3d pos, PlayerEntity player){
+        this.summonState = SUMMONED;
+        this.getPetEntityData().spawnEntity(world, pos, player, this);
+        this.getPetEntityData().setOwner(player);
+    }
+
     public void recall(ServerWorld world, PlayerEntity player){
         if(this.isSummoned()){
             boolean recalled = this.getPetEntityData().recallEntity(world, player, (e)-> {
@@ -468,6 +475,20 @@ public class PetData implements ISerializable {
             this.getPetEntityData().bindEntity(world, player, this);
             pendingEntityBind = false;
         }
+    }
+
+    public void renamePet(String name) {
+        if(!this.isSummoned()){
+            this.getPetInfo().setPetName(name);
+            System.out.println(this.getPetEntityData().getEntityNbt().toString());
+        }else{
+            this.getPetEntityData().getEntity().setCustomName(Text.of(name));
+            this.getPetInfo().setPetName(name);
+        }
+    }
+
+    public void summonForRelease(ServerWorld world, Vec3d pos, PlayerEntity player) {
+        this.getPetEntityData().spawnEntityForRelease(world, pos, player, this);
     }
 
 
