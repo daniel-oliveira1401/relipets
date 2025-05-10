@@ -4,6 +4,7 @@ import lombok.Getter;
 import net.daniel.relipets.entity.cores.abilities.YellowCoreStats;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.*;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
@@ -106,10 +107,9 @@ public class YellowCore extends BaseCore implements JumpingMount{
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
         ActionResult actionResult = super.interactMob(player, hand);
 
-        if((!this.getWorld().isClient()) && actionResult.equals(ActionResult.FAIL)){
-            if (player.getStackInHand(hand).isEmpty()) {
-                player.startRiding(this);
-            }
+        if((!this.getWorld().isClient()) && !actionResult.equals(ActionResult.SUCCESS)) {
+            player.startRiding(this);
+
         }
         return ActionResult.CONSUME;
     }

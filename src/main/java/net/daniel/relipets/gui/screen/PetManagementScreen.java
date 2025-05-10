@@ -10,6 +10,7 @@ import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.GridLayout;
 import io.wispforest.owo.ui.container.OverlayContainer;
 import io.wispforest.owo.ui.core.*;
+import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.cca_components.pet_management.PetParty;
@@ -31,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
+    static final Identifier slotBg = new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png");
     static int slotSize = 22;
     BaseOwoScreen<FlowLayout> parent;
     private FlowLayout rootComponent;
@@ -66,7 +68,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
             int currentColumn = i - currentRow * columnCount;
 
-            Surface slotSurface = Surface.VANILLA_TRANSLUCENT;
+            Surface slotSurface = Surface.tiled(slotBg, slotSize, slotSize);
 
             FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
             slotContainer.margins(Insets.both(5, 5));
@@ -164,6 +166,10 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 Components.label(Text.of("Pet Management"))
                         .maxWidth(150).horizontalTextAlignment(HorizontalAlignment.CENTER).margins(Insets.bottom(20))
         );
+        bodyContainer.child(
+                Components.label(Text.of("Select a pet from the grid below and use the options on the right ->"))
+                        .maxWidth(150).horizontalTextAlignment(HorizontalAlignment.CENTER).margins(Insets.bottom(20))
+        );
         PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
         PetParty party = petOwner.getPetParty();
         this.party = party;
@@ -185,7 +191,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 ).child(
                         Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
-                                        Components.label(Text.of("Rename Pet"))
+                                        Components.label(Text.of("Rename Pet")).margins(Insets.bottom(4))
                                 ).child(
                                         Containers.horizontalFlow(Sizing.content(), Sizing.content()).child(
                                                 Components.textBox(Sizing.fixed(100)).id("petName")
@@ -247,12 +253,12 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                                         ).surface(Surface.PANEL).padding(Insets.of(10)).margins(Insets.bottom(14))
                         ).child(
                                 Containers.horizontalFlow(Sizing.content(), Sizing.content()).child(
-                                        Components.button(Text.of("Recover Pet"), (b)-> recoverPet())
+                                        Components.button(Text.of("Recover Pet"), (b)-> recoverPet()).margins(Insets.right(5))
                                 ).child(
                                         Components.button(Text.of("Cancel"), (b)-> closeModal())
                                 )
-                        )
-                ).surface(Surface.PANEL).id("overlay").zIndex(999)
+                        ).surface(Surface.PANEL).padding(Insets.of(10))
+                ).id("overlay").zIndex(999)
         );
     }
 
@@ -269,12 +275,12 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                                         .maxWidth(200).color(Color.BLACK).margins(Insets.bottom(5))
                         ).child(
                                 Containers.horizontalFlow(Sizing.content(), Sizing.content()).child(
-                                        Components.button(Text.of("Release Pet"), (b)-> releasePet())
+                                        Components.button(Text.of("Release Pet"), (b)-> releasePet()).margins(Insets.right(5))
                                 ).child(
                                         Components.button(Text.of("Cancel"), (b)-> closeModal())
                                 )
-                        )
-                ).surface(Surface.PANEL).id("overlay").zIndex(999)
+                        ).surface(Surface.PANEL).padding(Insets.of(10))
+                ).id("overlay").zIndex(999)
         );
     }
 
@@ -333,7 +339,12 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     int selectedSlot = -1;
 
     public void updateSelectedPetBasedOnSlot(){
-        this.selectedPetData = this.party.getSlotManager().getSlotAt(this.selectedSlot).getContent();
+        if(this.selectedSlot == -1){
+            this.selectedPetData = null;
+        }else{
+            this.selectedPetData = this.party.getSlotManager().getSlotAt(this.selectedSlot).getContent();
+        }
+
 
     }
 
@@ -343,11 +354,13 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         if(this.selectedSlot == slotIndex){
             this.selectedSlot = -1;
             this.selectedPetData = null;
+
         }else{
             this.selectedSlot = slotIndex;
-            updateSelectedPetBasedOnSlot();
-            updateActionPanel();
         }
+
+        updateSelectedPetBasedOnSlot();
+        updateActionPanel();
 
         if(this.rootComponent != null){
             if(body != null){
@@ -356,7 +369,8 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
                     var slot = body.children().get(i);
                     if(slot instanceof FlowLayout flowSlot){
-                        flowSlot.surface(Surface.VANILLA_TRANSLUCENT);
+
+                        flowSlot.surface(Surface.tiled(slotBg, slotSize, slotSize));
                         if(i == this.selectedSlot){
                             flowSlot.surface(Surface.PANEL);
                         }

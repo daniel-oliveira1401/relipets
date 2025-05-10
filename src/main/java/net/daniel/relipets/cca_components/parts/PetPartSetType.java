@@ -4,5 +4,6 @@ public enum PetPartSetType {
     BASIC_AVIAN,
     BASIC_QUADRUPED,
     BASIC_BEE,
-    STANDARD_AVIAN
+    STANDARD_AVIAN,
+    STANDARD_DRAGON
 }

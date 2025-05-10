@@ -8,10 +8,7 @@ import software.bernie.geckolib.GeckoLibException;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.cache.GeckoLibCache;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.core.animation.AnimationController;
-import software.bernie.geckolib.core.animation.AnimationState;
-import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.loading.object.BakedAnimations;
 import software.bernie.geckolib.util.GeckoLibUtil;
@@ -42,16 +39,18 @@ public class BasePart implements GeoEntity {
         if(core != null){
             //return event.setAndContinue(getPartAnimationForCoreAnimation(core.getCurrentAnim()));
 
-            Identifier location = new Identifier(Relipets.MOD_ID, "animations/parts/"+partType + "/" + partModelId + ".animation.json");
-            BakedAnimations bakedAnimations = GeckoLibCache.getBakedAnimations().get(location);
+            final Identifier location = new Identifier(Relipets.MOD_ID, "animations/parts/"+partType + "/" + partModelId + ".animation.json");
+            final BakedAnimations bakedAnimations = GeckoLibCache.getBakedAnimations().get(location);
 
-            String animationName = core.getCurrentAnim();
+            final String animationName = core.getCurrentAnim();
 
-            //IDK how the hell this works, but it works. This can be used to check if an animation exists or not
+            //Check if model has any animations
             if (bakedAnimations == null){
                 //model does not have any animations. Don't play anything then
                 return PlayState.STOP;
             }else{
+                //Model has animations
+
                 //check for variant changes
                 if(!this.activeModelId.equals(partModelId)){
                     variantChanged = true;
@@ -75,8 +74,25 @@ public class BasePart implements GeoEntity {
 
                     return event.setAndContinue(anim);
                 }else{
-                    //this part does not have an animation that corresponds to the current animation. Fall back to idle
-                    //assumes that it has an idle animation
+                    //this part does not have an animation that corresponds exactly to the current animation.
+
+                    //Check if the current animation is a "fly-like" animation.
+                    //If it is, then check if it has a base "fly" animation.
+                    if(animationName.startsWith("fly")){
+                        final Animation baseFlyAnimation = bakedAnimations.getAnimation("fly");
+                        //if it has, then play the base fly animation
+                        if(baseFlyAnimation != null){
+                            RawAnimation anim = rawAnimationCache.getOrDefault(buildAnimCacheKey("fly"), null);
+
+                            if(anim == null){
+                                rawAnimationCache.put(buildAnimCacheKey("fly"), RawAnimation.begin().thenLoop("fly"));
+                            }
+
+                            return event.setAndContinue(anim);
+                        }
+                    }
+
+                    //If none of the above happens, fall back to idle. Assumes that it has an idle animation.
                     return  event.setAndContinue(IDLE);
 
                 }
@@ -85,7 +101,7 @@ public class BasePart implements GeoEntity {
 
         }
 
-        //if the part doesnt have a core attached to it (for some reason), then don't play anything
+        //if the part doesnt have a core attached to it (like when it is being displayed as an item), then don't play anything
         return PlayState.STOP;
 
     }
