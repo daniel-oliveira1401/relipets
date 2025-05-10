@@ -265,6 +265,8 @@ public class PetParty implements ISerializable {
         if(this.getSlotManager().getSlotAt(this.selectedPetIndex).isEmpty()){
             this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
             Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
+            newPet.updateVolatilePetInfoIfPossible();
+            newPet.recall((ServerWorld) entity.getWorld(), player);
         }else{
 
             //search for a slot
@@ -272,14 +274,14 @@ public class PetParty implements ISerializable {
             if(emptySlot != null){
                 emptySlot.setContent(newPet);
                 Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
+                newPet.updateVolatilePetInfoIfPossible();
+                newPet.recall((ServerWorld) entity.getWorld(), player);
             }else{
                 Utils.message("There's no slot available for this pet. Either craft more slots or free up existing ones.", player);
             }
         }
 
         Relipets.LOGGER.debug(entity.getDisplayName().getString() + " has been petified!");
-        newPet.updateVolatilePetInfoIfPossible();
-        newPet.recall((ServerWorld) entity.getWorld(), player);
         triggerOnPartyModifiedEvent();
         this.pushChangesToClient();
 

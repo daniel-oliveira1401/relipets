@@ -8,6 +8,7 @@ import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.GridLayout;
 import io.wispforest.owo.ui.core.*;
+import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.cca_components.pet_management.PetParty;
@@ -26,6 +27,8 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
+
+    static final Identifier slotBg = new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png");
 
     static int slotSize = 22;
     BaseOwoScreen<FlowLayout> parent;
@@ -60,7 +63,7 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
 
             int currentColumn = i - currentRow * columnCount;
 
-            Surface slotSurface = Surface.VANILLA_TRANSLUCENT;
+            Surface slotSurface = Surface.tiled(slotBg, slotSize, slotSize);
 
             FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
             slotContainer.margins(Insets.both(5, 5));
@@ -153,7 +156,7 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
         bodyContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
         bodyContainer.child(
                 Components.label(Text.of("Click on a slot to select it. Then click on the slot you wish to move the first slot to."))
-                        .maxWidth(150).horizontalTextAlignment(HorizontalAlignment.CENTER)
+                        .maxWidth(150).horizontalTextAlignment(HorizontalAlignment.CENTER).margins(Insets.bottom(20))
         );
         PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
         PetParty party = petOwner.getPetParty();
@@ -219,7 +222,7 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
 
                     var slot = body.children().get(i);
                     if(slot instanceof FlowLayout flowSlot){
-                        flowSlot.surface(Surface.VANILLA_TRANSLUCENT);
+                        flowSlot.surface(Surface.tiled(slotBg, slotSize, slotSize));
                         if(i == this.selectedSlot){
                             flowSlot.surface(Surface.PANEL);
                         }

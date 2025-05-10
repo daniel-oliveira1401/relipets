@@ -14,5 +14,7 @@
   "item.relipets.torso_part_item": "Torso Part Item",
   "item.relipets.add_pet_slot": "Add +1 pet slot",
   "item.relipets.capsule": "Pet Capsule",
-  "item.relipets.part_pack": "Part Pack"
+  "item.relipets.part_pack": "Part Pack",
+  "key.relipets.open_pet_configuration_screen": "Open Pet Menu",
+  "key.relipets.toggle_current_summon": "Summon/Recall Pet"
 }

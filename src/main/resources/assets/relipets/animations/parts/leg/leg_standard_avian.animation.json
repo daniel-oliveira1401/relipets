@@ -92,7 +92,7 @@
 				}
 			}
 		},
-		"glide": {
+		"fly_glide": {
 			"animation_length": 0.5,
 			"bones": {
 				"leg": {

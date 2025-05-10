@@ -51,13 +51,3 @@ public class CyanCoreRenderer extends GeoEntityRenderer<BaseCore> {
         return super.getTexture(animatable);
     }
 }
-
-/*
-
-Contiue here:
-
-Switch from defaulted model to my custom model. There is a GetBakedModel method in the GeoModel class
-which might lead me somewhere. I might be able to override it and go from there
-
-
- */

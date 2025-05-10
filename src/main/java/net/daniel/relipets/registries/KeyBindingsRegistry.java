@@ -2,7 +2,6 @@ package net.daniel.relipets.registries;
 
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.entity.cores.YellowCore;
-import net.daniel.relipets.gui.screen.MainPetificatorScreen;
 import net.daniel.relipets.gui.screen.RadialMenuScreen;
 import net.daniel.relipets.items.Petificator;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -37,16 +36,6 @@ public class KeyBindingsRegistry {
             )
     );
 
-    public static final KeyBinding boostFlight = KeyBindingHelper.registerKeyBinding(
-            new DebouncedKeyBinding(
-                    KeyBindingsRegistry.formatKeyBindingLangKey("boost_pet_flight"),
-                    InputUtil.Type.KEYSYM,
-                    GLFW.GLFW_KEY_SPACE,
-                    getKeyCategory()
-
-            )
-    );
-
     private static String formatKeyBindingLangKey(String key){
         return "key." + Relipets.MOD_ID + "." + key;
     }
@@ -64,8 +53,6 @@ public class KeyBindingsRegistry {
             }
 
             if(client.player != null && openPetConfigurationScreen.wasPressed() && client.player.getMainHandStack().getItem() instanceof Petificator){
-                //TODO: uncomment this once testing is done
-                //client.setScreen(new MainPetificatorScreen());
                 client.setScreen(new RadialMenuScreen());
             }
 

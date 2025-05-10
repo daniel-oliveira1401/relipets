@@ -78,6 +78,14 @@ public class PetPartRegistry {
         PART_VARIANTS.add(new PetPartRegistryEntry("wing_standard_avian"
                 , new ThrowEnemyUpAbility(), 0.5f, 1.0f
         ));
+
+        //============== Standard Dragon Set (yellow core)
+        PART_VARIANTS.add(new PetPartRegistryEntry("torso_standard_dragon", 0.5f, 1.0f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("head_standard_dragon", 0.5f, 1.0f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("tail_standard_dragon", 0.5f, 1.0f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("wing_standard_dragon", 0.5f, 1.0f));
+        PART_VARIANTS.add(new PetPartRegistryEntry("leg_standard_dragon", 0.5f, 1.0f));
+
     }
 
     public static Optional<PetPartRegistryEntry> getPartRegistryEntryByVariantId(String variantId){

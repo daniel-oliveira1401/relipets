@@ -88,7 +88,9 @@ public class Petificator extends Item implements GeoItem {
                     .anyMatch(stack -> !stack.isEmpty() && stack.isOf(RelipetsItemRegistry.CAPSULE));
 
             if(!hasCapsule){
-                Utils.message("Capsule required for capturing pets", user);
+                if(world.isClient()){
+                    Utils.message("Capsule required for capturing pets", user);
+                }
                 return TypedActionResult.fail(user.getStackInHand(hand));
             }
 
@@ -113,29 +115,8 @@ public class Petificator extends Item implements GeoItem {
     }
 
     @Override
-    public boolean postHit(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-
-        if(!attacker.getWorld().isClient()){
-            //check if the player was holding shift
-            if(attacker instanceof PlayerEntity player && player.isSneaking()){
-                String targetUUID = target.getUuidAsString();
-                PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
-                PetData pet = petOwner.getPetParty().getPetByEntityUUID(targetUUID);
-
-                if(pet != null){ //this entity is in the party of the player
-                    petOwner.getPetParty().releasePetFromParty(pet);
-                }
-            }
-            //check if the attacked entity was in the player's party
-            //release that entity if so
-        }
-
-        return false;
-    }
-
-    @Override
     public ActionResult useOnBlock(ItemUsageContext context) {
-        if(context.getPlayer() != null && !context.getWorld().isClient() && !context.getPlayer().isSneaking()){
+        if(context.getPlayer() != null && !context.getWorld().isClient() && !context.getPlayer().isSneaking() && !context.getPlayer().hasVehicle()){
             PlayerEntity player = context.getPlayer();
             PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
             PetData pet = petOwner.getPetParty().getSelectedPet();
@@ -150,15 +131,14 @@ public class Petificator extends Item implements GeoItem {
     @Override
     public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
         tooltip.add(getTooltipText("[Sneak + Right Click] To throw a pet capsule"));
-        tooltip.add(getTooltipText("[Sneak + Left Click] A summoned pet to release it from your pet party"));
-        tooltip.add(getTooltipText("[Sneak + Scroll] While holding the wand to cycle through the pets"));
+        tooltip.add(getTooltipText("[Sneak + Scroll] While holding the Petificator to cycle through the pets"));
 
         var summonKey = KeyBindingsRegistry.toggleCurrentPetSummonStateKeyBinding.getBoundKeyLocalizedText().getString();
-        tooltip.add(getTooltipText("["+summonKey + "] To summon/recall the selected pet"));
+        tooltip.add(getTooltipText("["+summonKey + "] While holding the Petificator to summon/recall the selected pet"));
 
         var openConfigScreenKey = KeyBindingsRegistry.openPetConfigurationScreen.getBoundKeyLocalizedText().getString();
-        tooltip.add(getTooltipText("["+openConfigScreenKey + "] To open the config screen"));
-        tooltip.add(getTooltipText("[Right Click] A block with a summoned pet selected to tp it to the block"));
+        tooltip.add(getTooltipText("["+openConfigScreenKey + "] While holding the Petificator to open the config screen"));
+        tooltip.add(getTooltipText("[Right Click] A block while holding the Petificator to teleport your pet to the block"));
         super.appendTooltip(stack, world, tooltip, context);
     }
 

@@ -67,7 +67,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public static final String ANIM_IDLE = "idle";
     public static final String ANIM_WALK = "walk";
     public static final String ANIM_FLY = "fly";
-    public static final String ANIM_GLIDE = "glide";
+    public static final String ANIM_GLIDE = "fly_glide";
     public static final String ANIM_FLY_FAST = "fly_fast";
 
     public static final int MIN_BEHAVIOR_SCAN_RATE = Utils.secondToTick(1);
@@ -236,12 +236,12 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
                 return ActionResult.SUCCESS;
             }else{
-                return ActionResult.FAIL;
+                return ActionResult.PASS;
             }
 
 
         }else{
-            return ActionResult.FAIL;
+            return ActionResult.PASS;
         }
 
 
@@ -324,8 +324,8 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
                 ).setScanRate((e) -> 3),
                 new ChooseBehaviorSensor(RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM)
                         .withChoices(new WeightedList<BehaviorDefinition>()
-                                .addEntry(BehaviorDefinition.of(COME_CLOSE_TO_OWNER, Utils.secondToTick(4)), 30)
-                                .addEntry(BehaviorDefinition.of(STROLL_AROUND, Utils.secondToTick(1)), 70))
+                                //.addEntry(BehaviorDefinition.of(COME_CLOSE_TO_OWNER, Utils.secondToTick(4)), 30)
+                                .addEntry(BehaviorDefinition.of(STROLL_AROUND, Utils.secondToTick(4)), 70))
                         .scanRateBetween(MAX_BEHAVIOR_SCAN_RATE, MIN_BEHAVIOR_SCAN_RATE)
 
 //                new FeelLikeDoingSomethingSensor<>()
@@ -380,8 +380,8 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
                 .priority(20)
                 .behaviours(
                         new FirstApplicableBehaviour<BaseCore>(
-                                new CoreStrollAroundPartyOwner(),
-                                new CoreComeCloseToOwnerBehavior()
+                                new CoreStrollAroundPartyOwner()
+                                //, new CoreComeCloseToOwnerBehavior()
                         )
                         .startCondition((e)-> BrainUtils.hasMemory(e, RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM) && !BrainUtils.hasMemory(e, MemoryModuleType.ATTACK_TARGET))
                         .whenStopping((e)-> BrainUtils.clearMemory(e.getBrain(), RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM))
