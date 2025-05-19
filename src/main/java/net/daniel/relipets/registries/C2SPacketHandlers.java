@@ -3,6 +3,7 @@ package net.daniel.relipets.registries;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
+import net.daniel.relipets.cca_components.pet_management.PetMoveMode;
 import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
@@ -35,6 +36,7 @@ public class C2SPacketHandlers {
     public static final Identifier RENAME_PET = new Identifier(Relipets.MOD_ID, "rename_pet");
     public static final Identifier RELEASE_PET = new Identifier(Relipets.MOD_ID, "release_pet");
     public static final Identifier RECOVER_PET = new Identifier(Relipets.MOD_ID, "recover_pet");
+    public static final Identifier CHANGE_MOVE_MODE = new Identifier(Relipets.MOD_ID, "change_move_mode");
 
     public static void onInitialize(){
 
@@ -49,6 +51,25 @@ public class C2SPacketHandlers {
                 if(pet != null){
                     petOwnerSystem.getPetParty().releasePetFromParty(pet);
                 }
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(CHANGE_MOVE_MODE, (server, player, handler, buf, responseSender) -> {
+
+            int slot = buf.readInt();
+            PetMoveMode mode = PetMoveMode.valueOf(buf.readString());
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                PetData pet = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(slot).getContent();
+
+                if(pet != null){
+                    pet.setMoveMode(mode);
+                }
+
+                petOwnerSystem.getPetParty().pushChangesToClient();
             });
 
         });

@@ -40,6 +40,7 @@ public class PetData implements ISerializable {
     public static final String PET_INFO_KEY = "pet_info";
     public static final String HEALING_COOLDOWN = "pet_healing_cooldown";
     public static final String NATURAL_HEALING_KEY = "natural_healing";
+    public static final String MOVEMENT_MODE_KEY = "movement_mode";
 
     public static final String SUMMONED = "summoned";
     public static final String RECALLED = "recalled";
@@ -64,6 +65,10 @@ public class PetData implements ISerializable {
     @Getter
     @Setter
     public PetInfo petInfo = new PetInfo();
+
+    @Getter
+    @Setter
+    PetMoveMode moveMode = PetMoveMode.FOLLOWING;
 
     public void changeStatPoint(StatsOperationEnum operation, StatsEnum stat, World world){
         if(this.isSummoned()){
@@ -119,7 +124,9 @@ public class PetData implements ISerializable {
 
             setPetTargetForRevengeIfApplicable(player);
             //follow owner
-            followOwner(player);
+            if(moveMode == PetMoveMode.FOLLOWING){
+                followOwner(player);
+            }
             //followOwner might recall the entity
             if(!this.isSummoned()) return;
 
@@ -150,16 +157,19 @@ public class PetData implements ISerializable {
                 }else{
                     this.recall((ServerWorld) player.getWorld(), player);
                 }
-            }else if(!pathAwareEntity.getNavigation().isFollowingPath() && distance > (this.followDistance * this.followDistance)){
-                FuzzyTargeting.findTo(pathAwareEntity, 10, 5, player.getPos());
-                pathAwareEntity.getNavigation().startMovingTo(player, 1.0f);
+            }else if(distance > (this.followDistance * this.followDistance)){
+                BlockPos pos = Utils.findRandomSafePositionAroundPlayer((ServerWorld) player.getWorld(), player.getBlockPos(), 8, player.getWorld().getRandom());
+
+                if(pos != null){
+                    pathAwareEntity.getNavigation().startMovingTo(pos.getX(), pos.getY(), pos.getZ(), 1.5f);
+                }
 
             }
         }
     }
 
     private void retributeHostilityIfApplicable(PlayerEntity player) {
-        if(targetCooldown <= 0 && this.isSummoned() && !(this.getPetEntityData().getEntity() instanceof BaseCore)){
+        if(targetCooldown <= 0 && this.isSummoned()){
 
             this.targetCooldown = 10;
 
@@ -194,13 +204,17 @@ public class PetData implements ISerializable {
                 angerablePetEntity.setAngryAt(hostile.getUuid());
                 angerablePetEntity.setTarget(hostile);
             }
+
+
+            BrainUtils.setMemory(petEntity.getBrain(), MemoryModuleType.ATTACK_TARGET, hostile);
+
         }
         targetCooldown = Math.max(0, targetCooldown - 1);
     }
 
     int targetCooldown = 0;
     private void setPetTargetForRevengeIfApplicable(PlayerEntity player) {
-        if(targetCooldown <= 0 && this.isSummoned() && !(this.getPetEntityData().getEntity() instanceof BaseCore)){
+        if(targetCooldown <= 0 && this.isSummoned()){
             this.targetCooldown = 10;
             LivingEntity ownerAttacker = player.getAttacker();
 
@@ -226,6 +240,9 @@ public class PetData implements ISerializable {
                 angerablePetEntity.setAngryAt(ownerAttacker.getUuid());
                 angerablePetEntity.setTarget(ownerAttacker);
             }
+
+            BrainUtils.setMemory(petEntity.getBrain(), MemoryModuleType.ATTACK_TARGET, ownerAttacker);
+
         }
         targetCooldown = Math.max(0, targetCooldown - 1);
     }
@@ -417,6 +434,10 @@ public class PetData implements ISerializable {
 
         }
 
+        if(nbt.contains(MOVEMENT_MODE_KEY)){
+            this.setMoveMode(PetMoveMode.valueOf(nbt.getString(MOVEMENT_MODE_KEY)));
+        }
+
         pendingEntityBind = this.needsEntityBinding();
     }
 
@@ -428,6 +449,8 @@ public class PetData implements ISerializable {
         nbt.putString(RelipetsConstantsRegistry.PET_SUMMON_STATE_KEY, this.summonState);
         nbt.putInt(HEALING_COOLDOWN, this.getHealingCooldown());
         nbt.putInt(NATURAL_HEALING_KEY, this.getNaturalHealing());
+        nbt.putString(MOVEMENT_MODE_KEY, this.moveMode.name());
+
         if(this.petEntityData != null){
             nbt.put(RelipetsConstantsRegistry.PET_NBT_KEY, this.petEntityData.writeToNbt());
 
