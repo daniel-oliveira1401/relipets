@@ -431,49 +431,19 @@ public class PetParty implements ISerializable {
 }
 
 /*
-Problem: The data in the client is different from the data in the server.
 
-How does data goes from the server to the client?
-    Server writes the data to NBT.
-    Client reads the data from NBT.
+Idea: add "following modes" to pets. A pet can be following their owner or they can be wandering around.
+If they are following the owner, they will tp to the owner once they get too far away.
+If they are wandering around, they will not tp to the owner once you get far away from them.
 
- */
-
-/*
-Pet Groups:
+For that, we would also need a way to locate wandering pets. To do so we can add an option in the
+pet management screen called "Locate Pet" and that would say in the chat where the pet is
 
 
-        There will be a screen for creating/updating and deleting pet groups.
+TODO: make the locator shoot a slow moving projectile that will go towards the direction of where the pet was last
+seen when you use the locator button
 
-        The screen will have a Title saying "Pet Groups"
+TODO:Fix move mode button.
 
-        Then there will be a button for creating a new pet group.
-
-        [+ New Group]
-
-        Once clicked, a new pet group will appear in the list of pet groups. The group will be empty.
-        The group will have a name and a color associated to them
-
-        {color} Group 1 [Add Slot] [Remove Slot]                [Delete Group]
-        [][][][][][]
-
-        {color} Group 2 [Add Slot] [Remove Slot]                [Delete Group]
-        [][]
-
-        On the right side there will be a panel listing all the slots the player currently has and the slots will
-        be colored based on which group they belong to.
-
-
-        Party
-
-            - Groups
-
-                {
-                    color: "",
-                    name: "",
-                    slots: [0, 3, 5],
-
-                }
-
-
+TODO: make pet management screen look better
  */

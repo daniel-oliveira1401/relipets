@@ -13,13 +13,17 @@ import io.wispforest.owo.ui.core.*;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
+import net.daniel.relipets.cca_components.pet_management.PetMoveMode;
 import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.registries.C2SPacketHandlers;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.utils.Utils;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.option.Perspective;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.network.PacketByteBuf;
@@ -41,6 +45,8 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private PetPartyUpdateNotifier.Subscriber sub;
     private PetParty party;
     private @Nullable PetData selectedPetData;
+    private ButtonComponent movementModeButton;
+    private TextBoxComponent petName;
 
     public PetManagementScreen(BaseOwoScreen<FlowLayout> parent){
         this.parent = parent;
@@ -184,6 +190,9 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         buildSlots();
 
+        this.movementModeButton = Components.button(Text.of("Movement: "), (b)-> this.cycleMovementMode());
+        this.movementModeButton.sizing(Sizing.fill(100), Sizing.content());
+        this.petName = Components.textBox(Sizing.fill(69));
         //container for the grid (for scrolling)
         bodyContainer.child(
                 Containers.horizontalFlow(Sizing.content(), Sizing.content()).child(
@@ -191,30 +200,73 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 ).child(
                         Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
-                                        Components.label(Text.of("Rename Pet")).margins(Insets.bottom(4))
+                                        Components.label(Text.of("Rename Pet")).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
                                 ).child(
                                         Containers.horizontalFlow(Sizing.content(), Sizing.content()).child(
-                                                Components.textBox(Sizing.fixed(100)).id("petName")
+                                                petName
                                         ).child(
-                                                Components.button(Text.of("Rename"), (b)-> renamePet())
-                                        )
-                                ).margins(Insets.bottom(5))
+                                                Components.button(Text.of("Rename"), (b)-> renamePet()).sizing(Sizing.fill(30), Sizing.content())
+                                        ).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
-                                        Components.button(Text.of("Release Pet"), (b)-> openPetReleaseModal())
-                                ).margins(Insets.bottom(5))
+                                        Components.button(Text.of("Locate Pet"), (b)-> locateSelectedPet()).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
+                        ).child(
+                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                                        Components.button(Text.of("Release Pet"), (b)-> openPetReleaseModal()).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
+                        ).child(
+                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                                        movementModeButton
+                                ).margins(Insets.bottom(15))
                         ).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                         Components.button(Text.literal("Recover Pet [!]").setStyle(
                                                 Style.EMPTY.withColor(0xFF5E60)
-                                        ), (b)-> openRecoverPetDialog())
-                                ).margins(Insets.bottom(5))
-                        ).margins(Insets.left(15))
+                                        ), (b)-> openRecoverPetDialog()).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(5)).sizing(Sizing.fill(100), Sizing.content())
+                        ).margins(Insets.left(15)).sizing(Sizing.fixed(150), Sizing.content())
                 )
         );
 
         rootComponent.child(bodyContainer);
 
+        onSlotClicked(this.party.getSelectedPetIndex());
+
+    }
+
+    private void cycleMovementMode() {
+        if(this.selectedPetData != null){
+
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeInt(this.selectedSlot);
+
+            if(this.selectedPetData.getMoveMode() == PetMoveMode.FOLLOWING){
+                buf.writeString(PetMoveMode.WANDERING.name());
+            }else if(this.selectedPetData.getMoveMode() == PetMoveMode.WANDERING){
+                buf.writeString(PetMoveMode.FOLLOWING.name());
+            }
+
+            ClientPlayNetworking.send(C2SPacketHandlers.CHANGE_MOVE_MODE, buf);
+        }
+    }
+
+    private void locateSelectedPet() {
+        if(this.client != null && this.client.player != null && this.client.world != null && this.selectedPetData != null){
+
+            Entity entity = this.client.world.getEntityById(this.selectedPetData.getPetEntityData().getEntityId());
+            if(entity != null){
+                this.client.setCameraEntity(entity);
+                this.client.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+                this.client.setScreen(null);
+                Utils.setTimeout(()-> {
+                    this.client.setCameraEntity(this.client.player);
+                    this.client.options.setPerspective(Perspective.FIRST_PERSON);
+                }, Utils.secondToTick(5));
+            }
+            Utils.message(this.selectedPetData.getPetInfo().getPetName() + " was last seen at: " + this.selectedPetData.getPetEntityData().getTracker().toString(), this.client.player);
+        }
     }
 
     private void releasePet() {
@@ -318,14 +370,15 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void updateActionPanel() {
 
-        TextBoxComponent textBox = rootComponent.childById(TextBoxComponent.class, "petName");
-        if(textBox != null){
             if(this.selectedPetData != null){
-                textBox.text(this.selectedPetData.getPetInfo().getPetName());
+                this.petName.text(this.selectedPetData.getPetInfo().getPetName());
+                this.movementModeButton.setMessage(Text.of("Movement: "+ this.selectedPetData.getMoveMode().name()));
             }else{
-                textBox.text("");
+                this.petName.text("");
+                this.movementModeButton.setMessage(Text.of("Movement:"));
             }
-        }
+
+
     }
 
     @Override
@@ -349,15 +402,8 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     public boolean onSlotClicked(int slotIndex){
-        //check if there is a slot selected
-        //if there isnt, then select one
-        if(this.selectedSlot == slotIndex){
-            this.selectedSlot = -1;
-            this.selectedPetData = null;
 
-        }else{
-            this.selectedSlot = slotIndex;
-        }
+        this.selectedSlot = slotIndex;
 
         updateSelectedPetBasedOnSlot();
         updateActionPanel();

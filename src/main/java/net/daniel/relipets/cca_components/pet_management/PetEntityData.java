@@ -611,7 +611,14 @@ public class PetEntityData implements ISerializable {
             return nbt;
         }
 
-
+        @Override
+        public String toString() {
+            return String.format("%s at X:%s, Y:%s, Z:%s",
+                    this.dimension.toString(),
+                    this.position.getX(),
+                    this.position.getY(),
+                    this.position.getZ());
+        }
     }
 
 }
