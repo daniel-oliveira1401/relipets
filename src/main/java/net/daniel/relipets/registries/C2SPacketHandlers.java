@@ -37,6 +37,7 @@ public class C2SPacketHandlers {
     public static final Identifier RELEASE_PET = new Identifier(Relipets.MOD_ID, "release_pet");
     public static final Identifier RECOVER_PET = new Identifier(Relipets.MOD_ID, "recover_pet");
     public static final Identifier CHANGE_MOVE_MODE = new Identifier(Relipets.MOD_ID, "change_move_mode");
+    public static final Identifier CYCLE_GROUP_MOVE_MODE = new Identifier(Relipets.MOD_ID, "cycle_group_move_mode");;
 
     public static void onInitialize(){
 
@@ -55,10 +56,24 @@ public class C2SPacketHandlers {
 
         });
 
+        ServerPlayNetworking.registerGlobalReceiver(CYCLE_GROUP_MOVE_MODE, (server, player, handler, buf, responseSender) -> {
+
+            String stringUuid = buf.readString();
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+
+                petOwnerSystem.getPetParty().cycleGroupMoveMode(stringUuid);
+
+                petOwnerSystem.getPetParty().pushChangesToClient();
+            });
+
+        });
+
         ServerPlayNetworking.registerGlobalReceiver(CHANGE_MOVE_MODE, (server, player, handler, buf, responseSender) -> {
 
             int slot = buf.readInt();
-            PetMoveMode mode = PetMoveMode.valueOf(buf.readString());
 
             server.execute(()-> {
 
@@ -66,7 +81,7 @@ public class C2SPacketHandlers {
                 PetData pet = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(slot).getContent();
 
                 if(pet != null){
-                    pet.setMoveMode(mode);
+                    petOwnerSystem.getPetParty().cyclePetMoveMode(pet);
                 }
 
                 petOwnerSystem.getPetParty().pushChangesToClient();
