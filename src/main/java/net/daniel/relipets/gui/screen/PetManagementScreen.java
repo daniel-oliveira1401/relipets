@@ -242,12 +242,6 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeInt(this.selectedSlot);
 
-            if(this.selectedPetData.getMoveMode() == PetMoveMode.FOLLOWING){
-                buf.writeString(PetMoveMode.WANDERING.name());
-            }else if(this.selectedPetData.getMoveMode() == PetMoveMode.WANDERING){
-                buf.writeString(PetMoveMode.FOLLOWING.name());
-            }
-
             ClientPlayNetworking.send(C2SPacketHandlers.CHANGE_MOVE_MODE, buf);
         }
     }

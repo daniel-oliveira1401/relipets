@@ -422,6 +422,35 @@ public class PetParty implements ISerializable {
         }
     }
 
+    public void cyclePetMoveMode(PetData pet){
+        pet.setMoveMode(this.getNextMoveMode(pet.getMoveMode()));
+    }
+
+    public void cycleGroupMoveMode(String groupId) {
+
+        PetGroup group = this.petGroupManager.getGroupById(UUID.fromString(groupId));
+        if(group != null && !group.getSlots().isEmpty()){
+            //get all the slots of the group that have pets on them
+            List<PetData> petDataFromGroup = this.petGroupManager.getGroupSlotsWithContent(this, group);
+            if(petDataFromGroup.isEmpty()) return;
+
+            //use the first one to determine the current mode
+            PetMoveMode currentMode = petDataFromGroup.get(0).getMoveMode();
+            PetMoveMode nextMoveMode = this.getNextMoveMode(currentMode);
+            //cycle the current mode of all the slots based on the mode of the first one
+            petDataFromGroup.forEach((p)-> p.setMoveMode(nextMoveMode));
+
+        }
+    }
+
+    public PetMoveMode getNextMoveMode(PetMoveMode currentMoveMode){
+
+        PetMoveMode[] values = PetMoveMode.values();
+        int nextIndex = (currentMoveMode.ordinal() == values.length - 1) ? 0 : currentMoveMode.ordinal() + 1;
+        return values[nextIndex];
+
+    }
+
     public interface PetPartyEventListener{
         void onPetPartyEvent();
     }

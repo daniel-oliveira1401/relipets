@@ -56,13 +56,13 @@ public class Utils {
         return null;
     }
 
+    //TODO: make this safe check safer. (check for entity bounding box)
     public static boolean isSafe(ServerWorld world, BlockPos pos) {
-        // Ensure the block below is solid (not air)
+
         if (world.getBlockState(pos.down()).isAir()) {
             return false;
         }
-        // Check the block at the position and the one above are empty enough for the entity.
-        // Depending on the entity's bounding box, you might need to do more complex collision checks.
+
         VoxelShape shape = world.getBlockState(pos).getCollisionShape(world, pos);
         VoxelShape shapeAbove = world.getBlockState(pos.up()).getCollisionShape(world, pos.up());
         return shape.isEmpty() && shapeAbove.isEmpty();

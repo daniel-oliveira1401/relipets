@@ -6,10 +6,7 @@ import io.wispforest.owo.ui.container.*;
 import io.wispforest.owo.ui.core.*;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
-import net.daniel.relipets.cca_components.pet_management.PetData;
-import net.daniel.relipets.cca_components.pet_management.PetGroup;
-import net.daniel.relipets.cca_components.pet_management.PetParty;
-import net.daniel.relipets.cca_components.pet_management.PetSlot;
+import net.daniel.relipets.cca_components.pet_management.*;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.registries.C2SPacketHandlers;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -26,8 +23,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
@@ -46,6 +42,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     private OverlayContainer<FlowLayout> removeSlotFromGroupOverlay;
 
     int disabledSlotColor = 0xffdd5555;
+    private PetParty party;
 
     public PetGroupsScreen(BaseOwoScreen<FlowLayout> parent){
         this.parent = parent;
@@ -67,6 +64,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         //ColorPickerComponent picker = new ColorPickerComponent();
         this.sub = (p)-> {
             this.rootComponent.queue(()-> {
+                this.party = p;
                 onPartyUpdated(p);
             });
         };
@@ -89,7 +87,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
         PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
         PetParty party = petOwner.getPetParty();
-
+        this.party = party;
         //this is the container of the left pane
         this.leftPaneContainer = Containers.verticalFlow(Sizing.fixed(350), Sizing.fill(100));
         leftPaneContainer.padding(Insets.both(5, 5));
@@ -142,6 +140,88 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         );
     }
 
+    private void updateGroups(PetParty party){
+
+        //handle adding new groups
+        for(PetGroup group : party.getPetGroupManager().getGroups()){
+
+            //check if this group is in the current groups. If not, then add a group element for it
+            Optional<Component> componentFound = this.groupsContainer.children().stream()
+                    .filter((g)-> Objects.equals(g.id(), group.getId().toString())).findFirst();
+
+            if(componentFound.isEmpty()){
+                this.groupsContainer.child(buildGroup(group, party));
+            }
+
+        }
+
+        //handle removing groups
+        for(Component groupElement : this.groupsContainer.children()){
+
+            //check if this groupElement is present in the update groups
+            Optional<PetGroup> groupFound = party.getPetGroupManager().getGroups().stream()
+                    .filter((g)-> Objects.equals(g.getId().toString(), groupElement.id()))
+                    .findFirst();
+            //if this element doesnt have a group associated to it, then remove it
+            if(groupFound.isEmpty()){
+                this.groupsContainer.removeChild(groupElement);
+            }
+
+        }
+
+        //handle updating the groups
+        for(PetGroup group : party.getPetGroupManager().getGroups()){
+
+            //check if this group is in the current groups. If not, then add a group element for it
+            FlowLayout groupContainer = this.groupsContainer.childById(FlowLayout.class, group.getId().toString());
+
+            if(groupContainer != null){
+
+                updateGroup(party, group, groupContainer);
+
+            }
+
+        }
+    }
+
+    private void updateGroup(PetParty party, PetGroup group, FlowLayout groupContainer) {
+        //handle updating group name (not needed because the input field already contains the text)
+        //TextBoxComponent groupName = groupContainer.childById(TextBoxComponent.class, "groupName");
+        //if(groupName != null){
+            //groupName.text(group.getName());
+        //}
+
+        //handle updating the buttons
+        ButtonComponent groupModeBtn = groupContainer.childById(ButtonComponent.class, "groupModeBtn");
+        if(groupModeBtn != null){
+
+            groupModeBtn.setMessage(Text.of("Mode: " + getCurrentGroupMoveMode(party, group)));
+
+
+        }
+
+        //handle updating group slots
+        FlowLayout slotsContainer = groupContainer.childById(FlowLayout.class, "slotsContainer");
+        if(slotsContainer != null){
+            slotsContainer.clearChildren();
+
+            for(int slot : group.getSlots()){
+
+                FlowLayout slotContainer = buildSlot(party, group, slot);
+
+                slotsContainer.child(slotContainer);
+            }
+        }
+
+        //handle updating group color
+        BoxComponent colorBox = groupContainer.childById(BoxComponent.class, "groupColor");
+        if(colorBox != null){
+            colorBox.color(Color.ofArgb(group.getColor()));
+        }
+
+        //handle additional updates if needed
+    }
+
     private void buildGroups(PetParty party){
         this.groupsContainer.clearChildren();
 
@@ -156,15 +236,17 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout buildGroup(PetGroup group, PetParty party) {
         var verticalSpacing = 5;
         FlowLayout groupContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        groupContainer.id(group.getId().toString());
         groupContainer.surface(Surface.outline(0xffeeeeee));
         groupContainer.margins(Insets.bottom(5));
         BoxComponent colorBox = Components.box(Sizing.fixed(20), Sizing.fixed(20))
                 .color(Color.ofArgb(group.getColor())).fill(true);
         colorBox.margins(Insets.right(5));
         colorBox.mouseDown().subscribe((a, b, c) -> openColorPicker(group));
+        colorBox.id("groupColor");
 
         TextBoxComponent groupName = Components.textBox(Sizing.fixed(120), group.getName());
-        //groupName.onChanged().subscribe((name) -> setGroupName(group, name));
+        groupName.onChanged().subscribe((name) -> setGroupName(group.getId().toString(), name));
         groupName.id("groupName");
 
         groupContainer
@@ -172,78 +254,119 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
                 .child(
                         Containers.horizontalFlow(Sizing.fill(100), Sizing.content())
                                 .child(
-                                        Containers.horizontalFlow(Sizing.content(), Sizing.content()).child(
+                                        Containers.horizontalFlow(Sizing.fill(70), Sizing.content()).child(
                                                 Components.button(Text.of("X"), (b)-> removeGroup(group)).margins(Insets.right(5))
                                         ).child(
                                                 colorBox
                                         ).child(
                                                 groupName
-                                        ).child(
-                                                Components.button(Text.of("Save"), (b)-> saveGroupName(group, groupContainer))
-                                        ).verticalAlignment(VerticalAlignment.CENTER)
+                                        )
+//                                        .child(
+//                                                Components.button(Text.of("Save"), (b)-> saveGroupName(group, groupContainer))
+//                                        )
+                                        .verticalAlignment(VerticalAlignment.CENTER)
                                 ).child(
-                                        Containers.horizontalFlow(Sizing.fixed(120),Sizing.content()).child(
+                                        Containers.horizontalFlow(Sizing.fill(30),Sizing.content()).child(
                                                 Components.label(Text.of("Slots")).margins(Insets.right(5))
                                         ).child(
-                                                Components.button(Text.of("+"), (b) -> openSelectSlotToAddModal(group))
+                                                Components.button(Text.of("+"), (b) -> openSelectSlotToAddModal(group.getId()))
                                         ).child(
-                                                Components.button(Text.of("-"), (b) -> openSelectSlotToRemoveModal(group))
+                                                Components.button(Text.of("-"), (b) -> openSelectSlotToRemoveModal(group.getId()))
                                         ).alignment(HorizontalAlignment.RIGHT, VerticalAlignment.CENTER)
-                                ).verticalAlignment(VerticalAlignment.CENTER).padding(Insets.of(verticalSpacing))
+                                ).verticalAlignment(VerticalAlignment.CENTER).padding(Insets.vertical(verticalSpacing))
 
                 );
 
-        FlowLayout slotsContainer = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        FlowLayout slotsContainer = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(slotSize));
+        slotsContainer.id("slotsContainer");
 
         //build the slots to display in this group
         for(int slot : group.getSlots()){
-            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
-            slotContainer.margins(Insets.both(5, 5));
 
-            slotContainer.surface(defaultSlotSurface.and(Surface.outline(group.getColor())));
-
-            slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
-
-            PetData petData = party.getSlotManager().getSlotAt(slot).getContent();
-
-            if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
-
-                EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
-
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
-                        .scaleToFit(true);
-
-                slotContainer.child(
-                        component
-                );
-            }
+            FlowLayout slotContainer = buildSlot(party, group, slot);
 
             slotsContainer.child(slotContainer);
         }
 
         groupContainer.child(
                 Containers.horizontalFlow(Sizing.fill(100), Sizing.content()).child(
-                    Containers.horizontalScroll(Sizing.fill(65), Sizing.content(), slotsContainer).scrollbar(ScrollContainer.Scrollbar.flat(Color.WHITE)).padding(Insets.of(5))
+                    Containers.horizontalScroll(Sizing.fill(50), Sizing.content(), slotsContainer)
+                            .scrollbar(ScrollContainer.Scrollbar.flat(Color.WHITE))
+                            .padding(Insets.vertical(5))
+
                 ).child(
-                        Containers.horizontalFlow(Sizing.fill(35), Sizing.content()).child(
+                        Containers.horizontalFlow(Sizing.fill(50), Sizing.content()).child(
                                 Components.button(Text.of("Summon"), (b)-> this.summonGroup(group))
                         ).child(
                                 Components.button(Text.of("Recall"), (b)-> this.recallGroup(group))
-                        )
+                        ).horizontalAlignment(HorizontalAlignment.RIGHT)
 
                 ).verticalAlignment(VerticalAlignment.CENTER)
         );
 
+        groupContainer.child(
+                Containers.horizontalFlow(Sizing.fill(100), Sizing.content()).child(
+                        Components.button(Text.of("Mode: " + getCurrentGroupMoveMode(party, group)), (b)-> this.cycleGroupMoveMode(group.getId().toString()))
+                                .id("groupModeBtn").horizontalSizing(Sizing.fixed(100))
+                )
+        );
+
+        groupContainer.padding(Insets.of(5));
+
         return groupContainer;
 
+    }
+
+    public String getCurrentGroupMoveMode(PetParty party, PetGroup group){
+        List<PetData> petData = party.getPetGroupManager().getGroupSlotsWithContent(party, group);
+        if(petData.isEmpty()) return "";
+        //get the move mode of the first one. Check if there is any element that doesnt match that. It there is, then "mixed";
+
+        PetMoveMode mode = petData.get(0).getMoveMode();
+
+        boolean mixed = petData.stream().anyMatch((p)-> p.getMoveMode() != mode);
+        if(mixed) return "Mixed";
+
+        return mode.name();
+    }
+
+    private void cycleGroupMoveMode(String groupId) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeString(groupId);
+        ClientPlayNetworking.send(C2SPacketHandlers.CYCLE_GROUP_MOVE_MODE, buf);
+    }
+
+    private FlowLayout buildSlot(PetParty party, PetGroup group, int slotIndex){
+        FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
+        slotContainer.margins(Insets.right(5));
+
+        slotContainer.surface(defaultSlotSurface.and(Surface.outline(group.getColor())));
+
+        slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
+
+        PetData petData = party.getSlotManager().getSlotAt(slotIndex).getContent();
+
+        if(petData != null && petData.getPetEntityData().isValid()){
+            Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+
+            EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
+
+            EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
+                    .scaleToFit(true);
+
+            slotContainer.child(
+                    component
+            );
+        }
+
+        return slotContainer;
     }
 
     private void saveGroupName(PetGroup group, FlowLayout groupContainer) {
         TextBoxComponent groupLabel = groupContainer.childById(TextBoxComponent.class, "groupName");
         if(groupLabel != null){
             String name = groupLabel.getText();
-            setGroupName(group, name);
+            setGroupName(group.getId().toString(), name);
         }
     }
 
@@ -265,7 +388,10 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         return true;
     }
 
-    private void openSelectSlotToRemoveModal(PetGroup group) {
+    private void openSelectSlotToRemoveModal(UUID groupId) {
+        PetGroup group = this.party.getPetGroupManager().getGroupById(groupId);
+        if(group == null) return;
+
         //build a grid with the slots
         GridLayout grid = buildSlotsToRemoveGrid(group);
         if(grid != null){
@@ -295,7 +421,9 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
-    private void openSelectSlotToAddModal(PetGroup group) {
+    private void openSelectSlotToAddModal(UUID groupId) {
+        PetGroup group = this.party.getPetGroupManager().getGroupById(groupId);
+        if(group == null) return;
 
         //build a grid with the slots
         GridLayout grid = buildSlotsToAddGrid(group);
@@ -533,7 +661,8 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         //============== update the left panel ==========
-        buildGroups(party);
+        updateGroups(party);
+        //buildGroups(party);
     }
 
     int columnCount = 3;
@@ -576,9 +705,9 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         ClientPlayNetworking.send(C2SPacketHandlers.CHANGE_GROUP_COLOR, buf);
     }
 
-    private void setGroupName(PetGroup group, String name) {
+    private void setGroupName(String groupId, String name) {
         PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
+        buf.writeString(groupId);
         buf.writeString(name);
         ClientPlayNetworking.send(C2SPacketHandlers.CHANGE_GROUP_NAME, buf);
     }
@@ -618,3 +747,19 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         PetPartyUpdateNotifier.getInstance().unsubscribe(this.sub);
     }
 }
+
+/*
+
+Current problem:
+
+The server pushes the entire state to the client.
+
+The client then uses the new state to rebuild the entire screen.
+
+That happens for every change.
+
+The entire UI is rebuilt once the server pushes the new state. The correct way would be to
+only update the parts of the UI that were affected by the change.
+
+
+ */

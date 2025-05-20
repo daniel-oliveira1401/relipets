@@ -6,12 +6,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
+@Getter
 public class PetGroupManager {
 
-    @Getter
     private final List<PetGroup> groups = new ArrayList<>();
 
     public PetGroupManager(NbtCompound nbt){
@@ -88,6 +87,19 @@ public class PetGroupManager {
         }
     }
 
-    //TODO; add serialization
+    public List<PetData> getGroupSlotsWithContent(PetParty party, PetGroup group){
+
+        List<PetData> petData = new ArrayList<>();
+
+        for (Integer slot : group.getSlots()){
+            PetData dataInSlot = party.getSlotManager().getSlotAt(slot).getContent();
+            if(dataInSlot != null){
+                petData.add(dataInSlot);
+            }
+        }
+
+        return petData;
+
+    }
 
 }
