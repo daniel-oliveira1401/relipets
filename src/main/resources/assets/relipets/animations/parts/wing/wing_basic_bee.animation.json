@@ -5,32 +5,68 @@
 			"loop": true,
 			"animation_length": 1,
 			"bones": {
-				"left": {
+				"left_wing": {
 					"rotation": {
 						"0.0": {
-							"vector": [0, 0, 17.5]
+							"vector": [0, 0, 0]
+						},
+						"0.5": {
+							"vector": [0, 0, 5],
+							"easing": "easeInOutSine"
+						},
+						"1.0": {
+							"vector": [0, 0, 0],
+							"easing": "easeInOutSine"
+						}
+					}
+				},
+				"right_wing": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
+						},
+						"0.5": {
+							"vector": [0, 0, -5],
+							"easing": "easeInOutSine"
+						},
+						"1.0": {
+							"vector": [0, 0, 0],
+							"easing": "easeInOutSine"
+						}
+					}
+				}
+			}
+		},
+		"fly": {
+			"loop": true,
+			"animation_length": 1,
+			"bones": {
+				"left_wing": {
+					"rotation": {
+						"0.0": {
+							"vector": [0, 0, 0]
 						},
 						"0.5": {
 							"vector": [0, 0, -15],
 							"easing": "easeInOutSine"
 						},
 						"1.0": {
-							"vector": [0, 0, 17.5],
+							"vector": [0, 0, 0],
 							"easing": "easeInOutSine"
 						}
 					}
 				},
-				"right": {
+				"right_wing": {
 					"rotation": {
 						"0.0": {
-							"vector": [0, 0, -17.5]
+							"vector": [0, 0, 0]
 						},
 						"0.5": {
-							"vector": [0, 0, 15],
+							"vector": [0, 0, 20],
 							"easing": "easeInOutSine"
 						},
 						"1.0": {
-							"vector": [0, 0, -17.5],
+							"vector": [0, 0, 0],
 							"easing": "easeInOutSine"
 						}
 					}

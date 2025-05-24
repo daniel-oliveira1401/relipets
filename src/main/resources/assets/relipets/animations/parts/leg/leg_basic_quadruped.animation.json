@@ -65,6 +65,31 @@
 					}
 				}
 			}
+		},
+		"fly": {
+			"loop": true,
+			"bones": {
+				"back_leg": {
+					"rotation": {
+						"vector": [-20, 0, 0]
+					}
+				},
+				"front_leg": {
+					"rotation": {
+						"vector": [-20, 0, 0]
+					}
+				},
+				"front_leg2": {
+					"rotation": {
+						"vector": [-20, 0, 0]
+					}
+				},
+				"back_leg2": {
+					"rotation": {
+						"vector": [-20, 0, 0]
+					}
+				}
+			}
 		}
 	},
 	"geckolib_format_version": 2

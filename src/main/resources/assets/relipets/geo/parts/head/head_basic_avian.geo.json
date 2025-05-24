@@ -3,9 +3,9 @@
 	"minecraft:geometry": [
 		{
 			"description": {
-				"identifier": "geometry.head_basic_avian",
-				"texture_width": 16,
-				"texture_height": 16,
+				"identifier": "geometry.unknown",
+				"texture_width": 128,
+				"texture_height": 128,
 				"visible_bounds_width": 3,
 				"visible_bounds_height": 2.5,
 				"visible_bounds_offset": [0, 0.75, 0]
@@ -13,18 +13,42 @@
 			"bones": [
 				{
 					"name": "head",
-					"pivot": [0, 12.5, 4],
+					"pivot": [0, 11, 7],
 					"cubes": [
 						{
-							"origin": [-2, 11, 4],
-							"size": [4, 3, 6],
+							"origin": [-2, 12, 5],
+							"size": [4, 3, 3],
 							"uv": {
-								"north": {"uv": [8, 0], "uv_size": [4, 3]},
-								"east": {"uv": [0, 6], "uv_size": [6, 3]},
-								"south": {"uv": [8, 3], "uv_size": [4, 3]},
-								"west": {"uv": [6, 6], "uv_size": [6, 3]},
-								"up": {"uv": [0, 0], "uv_size": [4, 6]},
-								"down": {"uv": [4, 6], "uv_size": [4, -6]}
+								"north": {"uv": [100, 93], "uv_size": [4, 3]},
+								"east": {"uv": [90, 107], "uv_size": [3, 3]},
+								"south": {"uv": [100, 96], "uv_size": [4, 3]},
+								"west": {"uv": [93, 107], "uv_size": [3, 3]},
+								"up": {"uv": [90, 102], "uv_size": [4, 3]},
+								"down": {"uv": [94, 105], "uv_size": [4, -3]}
+							}
+						},
+						{
+							"origin": [-2, 13, 8],
+							"size": [4, 2, 3],
+							"uv": {
+								"north": {"uv": [106, 107], "uv_size": [4, 2]},
+								"east": {"uv": [107, 95], "uv_size": [3, 2]},
+								"south": {"uv": [107, 93], "uv_size": [4, 2]},
+								"west": {"uv": [96, 108], "uv_size": [3, 2]},
+								"up": {"uv": [106, 85], "uv_size": [4, 3]},
+								"down": {"uv": [106, 91], "uv_size": [4, -3]}
+							}
+						},
+						{
+							"origin": [-2, 15, 5],
+							"size": [4, 1, 2],
+							"uv": {
+								"north": {"uv": [90, 99], "uv_size": [4, 1]},
+								"east": {"uv": [100, 99], "uv_size": [2, 1]},
+								"south": {"uv": [108, 100], "uv_size": [4, 1]},
+								"west": {"uv": [102, 101], "uv_size": [2, 1]},
+								"up": {"uv": [106, 91], "uv_size": [4, 2]},
+								"down": {"uv": [102, 109], "uv_size": [4, -2]}
 							}
 						}
 					]
