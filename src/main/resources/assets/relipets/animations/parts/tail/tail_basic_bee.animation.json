@@ -5,14 +5,9 @@
 			"loop": true,
 			"animation_length": 1,
 			"bones": {
-				"inner_ring": {
+				"crown": {
 					"rotation": {
-						"0.0": {
-							"vector": [0, 0, 0]
-						},
-						"1.0": {
-							"vector": [0, 0, 90]
-						}
+						"vector": [-90, 0, 0]
 					}
 				}
 			}
@@ -21,23 +16,39 @@
 			"loop": true,
 			"animation_length": 1,
 			"bones": {
-				"inner_ring": {
+				"crown": {
 					"rotation": {
 						"0.0": {
-							"vector": [0, 0, 270]
+							"vector": [0, 0, 0]
 						},
 						"1.0": {
-							"vector": [0, 0, 0]
+							"vector": [0, 0, 360]
+						}
+					}
+				}
+			}
+		},
+		"fly": {
+			"loop": true,
+			"animation_length": 1,
+			"bones": {
+				"tail": {
+					"rotation": {
+						"0.0": {
+							"vector": [-45, 0, 0]
+						},
+						"1.0": {
+							"vector": [-45, 0, 0]
 						}
 					}
 				},
-				"ring": {
+				"crown": {
 					"rotation": {
 						"0.0": {
-							"vector": [45, 0, 0]
+							"vector": [0, 0, 0]
 						},
 						"1.0": {
-							"vector": [45, 0, 0]
+							"vector": [0, 0, 360]
 						}
 					}
 				}

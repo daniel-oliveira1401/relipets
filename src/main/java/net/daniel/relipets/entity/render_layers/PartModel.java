@@ -8,6 +8,8 @@ import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
 import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.model.GeoModel;
 
+import java.util.Arrays;
+
 public class PartModel extends GeoModel<BasePart> {
 
     String partType;
@@ -27,16 +29,25 @@ public class PartModel extends GeoModel<BasePart> {
     public Identifier texturePath;
     public Identifier animationsPath;
 
-    public Identifier buildFormattedModelPath(Identifier basePath, String partType) {
-        return new Identifier(basePath.getNamespace(), "geo/parts/" + partType + "/" + basePath.getPath() + ".geo.json");
+    public Identifier buildFormattedModelPath(Identifier partVariant, String partType) {
+        return new Identifier(partVariant.getNamespace(), "geo/parts/" + partType + "/" + partVariant.getPath() + ".geo.json");
     }
 
-    public static Identifier buildFormattedAnimationPath(Identifier basePath, String partType) {
-        return new Identifier(basePath.getNamespace(), "animations/parts/" + partType + "/" + basePath.getPath() + ".animation.json");
+    public static Identifier buildFormattedAnimationPath(Identifier partVariant, String partType) {
+        return new Identifier(partVariant.getNamespace(), "animations/parts/" + partType + "/" + partVariant.getPath() + ".animation.json");
     }
 
-    public static Identifier buildFormattedTexturePath(Identifier basePath, String partType) {
-        return new Identifier(basePath.getNamespace(), "textures/parts/" + partType + "/" + basePath.getPath() + ".png");
+    public static Identifier buildFormattedTexturePath(Identifier partVariant, String partType) {
+        //if(partType.equals(PetPart.TORSO_PART)){
+            //return new Identifier(basePath.getNamespace(), "textures/parts/torso/" + basePath.getPath() + ".png");
+        //}else{
+            return new Identifier(partVariant.getNamespace(), "textures/parts/sets/" + getPartSet(partVariant) + ".png");
+        //}
+    }
+
+    private static String getPartSet(Identifier partVariant){
+        //meant to remove the partType of the variant like arm_basic_bee becomes basic_bee
+        return Arrays.stream(partVariant.getPath().split("_")).skip(1).reduce("", (a, b)-> a + "_" + b).substring(1);
     }
 
 
