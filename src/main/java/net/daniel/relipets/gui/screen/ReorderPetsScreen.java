@@ -36,6 +36,8 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
     private int rows;
     private GridLayout body;
     private PetPartyUpdateNotifier.Subscriber sub;
+    private PetParty party;
+    private boolean needsUpdate;
 
     public ReorderPetsScreen(BaseOwoScreen<FlowLayout> parent){
         this.parent = parent;
@@ -81,7 +83,7 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
 
                 EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
+                EntityComponent<LivingEntity> component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
                         .scaleToFit(true);
 
                 slotContainer.child(
@@ -101,7 +103,7 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
 
             FlowLayout slotContainer = (FlowLayout) this.body.children().get(i);
 
-            slotContainer.clearChildren();
+            slotContainer.children().forEach((e)-> e.remove());
 
             PetData petData = party.getSlotManager().getSlotAt(i).getContent();
 
@@ -110,8 +112,8 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
 
                 EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
-                        .scaleToFit(true);
+                EntityComponent<LivingEntity> component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
+                        .scaleToFit(true).allowMouseRotation(true);
 
                 slotContainer.child(
                         component
@@ -136,9 +138,11 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
         if(this.client == null || this.client.player == null) return;
 
         this.sub = (p)-> {
-            this.rootComponent.queue(()-> {
-                updateSlots(p);
-            });
+            this.party = p;
+            this.needsUpdate = true;
+//            this.rootComponent.queue(()-> {
+//                this.client.execute(()-> updateSlots(p));
+//            });
         };
 
         PetPartyUpdateNotifier.getInstance().subscribe(sub);
@@ -193,8 +197,23 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
-        //iterate over the slots
-        //  if the slot index matches the selected slot, then paint it with another color
+        if(needsUpdate){
+            this.needsUpdate = false;
+            this.updateSlots(this.party);
+        }
+
+        for(int i = 0; i < this.body.children().size(); i++){
+
+            FlowLayout slotContainer = (FlowLayout) this.body.children().get(i);
+
+            slotContainer.children().forEach((c)-> {
+                if(c instanceof EntityComponent<?> entityComponent){
+                    entityComponent.entity().tick();
+                }
+
+            });
+
+        }
 
     }
 

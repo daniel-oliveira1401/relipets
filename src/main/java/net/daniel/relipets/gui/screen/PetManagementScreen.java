@@ -16,6 +16,7 @@ import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.cca_components.pet_management.PetMoveMode;
 import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
+import net.daniel.relipets.entity.util.PetCameraEntity;
 import net.daniel.relipets.registries.C2SPacketHandlers;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.Utils;
@@ -23,11 +24,16 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.option.Perspective;
+import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -92,7 +98,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
                 EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
+                EntityComponent<LivingEntity> component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
                         .scaleToFit(true);
 
                 slotContainer.child(
@@ -121,9 +127,8 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
                 EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
-                EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
+                EntityComponent<LivingEntity> component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
                         .scaleToFit(true);
-
                 slotContainer.child(
                         component
                 );
@@ -141,18 +146,14 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
 
-
+    boolean pendingUpdate = false;
     @Override
     protected void build(FlowLayout rootComponent) {
         if(this.client == null || this.client.player == null) return;
 
         this.sub = (p)-> {
+            this.pendingUpdate = true;
             this.party = p;
-            this.rootComponent.queue(()-> {
-                updateSelectedPetBasedOnSlot();
-                updateSlots(p);
-                updateActionPanel();
-            });
         };
 
         PetPartyUpdateNotifier.getInstance().subscribe(sub);
@@ -210,6 +211,22 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                                 ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                                        Components.button(Text.of("Level Points"), (b)-> openLevelPointsScreen()).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
+                        ).child(//TODO: make this exclusive for Cores
+                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                                        Components.button(Text.of("Manage Parts"), (b)-> openPartManagementScreen())
+                                                .sizing(Sizing.fill(100), Sizing.content()).id("partsBtn")
+                                )
+                                        //cool effect, but not needed
+                                .child(
+                                        Components.box(Sizing.fixed(150), Sizing.fixed(20))
+                                                .color(Color.ofArgb(0x00000000)).fill(true)
+                                                .positioning(Positioning.absolute(0, 0)).tooltip(Text.of("Only available for Modular Pets"))
+                                )
+                                .margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
+                        ).child(
+                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                         Components.button(Text.of("Locate Pet"), (b)-> locateSelectedPet()).sizing(Sizing.fill(100), Sizing.content())
                                 ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(
@@ -236,6 +253,30 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     }
 
+    private void openPartManagementScreen() {
+        if(this.client != null && this.client.player != null){
+
+            if(this.selectedPetData != null && this.selectedSlot >= 0
+                    && (
+                            this.selectedPetData.getPetEntityData().getEntityType().toLowerCase().contains("relipets:pets/yellow_core")) ||
+                            this.selectedPetData.getPetEntityData().getEntityType().toLowerCase().contains("relipets:pets/cyan_core")) {
+
+                PacketByteBuf buf = PacketByteBufs.create();
+                buf.writeInt(this.selectedSlot);
+
+                ClientPlayNetworking.send(C2SPacketHandlers.OPEN_PART_MANAGEMENT_SCREEN, buf);
+            }
+        }
+    }
+
+    private void openLevelPointsScreen() {
+        if(this.client != null && this.client.player != null){
+            if(this.selectedPetData != null){
+                this.client.setScreen(new LevelPointsScreen(this, this.selectedPetData, this.selectedSlot));
+            }
+        }
+    }
+
     private void cycleMovementMode() {
         if(this.selectedPetData != null){
 
@@ -247,18 +288,28 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void locateSelectedPet() {
+
         if(this.client != null && this.client.player != null && this.client.world != null && this.selectedPetData != null){
 
-            Entity entity = this.client.world.getEntityById(this.selectedPetData.getPetEntityData().getEntityId());
-            if(entity != null){
-                this.client.setCameraEntity(entity);
-                this.client.options.setPerspective(Perspective.THIRD_PERSON_BACK);
-                this.client.setScreen(null);
-                Utils.setTimeout(()-> {
-                    this.client.setCameraEntity(this.client.player);
-                    this.client.options.setPerspective(Perspective.FIRST_PERSON);
-                }, Utils.secondToTick(5));
+            if(this.selectedPetData.isSummonedNoEntityValidation()){
+
+                PacketByteBuf buf = PacketByteBufs.create();
+
+                buf.writeInt(this.selectedSlot);
+
+                ClientPlayNetworking.send(C2SPacketHandlers.LOAD_AREA_AROUND_PET, buf);
+
+                if(!this.selectedPetData.getPetEntityData().getTracker().getDimension().toString().equals(
+                    this.client.world.getRegistryKey().getValue().toString()
+                )){
+                    //different worlds, let the server->client packet handle setting the screen
+                }else{
+                    //same world, set the screen directly
+                    this.client.setScreen(new PetSpectatorScreen(this.selectedSlot, this.selectedPetData));
+                }
+
             }
+
             Utils.message(this.selectedPetData.getPetInfo().getPetName() + " was last seen at: " + this.selectedPetData.getPetEntityData().getTracker().toString(), this.client.player);
         }
     }
@@ -350,11 +401,10 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void renamePet() {
         PacketByteBuf buf = PacketByteBufs.create();
-        TextBoxComponent textBox = rootComponent.childById(TextBoxComponent.class, "petName");
-        if(textBox != null && this.selectedPetData != null){
+        if(this.petName != null && this.selectedPetData != null){
 
             buf.writeInt(this.selectedSlot);
-            buf.writeString(textBox.getText());
+            buf.writeString(petName.getText());
 
             ClientPlayNetworking.send(C2SPacketHandlers.RENAME_PET, buf);
 
@@ -364,13 +414,29 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void updateActionPanel() {
 
+        if(this.selectedPetData != null){
+            this.petName.text(this.selectedPetData.getPetInfo().getPetName());
+            this.movementModeButton.setMessage(Text.of("Movement: "+ this.selectedPetData.getMoveMode().name()));
+        }else{
+            this.petName.text("");
+            this.movementModeButton.setMessage(Text.of("Movement:"));
+        }
+
+        //check if the current pet is a Core. If so, show the Manage Parts option
+
+        ButtonComponent partsBtn = this.rootComponent.childById(ButtonComponent.class, "partsBtn");
+        if(partsBtn != null){
             if(this.selectedPetData != null){
-                this.petName.text(this.selectedPetData.getPetInfo().getPetName());
-                this.movementModeButton.setMessage(Text.of("Movement: "+ this.selectedPetData.getMoveMode().name()));
+                if(this.selectedPetData.getPetEntityData().getEntityType().toLowerCase().contains("core")){
+                    partsBtn.active(true);
+                }else{
+                    partsBtn.active(false);
+                }
             }else{
-                this.petName.text("");
-                this.movementModeButton.setMessage(Text.of("Movement:"));
+                partsBtn.active(false);
             }
+
+        }
 
 
     }
@@ -378,6 +444,12 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
+        if(pendingUpdate){
+            pendingUpdate = false;
+            updateSelectedPetBasedOnSlot();
+            updateSlots(party);
+            updateActionPanel();
+        }
         //iterate over the slots
         //  if the slot index matches the selected slot, then paint it with another color
 

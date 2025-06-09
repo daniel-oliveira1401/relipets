@@ -14,7 +14,6 @@ import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.FuzzyTargeting;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.mob.MobEntity;
@@ -24,11 +23,8 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.TypeFilter;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
 import net.tslat.smartbrainlib.util.BrainUtils;
 
@@ -179,7 +175,7 @@ public class PetData implements ISerializable {
 
 
             List<LivingEntity> hostileEntities = player.getWorld()
-                    .getEntitiesByType(TypeFilter.instanceOf(LivingEntity.class), player.getBoundingBox().expand(20), (entity)-> {
+                    .getEntitiesByType(TypeFilter.instanceOf(LivingEntity.class), player.getBoundingBox().expand(60), (entity)-> {
                 Optional<PetMetadataComponent> petMetadataComponent = CardinalComponentsRegistry.PET_METADATA_KEY.maybeGet(entity);
                 if(petMetadataComponent.isPresent() && !petMetadataComponent.get().getPlayerUUID().isEmpty()){
                     return false;
@@ -187,7 +183,7 @@ public class PetData implements ISerializable {
                 if(entity instanceof MobEntity mobEntity){
                     return mobEntity.getTarget() == player;
                 }
-                return entity.getAttacking() == player;
+                return entity.getAttacking() == player || (BrainUtils.hasMemory(entity.getBrain(), MemoryModuleType.ATTACK_TARGET) && BrainUtils.getMemory(entity.getBrain(), MemoryModuleType.ATTACK_TARGET) == player);
             } );
 
             if(hostileEntities.isEmpty()) return;
@@ -215,7 +211,7 @@ public class PetData implements ISerializable {
     int targetCooldown = 0;
     private void setPetTargetForRevengeIfApplicable(PlayerEntity player) {
         if(targetCooldown <= 0 && this.isSummoned()){
-            this.targetCooldown = 10;
+            this.targetCooldown = 2;
             LivingEntity ownerAttacker = player.getAttacker();
 
             if(ownerAttacker == null){
@@ -438,6 +434,8 @@ public class PetData implements ISerializable {
             this.setMoveMode(PetMoveMode.valueOf(nbt.getString(MOVEMENT_MODE_KEY)));
         }
 
+
+
         pendingEntityBind = this.needsEntityBinding();
     }
 
@@ -453,7 +451,6 @@ public class PetData implements ISerializable {
 
         if(this.petEntityData != null){
             nbt.put(RelipetsConstantsRegistry.PET_NBT_KEY, this.petEntityData.writeToNbt());
-
         }
 
         nbt.put(PET_INFO_KEY, this.petInfo.writeToNbt());
@@ -512,6 +509,25 @@ public class PetData implements ISerializable {
 
     public void summonForRelease(ServerWorld world, Vec3d pos, PlayerEntity player) {
         this.getPetEntityData().spawnEntityForRelease(world, pos, player, this);
+    }
+
+    public void applySlotContentChange(int inventorySlotIndex) {
+        LivingEntity entity = this.getPetEntityData().getEntity();
+
+        if(entity instanceof BaseCore core){
+            core.getPartSystem().updateSystemBasedOnSlotIndex(inventorySlotIndex);
+        }
+        this.getPetEntityData().saveEntityData();
+
+    }
+
+    public void syncItemsWithPartSystem(){
+        LivingEntity entity = this.getPetEntityData().getEntity();
+
+        if(entity instanceof BaseCore core){
+            core.getPartSystem().applyInventoryChange();
+        }
+        this.getPetEntityData().saveEntityData();
     }
 
 

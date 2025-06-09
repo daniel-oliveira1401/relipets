@@ -154,6 +154,8 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
     }
 
     public void tickNaturalXpGain(){
-        this.levelProgression.receiveXp(40);
+        if(this.levelProgression != null){
+            this.levelProgression.receiveXp(40);
+        }
     }
 }

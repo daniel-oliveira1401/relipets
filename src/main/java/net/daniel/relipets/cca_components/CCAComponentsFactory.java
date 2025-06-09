@@ -18,8 +18,6 @@ public class CCAComponentsFactory implements EntityComponentInitializer {
                 .respawnStrategy(RespawnCopyStrategy.ALWAYS_COPY)
                 .end(PetOwnerComponent::new);
 
-        registry.registerFor(BaseCore.class, CardinalComponentsRegistry.PART_SYSTEM_KEY, PartSystemComponent::new);
-
         registry.registerFor(LivingEntity.class, CardinalComponentsRegistry.PET_METADATA_KEY, PetMetadataComponent::new);
     }
 }

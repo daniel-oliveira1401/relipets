@@ -1,7 +1,6 @@
 package net.daniel.relipets.entity.brain.behavior.abilities;
 
 import com.mojang.datafixers.util.Pair;
-import net.daniel.relipets.cca_components.PartSystemComponent;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.entity.cores.BaseCore;

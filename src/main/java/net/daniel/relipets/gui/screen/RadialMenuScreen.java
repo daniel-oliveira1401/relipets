@@ -60,18 +60,18 @@ public class RadialMenuScreen extends BaseOwoScreen<FlowLayout> {
                 size, 1, totalCount,
                 petGroupsScreen, 32, "Pet Groups",
                 this::goToGroupsScreen));
-        rootComponent.child(new RadialMenuSectionWidget(menuOriginX, menuOriginY,
-                size, 2, totalCount,
-                levelPointsScreen, 32, "Level Points",
-                this::goToLevelPointsScreen));
+//        rootComponent.child(new RadialMenuSectionWidget(menuOriginX, menuOriginY,
+//                size, 2, totalCount,
+//                levelPointsScreen, 32, "Level Points",
+//                this::goToLevelPointsScreen));
 
         rootComponent.child(new RadialMenuSectionWidget(menuOriginX, menuOriginY,
-                size, 3, totalCount,
+                size, 2, totalCount,
                 recallAll, 32, "Recall All Pets",
                 this::recallAllPets));
 
         rootComponent.child(new RadialMenuSectionWidget(menuOriginX, menuOriginY,
-                size, 4, totalCount,
+                size, 3, totalCount,
                 managementScreen, 32, "Pet Management",
                 this::goToPetRecoveryScreen));
 
@@ -92,7 +92,7 @@ public class RadialMenuScreen extends BaseOwoScreen<FlowLayout> {
     private void goToLevelPointsScreen(){
 
         if(this.client != null && this.client.player != null){
-            this.client.setScreen(new LevelPointsScreen(this));
+            //this.client.setScreen(new LevelPointsScreen(this));
 
         }
     }

@@ -1,5 +1,6 @@
 package net.daniel.relipets;
 
+import net.daniel.relipets.cca_components.PartSystem;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.config.RelipetsConfig;
@@ -20,6 +21,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
@@ -53,6 +55,7 @@ public class Relipets implements ModInitializer {
 
 		TrackedDataHandlerRegistry.register(YellowCore.YELLOW_CORE_STATS_HANDLER);
 		TrackedDataHandlerRegistry.register(BaseCore.ABILITY_STATS_HANDLER);
+		TrackedDataHandlerRegistry.register(BaseCore.PART_SYSTEM_HANDLER);
 
 		RelipetsEntityRegistry.onInitialize();
 
@@ -91,10 +94,29 @@ public class Relipets implements ModInitializer {
 
 		});
 
+		//TODO: change this to only recall pets in the "following" mode
 		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, oldWorld, newWorld) -> {
 			System.out.println("Player went from "+ oldWorld.getDimensionKey().getValue().toString() + " to " + newWorld.getDimensionKey().getValue().toString());
 			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
-			petOwnerComponent.getPetParty().recallAllPets(oldWorld, player);
+			petOwnerComponent.getPetParty().recallFollowingPets(oldWorld, player);
+		});
+
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			ServerPlayerEntity player = handler.player;
+			// revert player state or store current state for restore later
+			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+			if(petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
+				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
+			}
+		});
+
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			ServerPlayerEntity player = handler.player;
+			// check if player should be restored to normal state
+			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+			if(petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
+				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
+			}
 		});
 
 

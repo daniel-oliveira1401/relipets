@@ -9,9 +9,17 @@ import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNot
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsOperationEnum;
 import net.daniel.relipets.entity.cores.YellowCore;
+import net.daniel.relipets.gui.screen.PartManagementScreenHandler;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -38,8 +46,75 @@ public class C2SPacketHandlers {
     public static final Identifier RECOVER_PET = new Identifier(Relipets.MOD_ID, "recover_pet");
     public static final Identifier CHANGE_MOVE_MODE = new Identifier(Relipets.MOD_ID, "change_move_mode");
     public static final Identifier CYCLE_GROUP_MOVE_MODE = new Identifier(Relipets.MOD_ID, "cycle_group_move_mode");;
+    public static final Identifier OPEN_PART_MANAGEMENT_SCREEN = new Identifier(Relipets.MOD_ID, "open_part_management_screen");
+    public static final Identifier LOAD_AREA_AROUND_PET = new Identifier(Relipets.MOD_ID, "load_area_around_pet");
+    public static final Identifier UNLOAD_AREA_AROUND_PET = new Identifier(Relipets.MOD_ID, "unload_area_around_pet");
 
     public static void onInitialize(){
+
+        ServerPlayNetworking.registerGlobalReceiver(OPEN_PART_MANAGEMENT_SCREEN, (server, player, handler, buf, responseSender) -> {
+            int selectedSlot = buf.readInt();
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+
+                //idea: when the player opens the screen, create an entity in the pet data (if the pet is not summoned).
+                //That 'pseudo entity' will be used throughout the manipulation of the part screen
+
+                PetData petData = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(selectedSlot).getContent();
+                if(petData != null){
+                    LivingEntity entity = petData.getPetEntityData().getEntityForInteraction(petData, server);
+                    petData.getPetEntityData().setEntity(entity);
+
+                    player.openHandledScreen(new NamedScreenHandlerFactory() {
+                        @Override
+                        public Text getDisplayName() {
+                            return Text.of("Part Management");
+                        }
+
+                        @Override
+                        public @Nullable ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                            return new PartManagementScreenHandler(syncId, playerInventory, player,
+                                    petData,
+                                    selectedSlot);
+                        }
+                    });
+                }
+
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(LOAD_AREA_AROUND_PET, (server, player, handler, buf, responseSender) -> {
+
+            int slot = buf.readInt();
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                PetData pet = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(slot).getContent();
+                if(pet != null){
+                    petOwnerSystem.getPetParty().loadAreaAroundPet(slot, player);
+                }
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(UNLOAD_AREA_AROUND_PET, (server, player, handler, buf, responseSender) -> {
+
+            int slot = buf.readInt();
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                PetData pet = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(slot).getContent();
+                if(pet != null){
+                    petOwnerSystem.getPetParty().unloadAreaAroundPet(slot, player);
+                }
+            });
+
+        });
 
         ServerPlayNetworking.registerGlobalReceiver(RELEASE_PET, (server, player, handler, buf, responseSender) -> {
 

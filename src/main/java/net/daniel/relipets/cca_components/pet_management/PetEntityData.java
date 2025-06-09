@@ -32,12 +32,12 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 @Getter
@@ -76,7 +76,12 @@ public class PetEntityData implements ISerializable {
         //load 3x3 area around the last know chunk
         for(int x = -1 ; x <= 1; x++){
             for(int z = -1 ; z <= 1; z++){
-                world.setChunkForced(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z, true);
+                int actualX = lastKnownChunkPos.x + x;
+                int actualZ = lastKnownChunkPos.z + z;
+
+                this.forceLoadedChunks.add(new Vec2f(actualX, actualZ));
+
+                world.setChunkForced(actualX, actualZ, true);
             }
         }
 
@@ -93,10 +98,8 @@ public class PetEntityData implements ISerializable {
             }
 
             System.out.println("Unloading 3x3 area around entity last known pos");
-            for(int x = -1 ; x <= 1; x++){
-                for(int z = -1 ; z <= 1; z++){
-                    world.setChunkForced(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z, false);
-                }
+            for(Vec2f loadedChunk : this.forceLoadedChunks){
+                world.setChunkForced((int) loadedChunk.x, (int) loadedChunk.y, false);
             }
         }, Utils.secondToTick(3));
 
@@ -128,6 +131,10 @@ public class PetEntityData implements ISerializable {
         saveEntityData();
     }
 
+    public void clearEntity(){
+        this.entity = null;
+    }
+
     public void saveEntityData(){
         cleanEntityBeforeSaving();
 
@@ -154,29 +161,50 @@ public class PetEntityData implements ISerializable {
         }
     }
 
+    @Nullable
+    private LivingEntity createAndInitializeEntity(PetData petData, Vec3d pos, ServerWorld world){
+        Identifier entityTypeId = new Identifier(this.entityType);
+
+        EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
+
+        LivingEntity createdEntity = entityType.create(world);
+
+        if(createdEntity == null) return null;
+
+        createdEntity.readNbt(entityNbt);
+
+        if(createdEntity instanceof MobEntity mob) mob.setPersistent(); //idk if this actually works. Too hard to test
+
+        createdEntity.setPosition(pos);
+        createdEntity.setVelocity(0, 0, 0);
+        createdEntity.setOnFire(false);
+        createdEntity.setGlowing(false);
+        createdEntity.fallDistance = 0;
+        createdEntity.setCustomName(Text.of(petData.getPetInfo().getPetName()));
+        UUID uuid = UUID.randomUUID();
+        createdEntity.setUuid(uuid);
+        this.entityUUID = uuid.toString();
+        this.setEntity(createdEntity);
+
+        return createdEntity;
+    }
+
+    @Nullable
+    public LivingEntity getEntityForInteraction(PetData petData, MinecraftServer server){
+        if(petData.isSummoned()){
+            return this.getEntity();
+        }else { //handles healing and recalled states
+
+            return this.createAndInitializeEntity(petData, this.getTracker().position.toCenterPos(), this.getTracker().getWorld(server));
+        }
+    }
+
     public void spawnEntity(ServerWorld world, Vec3d pos, PlayerEntity player, PetData petData){
         world.getServer().execute(()-> {
-            Identifier entityTypeId = new Identifier(this.entityType);
 
-            EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
-
-            LivingEntity createdEntity = entityType.create(world);
+            LivingEntity createdEntity = this.createAndInitializeEntity(petData, pos, world);
 
             if(createdEntity == null) return;
-
-            createdEntity.readNbt(entityNbt);
-
-            if(createdEntity instanceof MobEntity mob) mob.setPersistent(); //idk if this actually works. Too hard to test
-
-            createdEntity.setPosition(pos);
-            createdEntity.setVelocity(0, 0, 0);
-            createdEntity.setOnFire(false);
-            createdEntity.setGlowing(false);
-            createdEntity.fallDistance = 0;
-            createdEntity.setCustomName(Text.of(petData.getPetInfo().getPetName()));
-            UUID uuid = UUID.randomUUID();
-            createdEntity.setUuid(uuid);
-            this.entityUUID = uuid.toString();
 
             world.spawnEntity(createdEntity);
             Utils.message("Summoned " + createdEntity.getDisplayName().getString() + ".", player);
@@ -184,7 +212,6 @@ public class PetEntityData implements ISerializable {
                 this.applyStatModifiers(createdEntity, petData);
             }, Utils.secondToTick(1));
 
-            this.setEntity(createdEntity);
 
             this.setOwner(player);
         });
@@ -330,6 +357,20 @@ public class PetEntityData implements ISerializable {
         this.tracker = new PetEntityTracker();
         if(nbt.contains(ENTITY_TRACKER_KEY))
             this.tracker.readFromNbt(nbt.getCompound(ENTITY_TRACKER_KEY));
+
+        if(nbt.contains("forceLoadedChunks")){
+            NbtCompound chunksNbt = nbt.getCompound("forceLoadedChunks");
+            for(String key : chunksNbt.getKeys()){
+                String[] components = chunksNbt.getString(key).split("/");
+                this.forceLoadedChunks.add(
+                        new Vec2f(
+                                Float.parseFloat(components[0]),
+                                Float.parseFloat(components[1])
+                        )
+                );
+
+            }
+        }
     }
 
     @Override
@@ -341,6 +382,15 @@ public class PetEntityData implements ISerializable {
         nbt.putString(ENTITY_UUID_KEY, entityUUID);
         nbt.put(ENTITY_TRACKER_KEY, this.tracker.writeToNbt());
         nbt.putInt(ENTITY_ID_KEY, this.entityId);
+
+        NbtCompound forceLoadedChunksNbt = new NbtCompound();
+        int i = 0;
+        for(Vec2f chunkXZ : this.forceLoadedChunks){
+            forceLoadedChunksNbt.putString(i+"", ((int)chunkXZ.x)+"/" + ((int)chunkXZ.y));
+            i++;
+        }
+
+        nbt.put("forceLoadedChunks", forceLoadedChunksNbt);
 
         return nbt;
     }
@@ -560,6 +610,57 @@ public class PetEntityData implements ISerializable {
         });
     }
 
+    List<Vec2f> forceLoadedChunks = new ArrayList<>();
+
+    public void loadAreaAroundEntity(MinecraftServer server, PetParty party) {
+        ServerWorld world = this.getTracker().getWorld(server);
+
+        if(world == null){
+            System.out.println("Could not find world this entity was last seen at. World: " + this.getTracker().getDimension().toString());
+            return;
+        }
+
+        ChunkPos lastKnownChunkPos = this.getTracker().getChunkPos();
+
+        System.out.println("Loaded 3x3 area around entity last known pos");
+        //load 3x3 area around the last know chunk
+        for(int x = -1 ; x <= 1; x++){
+            for(int z = -1 ; z <= 1; z++){
+                this.forceLoadedChunks.add(new Vec2f(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z));
+                world.setChunkForced(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z, true);
+            }
+        }
+
+        Utils.setTimeout(()-> {
+            LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(entityUUID));
+
+            if(entity != null){
+                this.setEntity(entity);
+                this.saveEntityData();
+            }
+
+            party.pushChangesToClient();
+
+        }, Utils.secondToTick(3));
+
+
+    }
+
+    public void unloadAreaAroundEntity(MinecraftServer server) {
+        ServerWorld world = this.getTracker().getWorld(server);
+
+        if(world == null){
+            System.out.println("Could not find world this entity was last seen at. World: " + this.getTracker().getDimension().toString());
+            return;
+        }
+
+        for (Iterator<Vec2f> it = this.forceLoadedChunks.iterator(); it.hasNext(); ) {
+            Vec2f chunkXZ = it.next();
+            world.setChunkForced((int) chunkXZ.x, (int) chunkXZ.y, false);
+            it.remove();
+        }
+    }
+
     @Getter
     @Setter
     public static class PetEntityTracker implements ISerializable {
@@ -605,7 +706,6 @@ public class PetEntityData implements ISerializable {
             }
             if(this.position != null){
                 nbt.putString(POSITION_KEY, Utils.serializeBlockPos(this.position));
-
             }
 
             return nbt;

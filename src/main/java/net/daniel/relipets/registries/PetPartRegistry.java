@@ -107,3 +107,30 @@ public class PetPartRegistry {
     }
 
 }
+
+/*
+
+Idea:
+
+    Should abilities be tied to specific parts?
+    Is it a good experience to be forced to have a given part in your pet if you want a given ability?
+
+    Would it be better to have a ui where you can choose from a list of abilities which ones you want to have?
+    Like an enchanting table, but instead of applying an enchantment to a part you would apply an ability to it.
+
+    Or maybe, instead of applying the ability to the part, you could apply the ability to the core itself, and in
+    order for the core to use it they would need to have a "part" in that slot which would "cast" it.
+
+    The stats of the ability would then be the base stats of the core plus the stats of the part that casted the ability
+    That way it would still matter which part you put because of their stats, but it wouldnt be a restriction. If you
+    really want to use a given part, then you can. You just gotta check which stats it has and it is going to be
+    beneficial to have it there.
+
+    Also, each part of the core can have a set of abilities that the player can choose from.
+    And also, some abilities would only be usable in cyan cores while others could be used only in the yellow core
+    and at last some could be used on both.
+
+    Yeah, i like that! Maybe i should also allow for the management of pet parts in there?
+
+
+ */

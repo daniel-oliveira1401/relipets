@@ -39,15 +39,16 @@ public class PartRenderLayer extends GeoRenderLayer<BaseCore> {
     HashMap<String, BasePart> dummyParts = new HashMap<>();
 
     private String buildBasePartName(BaseCore core){
-        return core.getUuidAsString();
+        return core.getUuidAsString()+core.getId();
     }
 
     @Override
     public void render(MatrixStack poseStack, BaseCore core, BakedGeoModel bakedModel, RenderLayer renderType, VertexConsumerProvider bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
 
-        PetPart part = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(core).getPartByType(partType);
+        PetPart part = core.getPartSystem().getPartByType(partType);
+
         String basePartName = buildBasePartName(core);
-        if(!dummyParts.containsKey(basePartName)){
+        if(!dummyParts.containsKey(basePartName)){ //TODO: optimize this
             dummyParts.put(basePartName, new BasePart());
         }
 

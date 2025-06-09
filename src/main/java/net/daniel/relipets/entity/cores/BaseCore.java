@@ -1,7 +1,8 @@
 package net.daniel.relipets.entity.cores;
 
 import lombok.Getter;
-import net.daniel.relipets.cca_components.PartSystemComponent;
+import net.daniel.relipets.cca_components.PartSystem;
+import net.daniel.relipets.cca_components.PartSystem;
 import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.entity.brain.activity.CoreCustomActivities;
 import net.daniel.relipets.entity.brain.behavior.*;
@@ -93,8 +94,23 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         }
     };
 
-    private static final TrackedData<CoreAbilityStats> CORE_ABILITY_STATS = DataTracker.registerData(BaseCore.class, ABILITY_STATS_HANDLER);
+    public static final TrackedDataHandler<PartSystem> PART_SYSTEM_HANDLER = new TrackedDataHandler.ImmutableHandler<PartSystem>() {
+        public void write(PacketByteBuf packetByteBuf, PartSystem partSystem) {
+            packetByteBuf.writeNbt(partSystem.writeToNbt(new NbtCompound()));
+        }
 
+        public PartSystem read(PacketByteBuf packetByteBuf) {
+            return new PartSystem(packetByteBuf.readNbt());
+        }
+    };
+
+    private static final TrackedData<CoreAbilityStats> CORE_ABILITY_STATS = DataTracker.registerData(BaseCore.class, ABILITY_STATS_HANDLER);
+    private static final TrackedData<PartSystem> PART_SYSTEM = DataTracker.registerData(BaseCore.class, PART_SYSTEM_HANDLER);
+    
+    public PartSystem getPartSystem(){
+        return this.dataTracker.get(PART_SYSTEM);
+    }
+    
     public CoreAbilityStats getAbilityStats(){
         return this.dataTracker.get(CORE_ABILITY_STATS);
     }
@@ -113,6 +129,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         super(entityType, world);
         this.dataTracker.startTracking(CURRENT_ANIM, ANIM_IDLE);
         this.dataTracker.startTracking(CORE_ABILITY_STATS, new CoreAbilityStats(1.0f, 1.0f, 1.0f, 1.0f));
+        this.dataTracker.startTracking(PART_SYSTEM, new PartSystem());
     }
 
     public static DefaultAttributeContainer.Builder createBaseCoreAttributes() {
@@ -142,13 +159,9 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     @Nullable
     public PetPart getPartFromType(String partType){
 
-        PartSystemComponent partSystem = this.getPartSystem();
+        PartSystem partSystem = this.getPartSystem();
 
         return partSystem.getPartByType(partType);
-    }
-
-    public PartSystemComponent getPartSystem(){
-        return CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
     }
 
     public String getCurrentAnim() {
@@ -160,7 +173,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     }
 
     public boolean hasWings(){
-        PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
+        PartSystem partSystem = this.getPartSystem();
 
         //apply flying effect if core has wing
         PetPart wing = partSystem.getPartByType(PetPart.WING_PART);
@@ -170,7 +183,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
     public void applyEffectsFromParts(World world){
 
-        PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
+        PartSystem partSystem = this.getPartSystem();
 
         //apply flying effect if core has wing
         PetPart wing = partSystem.getPartByType(PetPart.WING_PART);
@@ -204,40 +217,40 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
             //if interact with shears, remove parts
 
-            if(mainHandItem.getItem() instanceof ShearsItem){
-
-                PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
-
-                PetPart partRemoved = partSystem.removeNextPart();
-                if(partRemoved != null){
-                    dropPetPart(partRemoved);
-                    applyEffectsFromParts(player.getWorld());
-                }
-
-                return ActionResult.SUCCESS;
-
-            }else if (mainHandItem.getItem() instanceof PartItem){
-
-                NbtCompound itemTag = mainHandItem.getOrCreateNbt().getCompound(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY);
-
-                PetPart partInHand = PetPart.readFromNbt(itemTag);
-
-                PartSystemComponent partSystem = CardinalComponentsRegistry.PART_SYSTEM_KEY.get(this);
-
-                //drop the pet part if it already has one of this type
-                if(partSystem.hasValidPart(partInHand.partType)){
-                    PetPart existingPart = partSystem.getPartByType(partInHand.partType);
-                    dropPetPart(existingPart);
-                }
-
-                partSystem.addOrUpdatePart(partInHand);
-                mainHandItem.decrement(1);
-                applyEffectsFromParts(player.getWorld());
-
-                return ActionResult.SUCCESS;
-            }else{
+//            if(mainHandItem.getItem() instanceof ShearsItem){
+//
+//                PartSystem partSystem = this.getPartSystem();
+//
+//                PetPart partRemoved = partSystem.removeNextPart();
+//                if(partRemoved != null){
+//                    dropPetPart(partRemoved);
+//                    applyEffectsFromParts(player.getWorld());
+//                }
+//
+//                return ActionResult.SUCCESS;
+//
+//            }else if (mainHandItem.getItem() instanceof PartItem){
+//
+//                NbtCompound itemTag = mainHandItem.getOrCreateNbt().getCompound(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY);
+//
+//                PetPart partInHand = PetPart.readFromNbt(itemTag);
+//
+//                PartSystem partSystem = this.getPartSystem();
+//
+//                //drop the pet part if it already has one of this type
+//                if(partSystem.hasValidPart(partInHand.partType)){
+//                    PetPart existingPart = partSystem.getPartByType(partInHand.partType);
+//                    dropPetPart(existingPart);
+//                }
+//
+//                partSystem.addOrUpdatePart(partInHand);
+//                mainHandItem.decrement(1);
+//                applyEffectsFromParts(player.getWorld());
+//
+//                return ActionResult.SUCCESS;
+//            }else{
                 return ActionResult.PASS;
-            }
+//            }
 
 
         }else{
@@ -410,6 +423,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
         nbt.put(ABILITY_STATS_KEY, this.getAbilityStats().writeToNbt());
+        nbt.put("part_system", this.getPartSystem().writeToNbt(new NbtCompound()));
     }
 
     @Override
@@ -417,6 +431,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         super.readCustomDataFromNbt(nbt);
 
         this.dataTracker.set(CORE_ABILITY_STATS, new CoreAbilityStats(nbt.getCompound(ABILITY_STATS_KEY)));
+        this.dataTracker.set(PART_SYSTEM, new PartSystem(nbt.getCompound("part_system")));
     }
 
     @Override

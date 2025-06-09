@@ -13,12 +13,12 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
 
     private List<PetSlot<T>> slots;
 
-    private Supplier<T> contentSupplier;
+    private final Supplier<T> contentInstanceSupplier;
 
-    public PetSlotManager(int initialSlotCount, Supplier<T> contentSupplier){
+    public PetSlotManager(int initialSlotCount, Supplier<T> emptyContentInstanceSupplier){
 
         this.slots = new ArrayList<>();
-        this.contentSupplier = contentSupplier;
+        this.contentInstanceSupplier = emptyContentInstanceSupplier;
 
         for(int i = 0; i < initialSlotCount; i++)
             slots.add(new PetSlot<T>());
@@ -119,7 +119,7 @@ public class PetSlotManager<T extends ISerializable> implements ISerializable {
                 if(contentNbt.isEmpty()){
                     slot.clear();
                 }else{
-                    T content = this.contentSupplier.get();
+                    T content = this.contentInstanceSupplier.get();
                     content.readFromNbt(contentNbt);
                     slot.setContent(content);
                 }

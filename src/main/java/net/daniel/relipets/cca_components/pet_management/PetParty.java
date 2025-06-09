@@ -10,28 +10,24 @@ import net.daniel.relipets.registries.RelipetsItemRegistry;
 import net.daniel.relipets.registries.S2CPacketHandlers;
 import net.daniel.relipets.utils.Utils;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.GameMode;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
-
-/*
-
-How unlocking more slots will work:
-
-    player crafts an item
-
-    When the player uses the item, the item is consumed and the player gets one more slot
-
- */
 
 public class PetParty implements ISerializable {
 
@@ -56,6 +52,9 @@ public class PetParty implements ISerializable {
     int partyUpdateCooldown = 0;
     int petSummonCooldown = 0;
     int naturalHealingCooldown = 0;
+
+    @Getter
+    private SpectatorModeData spectatorModeData;
 
     public PetParty(PlayerEntity player){
         this.player = player;
@@ -156,6 +155,8 @@ public class PetParty implements ISerializable {
         this.selectedPetIndex = nbt.getInt(SELECTED_PET_INDEX);
 
         this.petGroupManager = new PetGroupManager(nbt.getCompound(PET_GROUP_MANAGER));
+
+        this.spectatorModeData = new SpectatorModeData(nbt.getCompound("spectatorModeData"));
     }
 
     public NbtCompound writeToNbt(){
@@ -171,6 +172,9 @@ public class PetParty implements ISerializable {
 
         if(this.petGroupManager != null)
             nbt.put(PET_GROUP_MANAGER, this.petGroupManager.writeToNbt());
+        if(this.spectatorModeData != null){
+            nbt.put("spectatorModeData", this.spectatorModeData.writeToNbt());
+        }
 
         return nbt;
     }
@@ -258,11 +262,9 @@ public class PetParty implements ISerializable {
 
     public void addPetToParty(LivingEntity entity, PlayerEntity player){
 
-
-        PetData newPet = new PetData();
-        newPet.fillFromEntity(entity, player);
-
         if(this.getSlotManager().getSlotAt(this.selectedPetIndex).isEmpty()){
+            PetData newPet = new PetData();
+            newPet.fillFromEntity(entity, player);
             this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
             Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
             newPet.updateVolatilePetInfoIfPossible();
@@ -272,6 +274,8 @@ public class PetParty implements ISerializable {
             //search for a slot
             PetSlot<PetData> emptySlot = this.getSlotManager().getFirstEmptySlot();
             if(emptySlot != null){
+                PetData newPet = new PetData();
+                newPet.fillFromEntity(entity, player);
                 emptySlot.setContent(newPet);
                 Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
                 newPet.updateVolatilePetInfoIfPossible();
@@ -325,24 +329,6 @@ public class PetParty implements ISerializable {
 
         Relipets.LOGGER.debug("Pet released");
 
-    }
-
-    public void removeSelectedPetFromParty(ServerWorld world, Vec3d pos, PlayerEntity player){
-
-        PetData selectedPet = this.getSelectedPet();
-
-        if(selectedPet == null){
-            Relipets.LOGGER.debug("There is no pet in this slot to remove from party");
-            return;
-        }
-
-        if(selectedPet.isRecalled()){
-            selectedPet.summon(world, pos, player);
-        }
-
-        this.getSlotManager().getSlotAt(selectedPetIndex).clear();
-
-        triggerOnPartyModifiedEvent();
     }
 
     public void reorderPets(int originIndex, int destinationIndex) {
@@ -451,28 +437,79 @@ public class PetParty implements ISerializable {
 
     }
 
+    public void loadAreaAroundPet(int slot, ServerPlayerEntity serverPlayer) {
+        PetData petData = this.getSlotManager().getSlotAt(slot).getContent();
+        if(petData != null){
+            petData.getPetEntityData().loadAreaAroundEntity(serverPlayer.getServer(), this);
+            this.spectatorModeData = new SpectatorModeData(
+                    serverPlayer.getBlockPos(),
+                    serverPlayer.interactionManager.getGameMode(),
+                    (ServerWorld) serverPlayer.getWorld(),
+                    true,
+                    slot
+            );
+            serverPlayer.changeGameMode(GameMode.SPECTATOR);
+            serverPlayer.teleport(
+                    petData.getPetEntityData().getTracker().getWorld(serverPlayer.getServer()),
+                    petData.getPetEntityData().getTracker().getPosition().getX(),
+                    petData.getPetEntityData().getTracker().getPosition().getY(),
+                    petData.getPetEntityData().getTracker().getPosition().getZ(),
+                    0,0
+                    );
+
+            if(!this.spectatorModeData.getOriginalWorld(serverPlayer.getServer()).getRegistryKey().getValue().toString().equals(
+                    petData.getPetEntityData().getTracker().getDimension().toString()
+            )){
+                //player and entity are in different dimensions. Must send a reopen spectator screen packet
+                PacketByteBuf buf = PacketByteBufs.create();
+                buf.writeInt(slot);
+                buf.writeNbt(petData.writeToNbt());
+                ServerPlayNetworking.send(serverPlayer, S2CPacketHandlers.REOPEN_SPECTATOR_SCREEN, buf);
+            }
+
+        }
+    }
+
+    public void unloadAreaAroundPet(int slot, ServerPlayerEntity serverPlayer) {
+
+        serverPlayer.teleport(
+                this.getSpectatorModeData().getOriginalWorld(serverPlayer.getServer()),
+                this.getSpectatorModeData().getOriginalPos().getX(),
+                this.getSpectatorModeData().getOriginalPos().getY(),
+                this.getSpectatorModeData().getOriginalPos().getZ(),
+                0, 0
+        );
+        serverPlayer.changeGameMode(this.spectatorModeData.getOriginalGameMode());
+        this.spectatorModeData.setSpectating(false);
+
+        PetData petData = this.getSlotManager().getSlotAt(slot).getContent();
+        if(petData != null){
+            petData.getPetEntityData().unloadAreaAroundEntity(serverPlayer.getServer());
+        }
+    }
+
+    public void recallFollowingPets(ServerWorld world, ServerPlayerEntity player) {
+
+        this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).stream()
+                .filter((p)-> p.getMoveMode() == PetMoveMode.FOLLOWING).forEach((p)-> p.recall(world, player));
+
+    }
+
     public interface PetPartyEventListener{
         void onPetPartyEvent();
     }
-
-
 
 }
 
 /*
 
-Idea: add "following modes" to pets. A pet can be following their owner or they can be wandering around.
-If they are following the owner, they will tp to the owner once they get too far away.
-If they are wandering around, they will not tp to the owner once you get far away from them.
+What is needed for the pet part management screen:
 
-For that, we would also need a way to locate wandering pets. To do so we can add an option in the
-pet management screen called "Locate Pet" and that would say in the chat where the pet is
+A way to interact with an entity when they are not summoned.
 
+    - Whenever an interaction with that entity is needed, we create the entity by reading its nbt data.
+    - We then perform the interaction needed.
+    - Then we finish the interaction by saving the entity to nbt again
 
-TODO: make the locator shoot a slow moving projectile that will go towards the direction of where the pet was last
-seen when you use the locator button
-
-TODO:Fix move mode button.
-
-TODO: make pet management screen look better
  */
+
