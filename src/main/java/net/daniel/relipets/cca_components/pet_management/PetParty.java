@@ -16,14 +16,10 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -56,11 +52,16 @@ public class PetParty implements ISerializable {
     @Getter
     private SpectatorModeData spectatorModeData;
 
+    @Getter
+    private ChunkLoadManager chunkLoadManager = new ChunkLoadManager();
+
     public PetParty(PlayerEntity player){
         this.player = player;
     }
 
     public void tick(ServerWorld world){
+
+        checkChunkLoadRequests();
 
         List<PetSlot<PetData>> slotsWithPets = this.getSlotManager().getSlotsWithContent();
         List<PetData> summonedPets = getSummonedPets(slotsWithPets);
@@ -72,6 +73,13 @@ public class PetParty implements ISerializable {
         applyHealingToSummonedPetsIfPossible(summonedPets);
 
         tickCooldowns();
+
+    }
+
+    private void checkChunkLoadRequests() {
+
+        if(!chunkLoadManager.requests.isEmpty())
+            this.chunkLoadManager.processActiveRequestsIfAny();
 
     }
 
@@ -106,7 +114,7 @@ public class PetParty implements ISerializable {
         for(PetSlot<PetData> slot : slotsWithPets){
             PetData petData = slot.getContent();
             if(petData != null){
-                petData.tick(world, player);
+                petData.tick(this, world, player);
             }
 
         }
@@ -185,6 +193,11 @@ public class PetParty implements ISerializable {
         return this.getSlotManager().getSlotAt(this.selectedPetIndex).getContent();
     }
 
+    public void setSelectedPetIndex(int index){
+        this.selectedPetIndex = index;
+        this.onPetPartyModifiedListener.onPetPartyEvent();
+    }
+
     public void cyclePetSlot(int direction){
         //-1 -> scroll down (should go to the right)
         //1 -> scroll up (should go to the left)
@@ -214,7 +227,7 @@ public class PetParty implements ISerializable {
         boolean operationExecuted = false;
 
         if(selectedPet.isSummoned()){
-            selectedPet.recall(world, player);
+            selectedPet.recall(this,world, player);
             operationExecuted = true;
         }else if (selectedPet.isRecalled()){
             selectedPet.summon(world, pos, player);
@@ -240,7 +253,7 @@ public class PetParty implements ISerializable {
         PetData petData = getPetByEntityUUID(petEntity.getUuidAsString());
         if(petData != null){
 
-            petData.onFaint(petEntity, world, player);
+            petData.onFaint(this, petEntity, world, player);
             Relipets.LOGGER.debug("Recalled pet that was about to die");
             Utils.message("Pet " + petData.getPetInfo().getPetName() + " fainted! They are healing now...", player);
         }else{
@@ -268,7 +281,7 @@ public class PetParty implements ISerializable {
             this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
             Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
             newPet.updateVolatilePetInfoIfPossible();
-            newPet.recall((ServerWorld) entity.getWorld(), player);
+            newPet.recall(this,(ServerWorld) entity.getWorld(), player);
         }else{
 
             //search for a slot
@@ -279,7 +292,7 @@ public class PetParty implements ISerializable {
                 emptySlot.setContent(newPet);
                 Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
                 newPet.updateVolatilePetInfoIfPossible();
-                newPet.recall((ServerWorld) entity.getWorld(), player);
+                newPet.recall(this, (ServerWorld) entity.getWorld(), player);
             }else{
                 Utils.message("There's no slot available for this pet. Either craft more slots or free up existing ones.", player);
             }
@@ -356,7 +369,7 @@ public class PetParty implements ISerializable {
     }
 
     public void recallAllPets(ServerWorld world, PlayerEntity player) {
-        this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).forEach((p)-> p.recall(world, player));
+        this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).forEach((p)-> p.recall(this, world, player));
     }
 
     public void summonGroup(UUID uuid, ServerWorld world, Vec3d pos, PlayerEntity player) {
@@ -387,7 +400,7 @@ public class PetParty implements ISerializable {
                     PetData petData = this.getSlotManager().getSlotAt(slot).getContent();
 
                     if(petData != null){
-                        petData.recall(world, player);
+                        petData.recall(this, world, player);
                     }
                 }
 
@@ -491,7 +504,7 @@ public class PetParty implements ISerializable {
     public void recallFollowingPets(ServerWorld world, ServerPlayerEntity player) {
 
         this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).stream()
-                .filter((p)-> p.getMoveMode() == PetMoveMode.FOLLOWING).forEach((p)-> p.recall(world, player));
+                .filter((p)-> p.getMoveMode() == PetMoveMode.FOLLOWING).forEach((p)-> p.recall(this, world, player));
 
     }
 

@@ -60,7 +60,7 @@ public class PetEntityData implements ISerializable {
 
     PetEntityTracker tracker = new PetEntityTracker();
 
-    public void loadEntityAndPerformAction(MinecraftServer server, Function<LivingEntity, Boolean> actionToPerform){
+    public void loadEntityAndPerformAction(PetParty party, MinecraftServer server, Function<LivingEntity, Boolean> actionToPerform){
 
         ServerWorld world = this.getTracker().getWorld(server);
 
@@ -69,41 +69,55 @@ public class PetEntityData implements ISerializable {
             return;
         }
 
-
         ChunkPos lastKnownChunkPos = this.getTracker().getChunkPos();
 
-        System.out.println("Loaded 3x3 area around entity last known pos");
-        //load 3x3 area around the last know chunk
-        for(int x = -1 ; x <= 1; x++){
-            for(int z = -1 ; z <= 1; z++){
-                int actualX = lastKnownChunkPos.x + x;
-                int actualZ = lastKnownChunkPos.z + z;
-
-                this.forceLoadedChunks.add(new Vec2f(actualX, actualZ));
-
-                world.setChunkForced(actualX, actualZ, true);
-            }
-        }
-
         //unload the 3x3 area around the last know chunk after x ticks
+        party.getChunkLoadManager().addRequest(
+                new ChunkLoadRequest(
+                        world,
+                        ChunkLoadRequest.chunkAreaAroundCenterPoint(lastKnownChunkPos.x, lastKnownChunkPos.z, 3),
+                        ()-> {
+                            LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(entityUUID));
+                            if(entity != null){
+                                System.out.println("Performing action");
+                                actionToPerform.apply(entity);
+                                return true;
+                            }
 
-        Utils.setTimeout(() -> {
+                            System.out.println("Could not find entity even after loading the area around it.");
 
-            LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(entityUUID));
-            if(entity != null){
-                System.out.println("Performing action");
-                actionToPerform.apply(entity);
-            }else{
-                System.out.println("Could not find entity even after loading the area aroudn it.");
-            }
+                            return false;
 
-            System.out.println("Unloading 3x3 area around entity last known pos");
-            for(Vec2f loadedChunk : this.forceLoadedChunks){
-                world.setChunkForced((int) loadedChunk.x, (int) loadedChunk.y, false);
-            }
-        }, Utils.secondToTick(3));
+                        }
+                )
+        );
 
     }
+
+    /*
+    How it currently works:
+
+    I know pet was last seen in chunk x, z. I tell the game to "eventually" load the chunk x,z and then
+    after 3 seconds i hope for that chunk to be loaded already and try to retrieve the entity from there.
+
+    How to improve it:
+
+    Dont rely on timing for it. We should tell the game to load the chunk and then poll the game to
+    check when the chunk is loaded. That polling could be done once every X ticks. The "chunk load" request
+    would be stored in the pet party, and the pet party would have something like a chunk load request queue.
+    Each chunk load request would have:
+
+        - a list of xz chunk coords
+        - an action to perform
+
+    The condition for consuming a chunk load request would be to have all the chunks in the chunk coord list
+    loaded. If that happens, perform the action present in chunk load request, unload all the chunks and
+    remove the chunk load request from the list.
+
+    Also, when the player logs out, we should un-forceload all the chunks that are still in the chunk request
+    queue.
+
+     */
 
     @Nullable
     public PetMetadataComponent getMetadata(World world){
@@ -225,7 +239,7 @@ public class PetEntityData implements ISerializable {
         this.entityId = this.entity.getId();
     }
 
-    public void bindEntity(ServerWorld world, PlayerEntity player, PetData petData){
+    public void bindEntity(PetParty party, ServerWorld world, PlayerEntity player, PetData petData){
         //SetTimeoutManager.setTimeout(()-> {
             //search in current world
             LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(this.getEntityUUID()));
@@ -251,7 +265,7 @@ public class PetEntityData implements ISerializable {
                     System.out.println("Bound entity successfully from tracker");
 
                 }else{
-                    this.loadEntityAndPerformAction(world.getServer(), (entityLoaded)-> {
+                    this.loadEntityAndPerformAction(party, world.getServer(), (entityLoaded)-> {
 
                         applyBinding(player, entityLoaded, petData);
                         Relipets.LOGGER.debug("Bound entity successfully after loading it");
@@ -277,7 +291,7 @@ public class PetEntityData implements ISerializable {
         }
     }
 
-    public boolean recallEntity(ServerWorld currentWorld, PlayerEntity player, Function<Boolean, Boolean> setRecalledState){
+    public boolean recallEntity(PetParty party, ServerWorld currentWorld, PlayerEntity player, Function<Boolean, Boolean> setRecalledState){
 
         saveEntityData();
 
@@ -317,7 +331,7 @@ public class PetEntityData implements ISerializable {
                         " " + tracker.getPosition().toShortString() +
                         ". Trying to recall them from there.", player);
 
-                loadEntityAndPerformAction(currentWorld.getServer(),(entityLoaded)->{
+                loadEntityAndPerformAction(party, currentWorld.getServer(),(entityLoaded)->{
                     Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);
                     cleanEntityBeforeSaving();
                     removeEntity(entityLoaded);
@@ -357,20 +371,6 @@ public class PetEntityData implements ISerializable {
         this.tracker = new PetEntityTracker();
         if(nbt.contains(ENTITY_TRACKER_KEY))
             this.tracker.readFromNbt(nbt.getCompound(ENTITY_TRACKER_KEY));
-
-        if(nbt.contains("forceLoadedChunks")){
-            NbtCompound chunksNbt = nbt.getCompound("forceLoadedChunks");
-            for(String key : chunksNbt.getKeys()){
-                String[] components = chunksNbt.getString(key).split("/");
-                this.forceLoadedChunks.add(
-                        new Vec2f(
-                                Float.parseFloat(components[0]),
-                                Float.parseFloat(components[1])
-                        )
-                );
-
-            }
-        }
     }
 
     @Override
@@ -382,15 +382,6 @@ public class PetEntityData implements ISerializable {
         nbt.putString(ENTITY_UUID_KEY, entityUUID);
         nbt.put(ENTITY_TRACKER_KEY, this.tracker.writeToNbt());
         nbt.putInt(ENTITY_ID_KEY, this.entityId);
-
-        NbtCompound forceLoadedChunksNbt = new NbtCompound();
-        int i = 0;
-        for(Vec2f chunkXZ : this.forceLoadedChunks){
-            forceLoadedChunksNbt.putString(i+"", ((int)chunkXZ.x)+"/" + ((int)chunkXZ.y));
-            i++;
-        }
-
-        nbt.put("forceLoadedChunks", forceLoadedChunksNbt);
 
         return nbt;
     }
@@ -610,8 +601,6 @@ public class PetEntityData implements ISerializable {
         });
     }
 
-    List<Vec2f> forceLoadedChunks = new ArrayList<>();
-
     public void loadAreaAroundEntity(MinecraftServer server, PetParty party) {
         ServerWorld world = this.getTracker().getWorld(server);
 
@@ -622,27 +611,25 @@ public class PetEntityData implements ISerializable {
 
         ChunkPos lastKnownChunkPos = this.getTracker().getChunkPos();
 
-        System.out.println("Loaded 3x3 area around entity last known pos");
-        //load 3x3 area around the last know chunk
-        for(int x = -1 ; x <= 1; x++){
-            for(int z = -1 ; z <= 1; z++){
-                this.forceLoadedChunks.add(new Vec2f(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z));
-                world.setChunkForced(lastKnownChunkPos.x + x, lastKnownChunkPos.z + z, true);
-            }
-        }
+        party.getChunkLoadManager().addRequest(
+                new ChunkLoadRequest(
+                        world,
+                        ChunkLoadRequest.chunkAreaAroundCenterPoint(lastKnownChunkPos.x, lastKnownChunkPos.z, 3),
+                        ()-> {
+                            LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(entityUUID));
 
-        Utils.setTimeout(()-> {
-            LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(entityUUID));
+                            if(entity != null){
+                                this.setEntity(entity);
+                                this.saveEntityData();
+                                party.pushChangesToClient();
+                                return true;
+                            }
 
-            if(entity != null){
-                this.setEntity(entity);
-                this.saveEntityData();
-            }
+                            return false;
 
-            party.pushChangesToClient();
-
-        }, Utils.secondToTick(3));
-
+                        }
+                )
+        );
 
     }
 
@@ -651,13 +638,6 @@ public class PetEntityData implements ISerializable {
 
         if(world == null){
             System.out.println("Could not find world this entity was last seen at. World: " + this.getTracker().getDimension().toString());
-            return;
-        }
-
-        for (Iterator<Vec2f> it = this.forceLoadedChunks.iterator(); it.hasNext(); ) {
-            Vec2f chunkXZ = it.next();
-            world.setChunkForced((int) chunkXZ.x, (int) chunkXZ.y, false);
-            it.remove();
         }
     }
 

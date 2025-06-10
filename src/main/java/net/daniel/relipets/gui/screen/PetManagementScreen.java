@@ -42,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
+    static final Identifier defaultPaneBg = new Identifier(Relipets.MOD_ID, "textures/gui/pane_bg.png");
     static final Identifier slotBg = new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png");
     static int slotSize = 22;
     BaseOwoScreen<FlowLayout> parent;
@@ -164,11 +165,11 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         rootComponent.padding(Insets.both(15, 15));
 
         ButtonComponent backBtn = Components.button(Text.of("< Back"), this::backToMainScreen);
-        backBtn.margins(Insets.bottom(10));
+
         rootComponent.child(backBtn);
 
         var bodyContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
-        bodyContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
+        bodyContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.TOP);
         bodyContainer.child(
                 Components.label(Text.of("Pet Management"))
                         .maxWidth(150).horizontalTextAlignment(HorizontalAlignment.CENTER).margins(Insets.bottom(20))
@@ -186,7 +187,9 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         this.body = Containers.grid(Sizing.content(), Sizing.content(), rows, columnCount);
         body.padding(Insets.both(25, 25));
-        body.surface(Surface.PANEL_INSET);
+        body.surface(((context, component) -> {
+            context.drawTexture(defaultPaneBg, component.x(), component.y(), 0, 0, component.width(), component.height(), component.width(), component.height());
+        }));
         body.id("grid");
 
         buildSlots();
@@ -194,6 +197,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.movementModeButton = Components.button(Text.of("Movement: "), (b)-> this.cycleMovementMode());
         this.movementModeButton.sizing(Sizing.fill(100), Sizing.content());
         this.petName = Components.textBox(Sizing.fill(69));
+        int btnSpacing = 4;
         //container for the grid (for scrolling)
         bodyContainer.child(
                 Containers.horizontalFlow(Sizing.content(), Sizing.content()).child(
@@ -208,11 +212,11 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                                         ).child(
                                                 Components.button(Text.of("Rename"), (b)-> renamePet()).sizing(Sizing.fill(30), Sizing.content())
                                         ).sizing(Sizing.fill(100), Sizing.content())
-                                ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                         Components.button(Text.of("Level Points"), (b)-> openLevelPointsScreen()).sizing(Sizing.fill(100), Sizing.content())
-                                ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(//TODO: make this exclusive for Cores
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                         Components.button(Text.of("Manage Parts"), (b)-> openPartManagementScreen())
@@ -224,27 +228,27 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                                                 .color(Color.ofArgb(0x00000000)).fill(true)
                                                 .positioning(Positioning.absolute(0, 0)).tooltip(Text.of("Only available for Modular Pets"))
                                 )
-                                .margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
-                        ).child(
-                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
-                                        Components.button(Text.of("Locate Pet"), (b)-> locateSelectedPet()).sizing(Sizing.fill(100), Sizing.content())
-                                ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
-                        ).child(
-                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
-                                        Components.button(Text.of("Release Pet"), (b)-> openPetReleaseModal()).sizing(Sizing.fill(100), Sizing.content())
-                                ).margins(Insets.bottom(4)).sizing(Sizing.fill(100), Sizing.content())
+                                .margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                         movementModeButton
-                                ).margins(Insets.bottom(15))
+                                ).margins(Insets.bottom(btnSpacing))
+                        ).child(
+                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                                        Components.button(Text.of("Locate Pet"), (b)-> locateSelectedPet()).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
+                        ).child(
+                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                                        Components.button(Text.of("Release Pet"), (b)-> openPetReleaseModal()).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                         Components.button(Text.literal("Recover Pet [!]").setStyle(
                                                 Style.EMPTY.withColor(0xFF5E60)
                                         ), (b)-> openRecoverPetDialog()).sizing(Sizing.fill(100), Sizing.content())
-                                ).margins(Insets.bottom(5)).sizing(Sizing.fill(100), Sizing.content())
+                                ).margins(Insets.of(15, btnSpacing, 0, 0)).sizing(Sizing.fill(100), Sizing.content())
                         ).margins(Insets.left(15)).sizing(Sizing.fixed(150), Sizing.content())
-                )
+                ).alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER)
         );
 
         rootComponent.child(bodyContainer);
@@ -474,6 +478,8 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         updateSelectedPetBasedOnSlot();
         updateActionPanel();
 
+        sendPetSelectionToServer();
+
         if(this.rootComponent != null){
             if(body != null){
 
@@ -495,6 +501,12 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         return true;
+    }
+
+    private void sendPetSelectionToServer() {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeInt(this.selectedSlot);
+        ClientPlayNetworking.send(C2SPacketHandlers.SELECT_PET, buf);
     }
 
     private void backToMainScreen(ButtonComponent btn){

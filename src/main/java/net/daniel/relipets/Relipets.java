@@ -107,6 +107,7 @@ public class Relipets implements ModInitializer {
 			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
 			if(petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
 				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
+				petOwnerComponent.getPetParty().getChunkLoadManager().cleanupUnfulfilledRequests();
 			}
 		});
 

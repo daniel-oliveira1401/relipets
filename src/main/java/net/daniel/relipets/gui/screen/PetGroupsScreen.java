@@ -404,7 +404,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
             var container = Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                     Components.label(Text.of("Select the slot to Remove from the group "+ group.getName())).maxWidth(150).margins(Insets.bottom(5))
             ).child(
-                    grid
+                    Containers.verticalScroll(Sizing.content(), Sizing.fixed(200), grid)
             );
 
             container.horizontalAlignment(HorizontalAlignment.CENTER);
@@ -438,7 +438,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
             var container = Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                     Components.label(Text.of("Select the slot to Add to the group "+ group.getName())).maxWidth(150).margins(Insets.bottom(5))
             ).child(
-                    grid
+                    Containers.verticalScroll(Sizing.content(), Sizing.fixed(200), grid)
             );
 
             container.horizontalAlignment(HorizontalAlignment.CENTER);
@@ -533,7 +533,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
             FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
             slotContainer.margins(Insets.both(5, 5));
 
-            if(group.getSlots().contains(Integer.valueOf(i))){
+            if(group.getSlots().contains(i)){
                 slotSurface = Surface.flat(disabledSlotColor);
             }else{
                 int finalI = i;

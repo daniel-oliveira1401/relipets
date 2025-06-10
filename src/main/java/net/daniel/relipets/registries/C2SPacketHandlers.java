@@ -39,6 +39,7 @@ public class C2SPacketHandlers {
     public static final Identifier RECALL_GROUP = new Identifier(Relipets.MOD_ID, "recall_group");
 
     public static final Identifier REORDER_PETS = new Identifier(Relipets.MOD_ID, "reorder_pets");
+    public static final Identifier SELECT_PET = new Identifier(Relipets.MOD_ID, "select_pet");
     public static final Identifier BOOST_PET_FLIGHT = new Identifier(Relipets.MOD_ID, "boost_pet_flight");
     public static final Identifier RECALL_ALL_PETS = new Identifier(Relipets.MOD_ID, "recall_all_pets");
     public static final Identifier RENAME_PET = new Identifier(Relipets.MOD_ID, "rename_pet");
@@ -97,6 +98,20 @@ public class C2SPacketHandlers {
                 if(pet != null){
                     petOwnerSystem.getPetParty().loadAreaAroundPet(slot, player);
                 }
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(SELECT_PET, (server, player, handler, buf, responseSender) -> {
+
+            int slot = buf.readInt();
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+
+                petOwnerSystem.getPetParty().setSelectedPetIndex(slot);
+
             });
 
         });

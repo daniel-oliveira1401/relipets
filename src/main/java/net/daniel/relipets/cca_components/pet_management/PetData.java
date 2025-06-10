@@ -103,25 +103,25 @@ public class PetData implements ISerializable {
 
     }
 
-    public void tick(ServerWorld world, PlayerEntity player){
+    public void tick(PetParty party, ServerWorld world, PlayerEntity player){
 
-        handleEntityBindingIfNeeded(world, player);
+        handleEntityBindingIfNeeded(party, world, player);
 
         updateTrackerIfNeeded(world);
 
         tickHealingIfNeeded();
 
-        tickSimulatedBehaviorIfPossible(player);
+        tickSimulatedBehaviorIfPossible(party,player);
 
     }
 
-    private void tickSimulatedBehaviorIfPossible(PlayerEntity player) {
+    private void tickSimulatedBehaviorIfPossible(PetParty party, PlayerEntity player) {
         if(this.isSummoned()){
 
             setPetTargetForRevengeIfApplicable(player);
             //follow owner
             if(moveMode == PetMoveMode.FOLLOWING){
-                followOwner(player);
+                followOwner(party, player);
             }
             //followOwner might recall the entity
             if(!this.isSummoned()) return;
@@ -134,7 +134,7 @@ public class PetData implements ISerializable {
     }
     int followDistance = 10;
     int teleportDistance = 30;
-    public void followOwner(PlayerEntity player){
+    public void followOwner(PetParty party, PlayerEntity player){
         LivingEntity entity = this.getPetEntityData().getEntity();
         if(!(entity instanceof BaseCore) && entity instanceof PathAwareEntity pathAwareEntity){
             boolean sameDimension = entity.getWorld().getDimensionKey().getValue().compareTo(player.getWorld().getDimensionKey().getValue()) == 0;
@@ -151,7 +151,7 @@ public class PetData implements ISerializable {
                             safePosToTeleport.getZ() + 0.5
                     );
                 }else{
-                    this.recall((ServerWorld) player.getWorld(), player);
+                    this.recall(party, (ServerWorld) player.getWorld(), player);
                 }
             }else if(distance > (this.followDistance * this.followDistance)){
                 BlockPos pos = Utils.findRandomSafePositionAroundPlayer((ServerWorld) player.getWorld(), player.getBlockPos(), 8, player.getWorld().getRandom());
@@ -357,9 +357,9 @@ public class PetData implements ISerializable {
         this.getPetEntityData().setOwner(player);
     }
 
-    public void recall(ServerWorld world, PlayerEntity player){
+    public void recall(PetParty party, ServerWorld world, PlayerEntity player){
         if(this.isSummoned()){
-            boolean recalled = this.getPetEntityData().recallEntity(world, player, (e)-> {
+            boolean recalled = this.getPetEntityData().recallEntity(party, world, player, (e)-> {
                 this.summonState = RECALLED;
 
                 return true;
@@ -394,12 +394,12 @@ public class PetData implements ISerializable {
         this.getPetEntityData().setOwner(player);
     }
 
-    public void onFaint(LivingEntity entity, ServerWorld world, PlayerEntity player){
+    public void onFaint(PetParty party, LivingEntity entity, ServerWorld world, PlayerEntity player){
         entity.setHealth(entity.getMaxHealth());
         entity.clearStatusEffects();
         entity.setOnFire(false);
         entity.setVelocity(0, 0, 0 );
-        this.recall(world, player);
+        this.recall(party, world, player);
         this.summonState = HEALING;
         this.healingCooldown = (this.getPetInfo().getMaxHealth() / this.getNaturalHealing()) * Utils.secondToTick(1);
     }
@@ -488,11 +488,11 @@ public class PetData implements ISerializable {
     }
 
     boolean pendingEntityBind = false;
-    private void handleEntityBindingIfNeeded(ServerWorld world, PlayerEntity player){
+    private void handleEntityBindingIfNeeded(PetParty party, ServerWorld world, PlayerEntity player){
         if(pendingEntityBind){
             Relipets.LOGGER.debug("Entity needs binding. Trying to bind it");
             System.out.println("Entity needs binding, trying to bind it...");
-            this.getPetEntityData().bindEntity(world, player, this);
+            this.getPetEntityData().bindEntity(party,world, player, this);
             pendingEntityBind = false;
         }
     }
