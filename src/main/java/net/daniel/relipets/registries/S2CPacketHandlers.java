@@ -48,11 +48,13 @@ public class S2CPacketHandlers {
 
             int slot = buf.readInt();
             NbtCompound petDataNbt = buf.readNbt();
-            PetData petData = new PetData();
-            petData.readFromNbt(petDataNbt);
-            client.execute(()-> {
-                client.setScreen(new PetSpectatorScreen(slot, petData));
-            });
+            if(petDataNbt != null){
+                PetData petData = new PetData();
+                petData.readFromNbt(petDataNbt);
+                client.execute(()-> {
+                    client.setScreen(new PetSpectatorScreen(slot, petData));
+                });
+            }
 
         });
 
