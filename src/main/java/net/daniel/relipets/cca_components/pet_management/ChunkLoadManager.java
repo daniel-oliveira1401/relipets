@@ -1,6 +1,7 @@
 package net.daniel.relipets.cca_components.pet_management;
 
 import lombok.Getter;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec2f;
 
@@ -13,8 +14,12 @@ public class ChunkLoadManager {
     public List<ChunkLoadRequest> requests = new ArrayList<>();
 
     public void addRequest(ChunkLoadRequest request){
-        System.out.println("Added chunk load request");
+        Utils.log("Added chunk load request");
         this.requests.add(request);
+        this.forceChunkLoad(request);
+    }
+
+    private void forceChunkLoad(ChunkLoadRequest request){
         for(Vec2f chunkCoord : request.getChunkCoords()){
             request.getWorld().setChunkForced((int)chunkCoord.x, (int)chunkCoord.y, true);
         }
@@ -25,6 +30,11 @@ public class ChunkLoadManager {
         for(Iterator<ChunkLoadRequest> iterator = this.requests.iterator() ; iterator.hasNext();){
 
             ChunkLoadRequest request = iterator.next();
+
+            //this is here to cover the edge case of having two requests that target the same chunk and
+            //the fulfillment of the first request causes that chunk to unload and so the second request
+            //may never complete because one of the chunks that it relies on is not forceloaded anymore
+            this.forceChunkLoad(request);
 
             boolean chunksLoaded = true;
 
@@ -40,23 +50,17 @@ public class ChunkLoadManager {
                 boolean succeeded = request.getAction().getAsBoolean();
                 if(succeeded){
                     iterator.remove();
-                    System.out.println("Chunk load request fulfilled");
+                    Utils.log("Chunk load request fulfilled");
                     this.unloadChunks(request.getChunkCoords(), request.getWorld());
 
                 }else{
-                    System.out.println("Chunks were loaded but request could not be fulfilled...");
+                    Utils.log("Chunks were loaded but request could not be fulfilled...");
                 }
 
 
 
             }
         }
-
-    }
-
-    public void consumeRequest(ChunkLoadRequest request){
-
-
 
     }
 

@@ -27,9 +27,7 @@ public class CoreStrollAroundPartyOwner extends SpecialBehavior {
     @Override
     protected List<Pair<MemoryModuleType<?>, MemoryModuleState>> getMemoryRequirements() {
         return List.of(
-                Pair.of(RelipetsMemoryTypes.PARTY_OWNER, MemoryModuleState.VALUE_PRESENT),
-                Pair.of(RelipetsMemoryTypes.PARTY_OWNER_NEARBY, MemoryModuleState.VALUE_PRESENT)
-                //, Pair.of(MemoryModuleType.WALK_TARGET, MemoryModuleState.VALUE_ABSENT)
+                Pair.of(MemoryModuleType.WALK_TARGET, MemoryModuleState.VALUE_ABSENT)
         );
     }
 
@@ -38,13 +36,10 @@ public class CoreStrollAroundPartyOwner extends SpecialBehavior {
         super.start(entity);
         int tries = 5;
         BlockPos targetPos = null;
-        PlayerEntity owner = BrainUtils.getMemory(entity.getBrain(), RelipetsMemoryTypes.PARTY_OWNER);
-
-        if(owner == null) return;
 
         while(tries > 0){
 
-            targetPos = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), owner.getBlockPos(), 10, entity.getWorld().getRandom());
+            targetPos = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), entity.getBlockPos(), 10, entity.getWorld().getRandom());
 
             if(targetPos != null) break;
 

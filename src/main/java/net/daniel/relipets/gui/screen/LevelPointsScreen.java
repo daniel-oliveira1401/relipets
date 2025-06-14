@@ -25,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
-    private final PetData pet;
+    private PetData pet;
     private final int slot;
     String statCurrentValueSuffix = "_current_value";
 
@@ -68,6 +68,10 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
         bodyContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
 
         if(this.client == null || this.client.player == null) return;
+
+        PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
+        PetData petData = petOwnerComponent.getPetParty().getSlotManager().getSlotAt(slot).getContent();
+        this.pet = petData;
 
         if(this.pet != null && this.pet.isSummonedNoEntityValidation()){
 

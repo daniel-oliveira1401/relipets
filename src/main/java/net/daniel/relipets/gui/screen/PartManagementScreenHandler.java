@@ -1,8 +1,10 @@
 package net.daniel.relipets.gui.screen;
 
+import net.daniel.relipets.cca_components.PartSystem;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.cca_components.pet_management.PetInventoryManager;
+import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.items.PartItem;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
@@ -25,22 +27,23 @@ public class PartManagementScreenHandler extends ScreenHandler {
         if(selectedPetData == null){
             this.inventoryManager = new PetInventoryManager();
         }else{
-
-            if(selectedPetData.getPetEntityData().getEntity() instanceof BaseCore core){
-                this.inventoryManager = core.getPartSystem().getPetInventoryManager();
+            if(!player.getWorld().isClient()){
+                if(selectedPetData.getPetEntityData().getEntityForInteraction(selectedPetData, player.getServer()) instanceof BaseCore core){
+                    this.inventoryManager = core.getPartSystem().getPetInventoryManager();
+                }else{
+                    this.inventoryManager = new PetInventoryManager();
+                }
             }else{
                 this.inventoryManager = new PetInventoryManager();
             }
 
         }
 
-        String[] parts = {"head", "torso", "wing", "arm", "tail", "leg"};
-
         for (int i = 0; i < this.inventoryManager.size(); i++) {
             this.addSlot(new Slot(this.inventoryManager, i, 0, 0){
                 @Override
                 public boolean canInsert(ItemStack stack) {
-                    return stack.getItem() instanceof PartItem && stack.getItem().toString().contains(parts[this.getIndex()]);
+                    return stack.getItem() instanceof PartItem && stack.getItem().toString().contains(PartSystem.availableParts[this.getIndex()]);
                 }
             }); // Positions are handled by owo-ui
         }
@@ -65,7 +68,7 @@ public class PartManagementScreenHandler extends ScreenHandler {
             PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
             PetData petData = petOwnerComponent.getPetParty().getSlotManager().getSlotAt(selectedPetSlot).getContent();
             if(petData != null){
-                petData.syncItemsWithPartSystem();
+                petData.syncItemsWithPartSystem(player.getServer());
                 petOwnerComponent.getPetParty().pushChangesToClient();
             }
         }
@@ -77,7 +80,7 @@ public class PartManagementScreenHandler extends ScreenHandler {
                     PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
                     PetData petData = petOwnerComponent.getPetParty().getSlotManager().getSlotAt(selectedPetSlot).getContent();
                     if(petData != null){
-                        petData.applySlotContentChange(slotId);
+                        petData.applySlotContentChange(slotId, player.getServer());
                         petOwnerComponent.getPetParty().pushChangesToClient();
                     }
                 }

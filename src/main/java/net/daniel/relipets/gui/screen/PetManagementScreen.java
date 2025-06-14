@@ -146,15 +146,16 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         PetPartyUpdateNotifier.getInstance().unsubscribe(this.sub);
     }
 
-
+    boolean screenBuilt = false;
     boolean pendingUpdate = false;
     @Override
     protected void build(FlowLayout rootComponent) {
         if(this.client == null || this.client.player == null) return;
 
         this.sub = (p)-> {
-            this.pendingUpdate = true;
             this.party = p;
+
+            this.pendingUpdate = true;
         };
 
         PetPartyUpdateNotifier.getInstance().subscribe(sub);
@@ -168,6 +169,14 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         rootComponent.child(backBtn);
 
+        ClientPlayNetworking.send(C2SPacketHandlers.GET_PARTY, PacketByteBufs.empty());
+
+
+
+    }
+
+    private void buildScreen(){
+
         var bodyContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
         bodyContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.TOP);
         bodyContainer.child(
@@ -178,10 +187,6 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 Components.label(Text.of("Select a pet from the grid below and use the options on the right ->"))
                         .maxWidth(150).horizontalTextAlignment(HorizontalAlignment.CENTER).margins(Insets.bottom(20))
         );
-        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
-        PetParty party = petOwner.getPetParty();
-        this.party = party;
-        //6 slots per row
 
         this.rows = (int) Math.ceil((double) party.getSlotManager().getSlotCount() / columnCount);
 
@@ -201,7 +206,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         //container for the grid (for scrolling)
         bodyContainer.child(
                 Containers.horizontalFlow(Sizing.content(), Sizing.content()).child(
-                    Containers.verticalScroll(Sizing.content(), Sizing.fixed(200), body)
+                        Containers.verticalScroll(Sizing.content(), Sizing.fixed(200), body)
                 ).child(
                         Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
@@ -219,16 +224,16 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                                 ).margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(//TODO: make this exclusive for Cores
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
-                                        Components.button(Text.of("Manage Parts"), (b)-> openPartManagementScreen())
-                                                .sizing(Sizing.fill(100), Sizing.content()).id("partsBtn")
-                                )
+                                                Components.button(Text.of("Manage Parts"), (b)-> openPartManagementScreen())
+                                                        .sizing(Sizing.fill(100), Sizing.content()).id("partsBtn")
+                                        )
                                         //cool effect, but not needed
-                                .child(
-                                        Components.box(Sizing.fixed(150), Sizing.fixed(20))
-                                                .color(Color.ofArgb(0x00000000)).fill(true)
-                                                .positioning(Positioning.absolute(0, 0)).tooltip(Text.of("Only available for Modular Pets"))
-                                )
-                                .margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
+                                        .child(
+                                                Components.box(Sizing.fixed(150), Sizing.fixed(20))
+                                                        .color(Color.ofArgb(0x00000000)).fill(true)
+                                                        .positioning(Positioning.absolute(0, 0)).tooltip(Text.of("Only available for Modular Pets"))
+                                        )
+                                        .margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                         movementModeButton
@@ -254,7 +259,6 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         rootComponent.child(bodyContainer);
 
         onSlotClicked(this.party.getSelectedPetIndex());
-
     }
 
     private void openPartManagementScreen() {
@@ -448,6 +452,12 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
+
+        if(this.party != null && !this.screenBuilt){
+            this.buildScreen();
+            this.screenBuilt = true;
+        }
+
         if(pendingUpdate){
             pendingUpdate = false;
             updateSelectedPetBasedOnSlot();

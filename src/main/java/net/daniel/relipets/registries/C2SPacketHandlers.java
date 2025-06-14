@@ -50,6 +50,7 @@ public class C2SPacketHandlers {
     public static final Identifier OPEN_PART_MANAGEMENT_SCREEN = new Identifier(Relipets.MOD_ID, "open_part_management_screen");
     public static final Identifier LOAD_AREA_AROUND_PET = new Identifier(Relipets.MOD_ID, "load_area_around_pet");
     public static final Identifier UNLOAD_AREA_AROUND_PET = new Identifier(Relipets.MOD_ID, "unload_area_around_pet");
+    public static final Identifier GET_PARTY = new Identifier(Relipets.MOD_ID, "get_party");
 
     public static void onInitialize(){
 
@@ -60,14 +61,8 @@ public class C2SPacketHandlers {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
 
-                //idea: when the player opens the screen, create an entity in the pet data (if the pet is not summoned).
-                //That 'pseudo entity' will be used throughout the manipulation of the part screen
-
                 PetData petData = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(selectedSlot).getContent();
                 if(petData != null){
-                    LivingEntity entity = petData.getPetEntityData().getEntityForInteraction(petData, server);
-                    petData.getPetEntityData().setEntity(entity);
-
                     player.openHandledScreen(new NamedScreenHandlerFactory() {
                         @Override
                         public Text getDisplayName() {
@@ -98,6 +93,16 @@ public class C2SPacketHandlers {
                 if(pet != null){
                     petOwnerSystem.getPetParty().loadAreaAroundPet(slot, player);
                 }
+            });
+
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(GET_PARTY, (server, player, handler, buf, responseSender) -> {
+
+            server.execute(()-> {
+
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                petOwnerSystem.getPetParty().pushChangesToClient();
             });
 
         });
@@ -140,7 +145,7 @@ public class C2SPacketHandlers {
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
                 PetData pet = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(slot).getContent();
                 if(pet != null){
-                    petOwnerSystem.getPetParty().releasePetFromParty(pet);
+                    petOwnerSystem.getPetParty().releasePetFromParty(pet, server);
                 }
             });
 
@@ -203,7 +208,7 @@ public class C2SPacketHandlers {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
 
-                petOwnerSystem.getPetParty().renamePet(slot, name);
+                petOwnerSystem.getPetParty().renamePet(slot, name, server);
 
 
             });
@@ -246,7 +251,7 @@ public class C2SPacketHandlers {
                 PetData petData = petOwnerComponent.getPetParty().getSelectedPet();
 
                 if(petData != null){
-                    petData.changeStatPoint(operation, stat, player.getWorld());
+                    petData.changeStatPoint(petOwnerComponent.getPetParty(), operation, stat, (ServerWorld) player.getWorld());
                     petOwnerComponent.onPartyModified();
                 }
 
@@ -423,7 +428,7 @@ public class C2SPacketHandlers {
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
-                petOwnerSystem.getPetParty().cyclePetSlot(direction);
+                petOwnerSystem.getPetParty().cyclePetSlot(direction, server);
 
 
             });

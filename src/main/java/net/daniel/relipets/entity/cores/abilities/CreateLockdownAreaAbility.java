@@ -32,8 +32,6 @@ public class CreateLockdownAreaAbility implements CoreAbility {
 
             core.getWorld().spawnEntity(cloud);
 
-            System.out.println("used lockdown ability");
-
         }
 
     }

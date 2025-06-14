@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PartSystem;
+import net.daniel.relipets.utils.Utils;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
@@ -103,7 +104,7 @@ public class PetInventoryManager extends SimpleInventory {
                     this.setStack(slot.getSlotIndex(), item);
                     this.inventorySlots.add(slot);
                 }catch (Exception e){
-                    System.out.println("Could not read inventory");
+                    Utils.log("Could not read inventory");
                 }
             }
         }

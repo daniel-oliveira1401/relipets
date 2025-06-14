@@ -10,10 +10,14 @@ import net.daniel.relipets.entity.brain.sensor.RelipetsSensorTypes;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.entity.cores.YellowCore;
 import net.daniel.relipets.events.PetFaintedCallback;
+import net.daniel.relipets.items.Petificator;
 import net.daniel.relipets.registries.*;
 import net.daniel.relipets.utils.SetTimeoutManager;
+import net.daniel.relipets.utils.Utils;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
@@ -21,10 +25,13 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -96,7 +103,7 @@ public class Relipets implements ModInitializer {
 
 		//TODO: change this to only recall pets in the "following" mode
 		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, oldWorld, newWorld) -> {
-			System.out.println("Player went from "+ oldWorld.getDimensionKey().getValue().toString() + " to " + newWorld.getDimensionKey().getValue().toString());
+			Utils.log("Player went from "+ oldWorld.getDimensionKey().getValue().toString() + " to " + newWorld.getDimensionKey().getValue().toString());
 			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
 			petOwnerComponent.getPetParty().recallFollowingPets(oldWorld, player);
 		});
@@ -119,6 +126,7 @@ public class Relipets implements ModInitializer {
 				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
 			}
 		});
+
 
 
 

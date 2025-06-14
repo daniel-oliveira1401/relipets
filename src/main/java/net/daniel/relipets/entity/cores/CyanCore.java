@@ -64,7 +64,7 @@ public class CyanCore extends BaseCore {
 
     @Override
     public void performBasicAttack(LivingEntity attackTarget) {
-        Vec3d direction = attackTarget.getPos().subtract(this.getPos()).normalize();
+        Vec3d direction = attackTarget.getEyePos().subtract(this.getPos()).normalize();
 
         CyanCoreProjectile proj = new CyanCoreProjectile(RelipetsEntityRegistry.CYAN_CORE_PROJECTILE, this.getWorld());
         proj.setAttacker(this);

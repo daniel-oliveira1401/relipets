@@ -3,7 +3,6 @@ package net.daniel.relipets.cca_components.pet_management;
 import com.google.common.collect.*;
 import lombok.Getter;
 import lombok.Setter;
-import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
@@ -16,6 +15,7 @@ import net.daniel.relipets.utils.Utils;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -27,14 +27,13 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.stat.Stat;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.tslat.smartbrainlib.util.BrainUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -51,8 +50,6 @@ public class PetEntityData implements ISerializable {
 
     NbtCompound entityNbt;
 
-    LivingEntity entity;
-
     String entityType;
     String entityUUID;
 
@@ -60,6 +57,18 @@ public class PetEntityData implements ISerializable {
 
     PetEntityTracker tracker = new PetEntityTracker();
 
+    @Nullable
+    public LivingEntity getEntity(MinecraftServer server){
+        
+        ServerWorld world = tracker.getWorld(server);
+        
+        if(world != null){
+            return (LivingEntity) world.getEntity(UUID.fromString(this.entityUUID));
+        }
+        
+        return null;
+    }
+    
     public void loadEntityAndPerformAction(PetParty party, MinecraftServer server, Function<LivingEntity, Boolean> actionToPerform){
 
         ServerWorld world = this.getTracker().getWorld(server);
@@ -94,30 +103,18 @@ public class PetEntityData implements ISerializable {
 
     }
 
-    /*
-    How it currently works:
-
-    I know pet was last seen in chunk x, z. I tell the game to "eventually" load the chunk x,z and then
-    after 3 seconds i hope for that chunk to be loaded already and try to retrieve the entity from there.
-
-    How to improve it:
-
-    Dont rely on timing for it. We should tell the game to load the chunk and then poll the game to
-    check when the chunk is loaded. That polling could be done once every X ticks. The "chunk load" request
-    would be stored in the pet party, and the pet party would have something like a chunk load request queue.
-    Each chunk load request would have:
-
-        - a list of xz chunk coords
-        - an action to perform
-
-    The condition for consuming a chunk load request would be to have all the chunks in the chunk coord list
-    loaded. If that happens, perform the action present in chunk load request, unload all the chunks and
-    remove the chunk load request from the list.
-
-    Also, when the player logs out, we should un-forceload all the chunks that are still in the chunk request
-    queue.
-
-     */
+    
+//    @Nullable
+//    public PetMetadataComponent getMetadata(World world){
+//
+//        Optional<PetMetadataComponent> petMetadataComponent = CardinalComponentsRegistry.PET_METADATA_KEY.maybeGet(world.getEntityById(this.entityId));
+//
+//        if(petMetadataComponent.isPresent()){
+//            return petMetadataComponent.get();
+//        }
+//
+//        return null;
+//    }
 
     @Nullable
     public PetMetadataComponent getMetadata(World world){
@@ -140,36 +137,31 @@ public class PetEntityData implements ISerializable {
         return validEntityType && validNbt && validUUID;
     }
 
-    public void setEntity(LivingEntity entity){
-        this.entity = entity;
-        saveEntityData();
+    public void saveEntityData(MinecraftServer server){
+        LivingEntity entity = this.getEntity(server);
+        if(entity != null){
+            cleanEntityBeforeSaving(entity);
+
+            this.entityType = EntityType.getId(entity.getType()).toString();
+            this.entityNbt = entity.writeNbt(new NbtCompound());
+            this.entityUUID = entity.getUuidAsString();
+            this.entityId = entity.getId();
+
+        }
     }
 
-    public void clearEntity(){
-        this.entity = null;
-    }
-
-    public void saveEntityData(){
-        cleanEntityBeforeSaving();
-
-        this.entityType = EntityType.getId(entity.getType()).toString();
-        this.entityNbt = entity.writeNbt(new NbtCompound());
-        this.entityUUID = entity.getUuidAsString();
-        this.entityId = entity.getId();
-    }
-
-    private void cleanEntityBeforeSaving() {
-        if(this.entity != null){
+    private void cleanEntityBeforeSaving(LivingEntity entity) {
+        if(entity != null){
             //clean glowing
-            if(this.entity.isGlowing()){
-                this.entity.setGlowing(false);
+            if(entity.isGlowing()){
+                entity.setGlowing(false);
             }
 
             //clean velocity
-            this.entity.setVelocity(0, 0, 0);
+            entity.setVelocity(0, 0, 0);
 
             //clean fire
-            this.entity.setOnFire(false);
+            entity.setOnFire(false);
 
 
         }
@@ -198,7 +190,6 @@ public class PetEntityData implements ISerializable {
         UUID uuid = UUID.randomUUID();
         createdEntity.setUuid(uuid);
         this.entityUUID = uuid.toString();
-        this.setEntity(createdEntity);
 
         return createdEntity;
     }
@@ -206,7 +197,7 @@ public class PetEntityData implements ISerializable {
     @Nullable
     public LivingEntity getEntityForInteraction(PetData petData, MinecraftServer server){
         if(petData.isSummoned()){
-            return this.getEntity();
+            return this.getEntity(server);
         }else { //handles healing and recalled states
 
             return this.createAndInitializeEntity(petData, this.getTracker().position.toCenterPos(), this.getTracker().getWorld(server));
@@ -227,124 +218,49 @@ public class PetEntityData implements ISerializable {
             }, Utils.secondToTick(1));
 
 
-            this.setOwner(player);
+            this.setOwner(player, createdEntity);
         });
 
     }
 
-    private void applyBinding(PlayerEntity player, LivingEntity entity, PetData petData){
-        this.entity = entity;
-        this.setOwner(player);
-        this.applyStatModifiers(this.entity, petData);
-        this.entityId = this.entity.getId();
+    public void setOwner(PlayerEntity player, LivingEntity entity){
+        
+        PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(entity);
+        petMetadata.setPlayerUUID(player.getUuidAsString());
+        CardinalComponentsRegistry.PET_METADATA_KEY.sync(entity);
+        
     }
 
-    public void bindEntity(PetParty party, ServerWorld world, PlayerEntity player, PetData petData){
-        //SetTimeoutManager.setTimeout(()-> {
-            //search in current world
-            LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(this.getEntityUUID()));
-
-            if(entity != null){
-
-                applyBinding(player, entity, petData);
-
-                Relipets.LOGGER.debug("Bound entity successfully");
-                System.out.println("Bound entity successfully from player world");
-            }else{
-                //search in the world of the tracker
-                ServerWorld trackerWorld = this.getTracker().getWorld(world.getServer());
-
-                if(trackerWorld != null){
-                    entity = (LivingEntity) trackerWorld.getEntity(UUID.fromString(this.getEntityUUID()));
-                }
-
-
-                if(entity != null){
-
-                    applyBinding(player, entity, petData);
-                    System.out.println("Bound entity successfully from tracker");
-
-                }else{
-                    this.loadEntityAndPerformAction(party, world.getServer(), (entityLoaded)-> {
-
-                        applyBinding(player, entityLoaded, petData);
-                        Relipets.LOGGER.debug("Bound entity successfully after loading it");
-                        System.out.println("Bound entity successfully after loading chunks");
-
-                        return true;
-                    });
-
-                }
-
-            }
-        //}, Utils.secondToTick(2));
-
+    public void recallSync(MinecraftServer server, PetData petData, LivingEntity entityLoaded, PlayerEntity player){
+        Utils.message("Recalled " + petData.getPetInfo().getPetName() + ".", player);
+        saveEntityData(server);
+        cleanEntityBeforeSaving(entityLoaded);
+        removeEntity(entityLoaded);
+        Utils.log("Loaded entity and removed it");
     }
 
-    public void setOwner(PlayerEntity player){
-        if(this.entity != null){
-            PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(this.entity);
-            petMetadata.setPlayerUUID(player.getUuidAsString());
-            CardinalComponentsRegistry.PET_METADATA_KEY.sync(this.entity);
-        }else{
-            Relipets.LOGGER.debug("There must be an entity in order to set the owner");
-        }
-    }
-
-    public boolean recallEntity(PetParty party, ServerWorld currentWorld, PlayerEntity player, Function<Boolean, Boolean> setRecalledState){
-
-        saveEntityData();
+    public boolean recallEntity(PetParty party, PetData petData, ServerWorld currentWorld, PlayerEntity player, Function<Boolean, Boolean> setRecalledState){
 
         ServerWorld trackerWorld = this.getTracker().getWorld(currentWorld.getServer());
 
         if(trackerWorld == null){
-            Relipets.LOGGER.debug("Could not find world: " + this.getTracker().getDimension().toString());
+            Utils.log("Could not find world: " + this.getTracker().getDimension().toString());
             return false;
         }
+        
+        //try loading the last place they were seen at
+        String entityName = petData.getPetInfo().getPetName();
+        Utils.message(entityName + " was last seen at " +
+                trackerWorld.getDimensionKey().getValue().toString() +
+                " " + tracker.getPosition().toShortString() +
+                ". Trying to recall them from there.", player);
 
-        //try retrieving from the world the entity was last seen at
-        LivingEntity entityFound = (LivingEntity) trackerWorld.getEntity(UUID.fromString(this.entityUUID));
-
-        if(entityFound != null){
-            Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);
-            cleanEntityBeforeSaving();
-            removeEntity(entityFound);
-            this.entity = null;
-
+        loadEntityAndPerformAction(party, trackerWorld.getServer(),(entityLoaded)->{
+            recallSync(player.getServer(), petData, entityLoaded, player);
+            setRecalledState.apply(true);
             return true;
-        }else{
-
-            //try retrieving from the current world
-            entityFound = (LivingEntity) currentWorld.getEntity(UUID.fromString(this.entityUUID));
-
-            if(entityFound != null){
-                Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);
-                cleanEntityBeforeSaving();
-                removeEntity(entityFound);
-                this.entity = null;
-                return true;
-            }else {
-                //try loading the last place they were seen at
-                String entityName = this.getEntity().getDisplayName().getString();
-                Utils.message(entityName + " was last seen at " +
-                        trackerWorld.getDimensionKey().getValue().toString() +
-                        " " + tracker.getPosition().toShortString() +
-                        ". Trying to recall them from there.", player);
-
-                loadEntityAndPerformAction(party, currentWorld.getServer(),(entityLoaded)->{
-                    Utils.message("Recalled " + this.getEntity().getDisplayName().getString() + ".", player);
-                    cleanEntityBeforeSaving();
-                    removeEntity(entityLoaded);
-                    this.entity = null;
-                    Relipets.LOGGER.debug("Loaded entity and removed it");
-                    setRecalledState.apply(true);
-                    return true;
-                });
-            }
-
-
-        }
-
+        });
+        
         return false;
     }
 
@@ -354,12 +270,17 @@ public class PetEntityData implements ISerializable {
 
     }
 
-    public void updateTracker(){
-        if(this.entity != null && this.entity.isAlive() && !this.entity.isRemoved()){
-            tracker.setPosition(this.entity.getBlockPos());
-            tracker.setDimension(this.entity.getWorld().getRegistryKey().getValue());
-
+    public void updateTracker(MinecraftServer server){
+        
+        LivingEntity entity = this.getEntity(server);
+        
+        if(entity != null){
+            
+            tracker.setPosition(entity.getBlockPos());
+            tracker.setDimension(entity.getWorld().getRegistryKey().getValue());
+            
         }
+        
     }
 
     @Override
@@ -392,6 +313,7 @@ public class PetEntityData implements ISerializable {
         if(petMetadataComponent.isPresent()) {
             PetMetadataComponent petMetadata = petMetadataComponent.get();
             UpgradableStats stats = petMetadata.getStatUpgrades();
+            if(stats == null) return;
 
             Multimap<EntityAttribute, EntityAttributeModifier> statModifiersMap = ArrayListMultimap.create();
 
@@ -566,6 +488,46 @@ public class PetEntityData implements ISerializable {
         return false;
     }
 
+    public void requestTeleportTo(PetParty petParty, MinecraftServer server, BlockPos blockPos) {
+        ServerWorld world = this.getTracker().getWorld(server);
+
+        if(world == null){
+            Utils.log("Could not proceed with teleport request due to world not being found");
+            return;
+        }
+
+        ChunkPos chunkPos = this.getTracker().getChunkPos();
+
+        petParty.getChunkLoadManager().addRequest(
+                new ChunkLoadRequest(
+                        world,
+                        ChunkLoadRequest.chunkAreaAroundCenterPoint(chunkPos.x, chunkPos.z, 3),
+                        ()-> {
+                            LivingEntity pet = (LivingEntity) world.getEntity(UUID.fromString(this.entityUUID));
+
+                            if(pet != null){
+
+                                BrainUtils.clearMemory(pet, MemoryModuleType.WALK_TARGET);
+                                if(pet instanceof MobEntity entity)
+                                    entity.getNavigation().stop();
+
+                                Vec3d targetPos = blockPos.up().toCenterPos();
+
+                                pet.requestTeleport(
+                                        targetPos.getX(),
+                                        targetPos.getY(),
+                                        targetPos.getZ()
+                                );
+
+                                return true;
+                            }
+
+                            return false;
+                        }
+                )
+        );
+    }
+
     public void spawnEntityForRelease(ServerWorld world, Vec3d pos, PlayerEntity player, PetData petData) {
         world.getServer().execute(()-> {
             Identifier entityTypeId = new Identifier(this.entityType);
@@ -619,8 +581,7 @@ public class PetEntityData implements ISerializable {
                             LivingEntity entity = (LivingEntity) world.getEntity(UUID.fromString(entityUUID));
 
                             if(entity != null){
-                                this.setEntity(entity);
-                                this.saveEntityData();
+                                this.saveEntityData(world.getServer());
                                 party.pushChangesToClient();
                                 return true;
                             }

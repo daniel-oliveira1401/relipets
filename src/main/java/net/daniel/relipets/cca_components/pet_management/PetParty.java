@@ -16,8 +16,10 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
@@ -68,9 +70,9 @@ public class PetParty implements ISerializable {
 
         tickPets(slotsWithPets, world);
 
-        updateParty(slotsWithPets);
+        updateParty(slotsWithPets, world.getServer());
 
-        applyHealingToSummonedPetsIfPossible(summonedPets);
+        applyHealingToSummonedPetsIfPossible(summonedPets, world.getServer());
 
         tickCooldowns();
 
@@ -98,12 +100,12 @@ public class PetParty implements ISerializable {
 
     }
 
-    private void updateParty(List<PetSlot<PetData>> slotsWithPets) {
+    private void updateParty(List<PetSlot<PetData>> slotsWithPets, MinecraftServer server) {
         if(partyUpdateCooldown <= 0){
             for(PetSlot<PetData> slot : slotsWithPets){
                 PetData petData = slot.getContent();
                 if(petData != null)
-                    petData.updateVolatilePetInfoIfPossible();
+                    petData.updateVolatilePetInfoIfPossible(server);
             }
             partyUpdateCooldown = 5;
             onPetPartyModifiedListener.onPetPartyEvent();
@@ -120,13 +122,13 @@ public class PetParty implements ISerializable {
         }
     }
 
-    public void applyHealingToSummonedPetsIfPossible(List<PetData> summonedPets){
+    public void applyHealingToSummonedPetsIfPossible(List<PetData> summonedPets, MinecraftServer server){
         if(naturalHealingCooldown == 0) {
             List<PetData> healablePets = summonedPets.stream()
                     .filter((p)-> p.getPetInfo().getCurrentHealth() < p.getPetInfo().getMaxHealth()).toList();
 
             for(PetData pet : healablePets){
-                pet.applyNaturalHealing();
+                pet.applyNaturalHealing(server);
             }
 
             naturalHealingCooldown = 40;
@@ -137,6 +139,13 @@ public class PetParty implements ISerializable {
 
     public void pushChangesToClient(){
         if(player instanceof ServerPlayerEntity serverPlayer){
+            this.getSlotManager().getSlotsWithContent().forEach((p)-> {
+                PetData petData = p.getContent();
+                if(petData != null && petData.isSummoned()){
+                    petData.getPetEntityData().saveEntityData(player.getServer());
+                }
+            });
+
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeNbt(this.writeToNbt());
             serverPlayer.networkHandler.sendPacket(new CustomPayloadS2CPacket(S2CPacketHandlers.PARTY_UPDATE, buf));
@@ -198,7 +207,7 @@ public class PetParty implements ISerializable {
         this.onPetPartyModifiedListener.onPetPartyEvent();
     }
 
-    public void cyclePetSlot(int direction){
+    public void cyclePetSlot(int direction, MinecraftServer server){
         //-1 -> scroll down (should go to the right)
         //1 -> scroll up (should go to the left)
 
@@ -209,7 +218,7 @@ public class PetParty implements ISerializable {
         Relipets.LOGGER.debug("Selected pet index: " + this.selectedPetIndex);
 
         if(this.getSelectedPet() != null && this.getSelectedPet().isSummoned()){
-            this.getSelectedPet().addHighlight();
+            this.getSelectedPet().addHighlight(server);
         }
         this.onPetPartyModifiedListener.onPetPartyEvent();
     }
@@ -280,7 +289,7 @@ public class PetParty implements ISerializable {
             newPet.fillFromEntity(entity, player);
             this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
             Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
-            newPet.updateVolatilePetInfoIfPossible();
+            newPet.updateVolatilePetInfoIfPossible(player.getServer());
             newPet.recall(this,(ServerWorld) entity.getWorld(), player);
         }else{
 
@@ -291,7 +300,7 @@ public class PetParty implements ISerializable {
                 newPet.fillFromEntity(entity, player);
                 emptySlot.setContent(newPet);
                 Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
-                newPet.updateVolatilePetInfoIfPossible();
+                newPet.updateVolatilePetInfoIfPossible(player.getServer());
                 newPet.recall(this, (ServerWorld) entity.getWorld(), player);
             }else{
                 Utils.message("There's no slot available for this pet. Either craft more slots or free up existing ones.", player);
@@ -304,7 +313,7 @@ public class PetParty implements ISerializable {
 
     }
 
-    public void releasePetFromParty(PetData pet){
+    public void releasePetFromParty(PetData pet, MinecraftServer server){
         int petIndex = -1;
         int currentIndex = 0;
         for(PetSlot<PetData> slot : this.getSlotManager().getSlots()){
@@ -324,19 +333,19 @@ public class PetParty implements ISerializable {
         }
 
         PetData petToBeReleased = this.getSlotManager().getSlotAt(petIndex).getContent();
-
-        if(petToBeReleased != null && petToBeReleased.getPetEntityData().getEntity() != null){
-            PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(petToBeReleased.getPetEntityData().getEntity());
-            petMetadata.clearPlayerUUID();
-        }
-
         if(petToBeReleased != null){
+            LivingEntity petEntity = petToBeReleased.getPetEntityData().getEntity(server);
+
+            if(petEntity  != null){
+                PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(petEntity);
+                petMetadata.clearPlayerUUID();
+            }
+
             Utils.message("Released "+ petToBeReleased.getPetInfo().getPetName() + " from party", player);
             petToBeReleased.summonForRelease((ServerWorld) player.getWorld(), player.getPos(), player);
             this.getSlotManager().getSlotAt(petIndex).clear();
 
         }
-
         triggerOnPartyModifiedEvent();
         this.pushChangesToClient();
 
@@ -410,11 +419,11 @@ public class PetParty implements ISerializable {
         }
     }
 
-    public void renamePet(int slot, String name) {
+    public void renamePet(int slot, String name, MinecraftServer server) {
         PetData pet = this.getSlotManager().getSlotAt(slot).getContent();
         if(pet != null){
 
-            pet.renamePet(name);
+            pet.renamePet(name, server);
 
             this.onPetPartyModifiedListener.onPetPartyEvent();
             this.pushChangesToClient();
@@ -506,6 +515,16 @@ public class PetParty implements ISerializable {
         this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).stream()
                 .filter((p)-> p.getMoveMode() == PetMoveMode.FOLLOWING).forEach((p)-> p.recall(this, world, player));
 
+    }
+
+    public void teleportSelectedPetToBlock(BlockPos blockPos, ServerWorld world) {
+        PetData pet = this.getSelectedPet();
+
+        if(pet != null){
+            if(pet.isSummoned()){
+                pet.getPetEntityData().requestTeleportTo(this, world.getServer(),  blockPos);
+            }
+        }
     }
 
     public interface PetPartyEventListener{

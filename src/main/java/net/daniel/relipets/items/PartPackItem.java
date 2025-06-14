@@ -37,8 +37,6 @@ public class PartPackItem extends Item {
 
         if(!world.isClient()){
 
-            System.out.println("Used item!!");
-
             //TODO: drop parts corresponding to the pack type
             PetPartSetType randomSet = PetPartSetType.values()[new Random().nextInt(PetPartSetType.values().length)];
 

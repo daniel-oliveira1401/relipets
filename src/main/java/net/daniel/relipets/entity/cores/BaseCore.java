@@ -212,52 +212,7 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
     @Override
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
-        if(!player.getWorld().isClient() && hand == Hand.MAIN_HAND){
-            ItemStack mainHandItem = player.getMainHandStack();
-
-            //if interact with shears, remove parts
-
-//            if(mainHandItem.getItem() instanceof ShearsItem){
-//
-//                PartSystem partSystem = this.getPartSystem();
-//
-//                PetPart partRemoved = partSystem.removeNextPart();
-//                if(partRemoved != null){
-//                    dropPetPart(partRemoved);
-//                    applyEffectsFromParts(player.getWorld());
-//                }
-//
-//                return ActionResult.SUCCESS;
-//
-//            }else if (mainHandItem.getItem() instanceof PartItem){
-//
-//                NbtCompound itemTag = mainHandItem.getOrCreateNbt().getCompound(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY);
-//
-//                PetPart partInHand = PetPart.readFromNbt(itemTag);
-//
-//                PartSystem partSystem = this.getPartSystem();
-//
-//                //drop the pet part if it already has one of this type
-//                if(partSystem.hasValidPart(partInHand.partType)){
-//                    PetPart existingPart = partSystem.getPartByType(partInHand.partType);
-//                    dropPetPart(existingPart);
-//                }
-//
-//                partSystem.addOrUpdatePart(partInHand);
-//                mainHandItem.decrement(1);
-//                applyEffectsFromParts(player.getWorld());
-//
-//                return ActionResult.SUCCESS;
-//            }else{
-                return ActionResult.PASS;
-//            }
-
-
-        }else{
-            return ActionResult.PASS;
-        }
-
-
+        return ActionResult.PASS;
     }
 
     @Override
@@ -270,16 +225,8 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         return 2;
     }
 
-    private void dropPetPart(PetPart part){
-        ItemStack partToBeDropped = PartItemFactory.createStackByType(part.getPartType());
-        partToBeDropped.getOrCreateNbt().put(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY, part.writeToNbt());
-        ItemEntity partEntity = new ItemEntity(this.getWorld(), this.getX(), this.getY(), this.getZ(), partToBeDropped);
-        partEntity.setVelocity(this.getWorld().random.nextGaussian() * 0.05, 0.2, this.getWorld().random.nextGaussian() * 0.05);
-        this.getWorld().spawnEntity(partEntity);
-    }
-
     public void performBasicAttack(LivingEntity attackTarget){
-        attackTarget.damage(this.getWorld().getDamageSources().magic(), 1);
+        attackTarget.damage(this.getWorld().getDamageSources().magic(), (float) this.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE));
         this.setVelocity(attackTarget.getPos().subtract(this.getPos()).normalize().multiply(0.5));
         this.jump();
         attackTarget.setAttacker(this);
@@ -330,11 +277,11 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
         return List.of(
                 new CoreOwnerSensor<>(),
                 new FightWithOwnerSensor().atkDist(minFollowDist),
-                new FollowOwnerSensor().minDistance(minFollowDist).maxDistance(maxFollowDist).affectsMemories(
-                        List.of(
-                                PredicateSensor.MemoryPair.of(RelipetsMemoryTypes.SHOULD_FOLLOW_OWNER,(e)-> true)
-                        )
-                ).setScanRate((e) -> 3),
+//                new FollowOwnerSensor().minDistance(minFollowDist).maxDistance(maxFollowDist).affectsMemories(
+//                        List.of(
+//                                PredicateSensor.MemoryPair.of(RelipetsMemoryTypes.SHOULD_FOLLOW_OWNER,(e)-> true)
+//                        )
+//                ).setScanRate((e) -> 3),
                 new ChooseBehaviorSensor(RelipetsMemoryTypes.BEHAVIOR_TO_PERFORM)
                         .withChoices(new WeightedList<BehaviorDefinition>()
                                 //.addEntry(BehaviorDefinition.of(COME_CLOSE_TO_OWNER, Utils.secondToTick(4)), 30)
@@ -350,12 +297,14 @@ public abstract class BaseCore extends PathAwareEntity implements GeoEntity, Sma
 
     @Override
     public BrainActivityGroup<? extends BaseCore> getCoreTasks() {
-        CoreFollowPartyOwner coreFollowPartyOwner = new CoreFollowPartyOwner((int)(maxFollowDist * 0.8f));
+        //CoreFollowPartyOwner coreFollowPartyOwner = new CoreFollowPartyOwner((int)(maxFollowDist * 0.8f));
 
         LookAtPartyOwner lookAtPartyOwner = (LookAtPartyOwner) new LookAtPartyOwner(0.5f)
                 .runFor((e)-> Utils.secondToTick(10)).cooldownFor((e)-> Utils.secondToTick(5));
 
-        return BrainActivityGroup.coreTasks(coreFollowPartyOwner, lookAtPartyOwner);
+        return BrainActivityGroup.coreTasks(
+                //coreFollowPartyOwner,
+                lookAtPartyOwner);
     }
 
     @Override

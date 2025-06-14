@@ -6,17 +6,20 @@ import net.daniel.relipets.entity.cores.client.YellowCoreRenderer;
 import net.daniel.relipets.entity.util.PetCameraEntity;
 import net.daniel.relipets.gui.hud.NewPetHud;
 import net.daniel.relipets.gui.screen.PartManagementScreen;
+import net.daniel.relipets.items.Petificator;
 import net.daniel.relipets.items.client.PetificatorProjectileRenderer;
-import net.daniel.relipets.registries.GuiRelatedStuffRegistry;
-import net.daniel.relipets.registries.KeyBindingsRegistry;
-import net.daniel.relipets.registries.RelipetsEntityRegistry;
-import net.daniel.relipets.registries.S2CPacketHandlers;
+import net.daniel.relipets.registries.*;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.math.Vec3d;
 
 public class RelipetsClient implements ClientModInitializer {

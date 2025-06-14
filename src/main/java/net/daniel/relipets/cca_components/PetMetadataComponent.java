@@ -44,6 +44,10 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
         this.petEntity = pet;
     }
 
+    public PetMetadataComponent(NbtCompound nbt){
+        this.readFromNbt(nbt);
+    }
+
     @Override
     public void readFromNbt(NbtCompound tag) {
         if(tag.contains(PLAYER_UUID_KEY))
@@ -145,7 +149,8 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
 
                 tickNaturalXpGain();
 
-                this.levelProgression.checkLevelUp(petEntity);
+                if(this.levelProgression != null)
+                    this.levelProgression.checkLevelUp(petEntity);
 
             }
             levelProgressionCheckCooldown = Math.max(levelProgressionCheckCooldown -1, 0);

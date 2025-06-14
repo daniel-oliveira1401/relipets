@@ -11,6 +11,8 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import org.lwjgl.glfw.GLFW;
 
@@ -43,7 +45,7 @@ public class KeyBindingsRegistry {
     private static String getKeyCategory(){
         return "Relipets";
     }
-
+    private static boolean wasPressed = false;
     public static void onInitialize(){
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -63,6 +65,19 @@ public class KeyBindingsRegistry {
                 }
 
             }
+
+            boolean pressed = client.options.attackKey.isPressed();
+
+            if (pressed && !wasPressed && client.player != null) {
+                ItemStack stack = client.player.getMainHandStack();
+                if (stack.getItem() instanceof Petificator) {
+                    PacketByteBuf buf = PacketByteBufs.create();
+                    buf.writeInt(1);
+                    ClientPlayNetworking.send(C2SPacketHandlers.CYCLE_PET_SLOT, buf);
+                }
+            }
+
+            wasPressed = pressed;
 
         });
     }
