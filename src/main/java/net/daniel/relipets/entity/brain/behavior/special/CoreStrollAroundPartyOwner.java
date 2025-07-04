@@ -39,7 +39,7 @@ public class CoreStrollAroundPartyOwner extends SpecialBehavior {
 
         while(tries > 0){
 
-            targetPos = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), entity.getBlockPos(), 10, entity.getWorld().getRandom());
+            targetPos = Utils.findRandomSafePositionAroundPlayer(entity, (ServerWorld) entity.getWorld(), entity.getBlockPos(), 10, entity.getWorld().getRandom());
 
             if(targetPos != null) break;
 

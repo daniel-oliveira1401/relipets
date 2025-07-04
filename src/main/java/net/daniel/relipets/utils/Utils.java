@@ -2,10 +2,13 @@ package net.daniel.relipets.utils;
 
 import net.daniel.relipets.Relipets;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.shape.VoxelShape;
 
@@ -43,30 +46,41 @@ public class Utils {
         return (int)(second * 20);
     }
 
-    public static BlockPos findRandomSafePositionAroundPlayer(ServerWorld world, BlockPos center, int radius, Random random) {
+    public static BlockPos findRandomSafePositionAroundPlayer(LivingEntity entity, ServerWorld world, BlockPos center, int radius, Random random) {
         int maxAttempts = radius * radius * radius; // cube of the radius
         for (int i = 0; i < maxAttempts; i++) {
             int dx = random.nextInt(2 * radius + 1) - radius;
             int dy = random.nextInt(2 * radius + 1) - radius;
             int dz = random.nextInt(2 * radius + 1) - radius;
             BlockPos candidate = center.add(dx, dy, dz);
-            if (isSafe(world, candidate)) {
+            if (isFarEnough(center, candidate) && isSafe(world, candidate, entity)) {
                 return candidate;
             }
         }
         return null;
     }
 
+    public static boolean isFarEnough(BlockPos center, BlockPos candidatePos){
+        return !center.isWithinDistance(candidatePos.toCenterPos(), 5);
+    }
+
     //TODO: make this safe check safer. (check for entity bounding box)
-    public static boolean isSafe(ServerWorld world, BlockPos pos) {
+    public static boolean isSafe(ServerWorld world, BlockPos pos, LivingEntity entity) {
 
         if (world.getBlockState(pos.down()).isAir()) {
             return false;
         }
 
-        VoxelShape shape = world.getBlockState(pos).getCollisionShape(world, pos);
-        VoxelShape shapeAbove = world.getBlockState(pos.up()).getCollisionShape(world, pos.up());
-        return shape.isEmpty() && shapeAbove.isEmpty();
+//        VoxelShape shape = world.getBlockState(pos).getCollisionShape(world, pos);
+//        VoxelShape shapeAbove = world.getBlockState(pos.up()).getCollisionShape(world, pos.up());
+
+        Box boundingBoxAtTarget = entity.getDimensions(entity.getPose()).getBoxAt(pos.toCenterPos());
+
+        // Check if the area is empty (no blocks that would cause suffocation)
+        boolean spaceIsClear = world.isSpaceEmpty(entity, boundingBoxAtTarget);
+
+
+        return spaceIsClear;
     }
 
     public static void log(String s) {

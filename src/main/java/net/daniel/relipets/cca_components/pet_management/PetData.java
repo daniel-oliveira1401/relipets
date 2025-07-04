@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.ISerializable;
+import net.daniel.relipets.cca_components.PartSystem;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.entity.cores.BaseCore;
@@ -13,12 +14,10 @@ import net.daniel.relipets.cca_components.pet_management.progression.StatsOperat
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.daniel.relipets.utils.Utils;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
@@ -27,7 +26,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
 import net.tslat.smartbrainlib.util.BrainUtils;
 
 import java.util.List;
@@ -43,6 +41,8 @@ public class PetData implements ISerializable {
     public static final String SUMMONED = "summoned";
     public static final String RECALLED = "recalled";
     public static final String HEALING = "healing";
+    public static final int BASE_FOLLOW_DISTANCE = 10;
+    public static final int TP_DISTANCE_DELTA = 15;
 
     @Getter
     @Setter
@@ -101,37 +101,38 @@ public class PetData implements ISerializable {
         }
     }
 
-    public void tick(PetParty party, ServerWorld world, PlayerEntity player){
+    public void tick(PlayerEntity player){
 
-        updateTrackerIfNeeded(world);
+        LivingEntity entity = this.getPetEntityData().getEntity(player.getServer());
+
+        updateTrackerIfNeeded(entity);
 
         tickHealingIfNeeded();
 
-        tickSimulatedBehaviorIfPossible(party,player);
+        tickSimulatedBehaviorIfPossible(entity, player);
 
     }
 
-    private void tickSimulatedBehaviorIfPossible(PetParty party, PlayerEntity player) {
+    private void tickSimulatedBehaviorIfPossible(LivingEntity entity, PlayerEntity player) {
         if(this.isSummoned()){
 
-            setPetTargetForRevengeIfApplicable(player);
+            if(entity == null) return;
+
+            setPetTargetForRevengeIfApplicable(entity, player);
             //follow owner
             if(moveMode == PetMoveMode.FOLLOWING){
-                followOwner(party, player);
+                followOwner(entity, player);
             }
-            //followOwner might recall the entity
-            if(!this.isSummoned()) return;
 
-            retributeHostilityIfApplicable(player);
+            retributeHostilityIfApplicable(entity, player);
 
-            clearPetTargetIfTargetIsOwnerOrPartyMember(player);
+            clearPetTargetIfTargetIsOwnerOrPartyMember(entity, player);
 
         }
     }
     int followDistance = 10;
     int teleportDistance = 30;
-    public void followOwner(PetParty party, PlayerEntity player){
-        LivingEntity entity = this.getPetEntityData().getEntity(player.getServer());
+    public void followOwner(LivingEntity entity, PlayerEntity player){
         if(!(entity instanceof BaseCore) && entity instanceof MobEntity mobEntity){
             boolean sameDimension = entity.getWorld().getDimensionKey().getValue().compareTo(player.getWorld().getDimensionKey().getValue()) == 0;
             if(!sameDimension) return;
@@ -139,7 +140,7 @@ public class PetData implements ISerializable {
             if(distance > (this.teleportDistance * this.teleportDistance)){
                 mobEntity.getNavigation().stop();
                 //recall pets if it is not safe to teleport
-                BlockPos safePosToTeleport = Utils.findRandomSafePositionAroundPlayer((ServerWorld) player.getWorld(), player.getBlockPos(), 8, player.getWorld().getRandom());
+                BlockPos safePosToTeleport = Utils.findRandomSafePositionAroundPlayer(entity, (ServerWorld) player.getWorld(), player.getBlockPos(), 8, player.getWorld().getRandom());
                 if(safePosToTeleport != null){
                     mobEntity.teleport(
                             safePosToTeleport.getX() + 0.5,
@@ -154,22 +155,21 @@ public class PetData implements ISerializable {
                     );
                 }
             }else if(distance > (this.followDistance * this.followDistance)){
-                BlockPos pos = Utils.findRandomSafePositionAroundPlayer((ServerWorld) player.getWorld(), player.getBlockPos(), 8, player.getWorld().getRandom());
+                BlockPos pos = Utils.findRandomSafePositionAroundPlayer(entity, (ServerWorld) player.getWorld(), player.getBlockPos(), 15, player.getWorld().getRandom());
 
                 if(pos != null){
-                    mobEntity.getNavigation().startMovingTo(pos.getX(), pos.getY(), pos.getZ(), 1.5f);
+                    mobEntity.getMoveControl().moveTo(pos.getX(), pos.getY(), pos.getZ(), 1.5f);
                 }
 
             }
         }
     }
 
-    private void retributeHostilityIfApplicable(PlayerEntity player) {
+    private void retributeHostilityIfApplicable(LivingEntity petEntity, PlayerEntity player) {
         if(targetCooldown <= 0 && this.isSummoned()){
 
             this.targetCooldown = 10;
 
-            LivingEntity petEntity = this.getPetEntityData().getEntity(player.getServer());
             if(petEntity == null) return;
             if(petEntity.getAttacking() != null && petEntity.getAttacking().isAlive()) return;
 
@@ -210,7 +210,7 @@ public class PetData implements ISerializable {
     }
 
     int targetCooldown = 0;
-    private void setPetTargetForRevengeIfApplicable(PlayerEntity player) {
+    private void setPetTargetForRevengeIfApplicable(LivingEntity petEntity, PlayerEntity player) {
         if(targetCooldown <= 0 && this.isSummoned()){
             this.targetCooldown = 2;
             LivingEntity ownerAttacker = player.getAttacker();
@@ -225,7 +225,6 @@ public class PetData implements ISerializable {
             PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
             if(petOwnerComponent.getPetParty().getPetByEntityUUID(ownerAttacker.getUuidAsString()) != null) return;
 
-            LivingEntity petEntity = this.getPetEntityData().getEntity(player.getServer());
             if(petEntity == null) return;
             petEntity.setAttacker(ownerAttacker);
 
@@ -245,9 +244,8 @@ public class PetData implements ISerializable {
         targetCooldown = Math.max(0, targetCooldown - 1);
     }
 
-    private void clearPetTargetIfTargetIsOwnerOrPartyMember(PlayerEntity player){
+    private void clearPetTargetIfTargetIsOwnerOrPartyMember(LivingEntity petEntity, PlayerEntity player){
         //dont target owner
-        LivingEntity petEntity = this.getPetEntityData().getEntity(player.getServer());
         if(petEntity == null) return;
         //check "attacking"
         LivingEntity petTarget = petEntity.getAttacking();
@@ -301,13 +299,25 @@ public class PetData implements ISerializable {
         if(this.isSummoned()){
             LivingEntity entity = this.getPetEntityData().getEntity(server);
             if(entity != null){
-                this.getPetInfo().setPetName(entity.getDisplayName().getString());
-                this.getPetInfo().setMaxHealth((int) entity.getMaxHealth());
-                this.getPetInfo().setCurrentHealth((int) entity.getHealth());
-                PetMetadataComponent component = CardinalComponentsRegistry.PET_METADATA_KEY.get(entity);
-                this.getPetInfo().setLevelProgression(component.getLevelProgression());
+                this.updateVolatilePetInfo(entity);
             }
         }
+    }
+
+    public void updateVolatilePetInfoSync(LivingEntity entity){
+        if(this.isSummoned() && entity != null){
+
+            this.updateVolatilePetInfo(entity);
+
+        }
+    }
+
+    private void updateVolatilePetInfo(LivingEntity entity){
+        this.getPetInfo().setPetName(entity.getDisplayName().getString());
+        this.getPetInfo().setMaxHealth((int) entity.getMaxHealth());
+        this.getPetInfo().setCurrentHealth((int) entity.getHealth());
+        PetMetadataComponent component = CardinalComponentsRegistry.PET_METADATA_KEY.get(entity);
+        this.getPetInfo().setLevelProgression(component.getLevelProgression());
     }
 
     public boolean isSummoned(){
@@ -352,10 +362,11 @@ public class PetData implements ISerializable {
         return summonStateHealing && validEntityData;
     }
 
-    public void summon(ServerWorld world, Vec3d pos, PlayerEntity player){
+    public void summon(PetParty party, ServerWorld world, Vec3d pos, PlayerEntity player){
         if(this.isRecalled()){
             this.summonState = SUMMONED;
             this.getPetEntityData().spawnEntity(world, pos, player, this);
+            party.pushChangesToClient();
         }else if(this.isHealing()){
             Utils.message(this.getPetInfo().getPetName() + " is healing. Wait "+ Utils.tickToSecond(this.getHealingCooldown()) + "s.", player);
 
@@ -371,7 +382,7 @@ public class PetData implements ISerializable {
         if(this.isSummoned()){
             boolean recalled = this.getPetEntityData().recallEntity(party, this, world, player, (e)-> {
                 this.summonState = RECALLED;
-
+                party.pushChangesToClient();
                 return true;
             });
 
@@ -392,8 +403,8 @@ public class PetData implements ISerializable {
     public void fillFromEntity(LivingEntity entity, PlayerEntity player){
         this.summonState = SUMMONED;
         this.setPetEntityData(new PetEntityData());
-        this.getPetEntityData().updateTracker(player.getServer());
-        this.getPetEntityData().saveEntityData(player.getServer());
+        this.getPetEntityData().updateTracker(entity);
+        this.getPetEntityData().saveEntityData(entity);
         this.getPetEntityData().setOwner(player, entity);
     }
 
@@ -484,9 +495,9 @@ public class PetData implements ISerializable {
         );
     }
 
-    private void updateTrackerIfNeeded(ServerWorld world){
+    private void updateTrackerIfNeeded(LivingEntity entity){
         if(this.isSummoned()){
-            this.petEntityData.updateTracker(world.getServer());
+            this.petEntityData.updateTracker(entity);
         }
     }
 
@@ -509,22 +520,36 @@ public class PetData implements ISerializable {
     }
 
     public void applySlotContentChange(int inventorySlotIndex, MinecraftServer server) {
-        LivingEntity entity = this.getPetEntityData().getEntity(server);
+        if(!this.isSummoned()){
+            PartSystem partSystem = this.tempPartSystem;
 
-        if(entity instanceof BaseCore core){
-            core.getPartSystem().updateSystemBasedOnSlotIndex(inventorySlotIndex);
+            partSystem.updateSystemBasedOnSlotIndex(inventorySlotIndex);
+            NbtCompound serializedPartSystem = new NbtCompound();
+            partSystem.writeToNbt(serializedPartSystem);
+            this.getPetEntityData().getEntityNbt().put("part_system", serializedPartSystem);
         }
-        this.getPetEntityData().saveEntityData(server);
 
     }
 
     public void syncItemsWithPartSystem(MinecraftServer server){
-        LivingEntity entity = this.getPetEntityData().getEntity(server);
 
-        if(entity instanceof BaseCore core){
-            core.getPartSystem().applyInventoryChange();
+        if(!this.isSummoned()){
+            PartSystem partSystem = this.tempPartSystem;
+
+            partSystem.applyInventoryChange();
+            NbtCompound serializedPartSystem = new NbtCompound();
+            partSystem.writeToNbt(serializedPartSystem);
+            this.getPetEntityData().getEntityNbt().put("part_system", serializedPartSystem);
         }
-        this.getPetEntityData().saveEntityData(server);
+    }
+
+    //this is a temporary part system reference that will only be "valid" when the part management screen is open
+    private PartSystem tempPartSystem;
+
+    public PartSystem loadPartSystemIntoMemory(){
+        NbtCompound partSystemNbt = this.getPetEntityData().getEntityNbt().getCompound("part_system");
+        this.tempPartSystem = new PartSystem(partSystemNbt);
+        return this.tempPartSystem;
     }
 
 

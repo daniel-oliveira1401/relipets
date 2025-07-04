@@ -112,7 +112,10 @@ public class Relipets implements ModInitializer {
 			ServerPlayerEntity player = handler.player;
 			// revert player state or store current state for restore later
 			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
-			if(petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
+			if(
+					petOwnerComponent.getPetParty() != null &&
+					petOwnerComponent.getPetParty().getSpectatorModeData() != null &&
+					petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
 				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
 				petOwnerComponent.getPetParty().getChunkLoadManager().cleanupUnfulfilledRequests();
 			}
@@ -122,7 +125,11 @@ public class Relipets implements ModInitializer {
 			ServerPlayerEntity player = handler.player;
 			// check if player should be restored to normal state
 			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
-			if(petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
+
+			if(
+					petOwnerComponent.getPetParty() != null &&
+					petOwnerComponent.getPetParty().getSpectatorModeData() != null &&
+					petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
 				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
 			}
 		});

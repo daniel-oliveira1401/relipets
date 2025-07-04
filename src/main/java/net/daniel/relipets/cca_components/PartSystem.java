@@ -115,9 +115,9 @@ public class PartSystem {
 
 
     public void readFromNbt(NbtCompound tag) {
-
-        for(String key : tag.getKeys()){
-            PetPart part = PetPart.readFromNbt(tag.getCompound(key));
+        NbtCompound partsNbt = tag.getCompound("parts");
+        for(String key : partsNbt.getKeys()){
+            PetPart part = PetPart.readFromNbt(partsNbt.getCompound(key));
             this.parts.put(part.getPartType(), part);
         }
 
@@ -126,11 +126,12 @@ public class PartSystem {
     }
 
     public NbtCompound writeToNbt(NbtCompound tag) {
+        NbtCompound partsNbt = new NbtCompound();
 
         for(String partType : this.parts.keySet()){
-            tag.put(partType + "_part_key", this.parts.get(partType).writeToNbt());
+            partsNbt.put(partType + "_part_key", this.parts.get(partType).writeToNbt());
         }
-
+        tag.put("parts", partsNbt);
         tag.put(INVENTORY, this.petInventoryManager.writeToNbt());
 
         return tag;

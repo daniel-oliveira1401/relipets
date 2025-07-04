@@ -19,6 +19,7 @@ import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.mob.CreeperEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -140,13 +141,32 @@ public class PetEntityData implements ISerializable {
     public void saveEntityData(MinecraftServer server){
         LivingEntity entity = this.getEntity(server);
         if(entity != null){
-            cleanEntityBeforeSaving(entity);
+            this.internalSaveEntityData(entity);
+        }
+    }
 
-            this.entityType = EntityType.getId(entity.getType()).toString();
-            this.entityNbt = entity.writeNbt(new NbtCompound());
-            this.entityUUID = entity.getUuidAsString();
-            this.entityId = entity.getId();
+    public void saveEntityData(LivingEntity entity){
+        if(entity != null){
+            internalSaveEntityData(entity);
+        }
+    }
 
+    private void internalSaveEntityData(LivingEntity entity){
+        cleanEntityBeforeSaving(entity);
+        this.tracker.updateFromEntity((ServerWorld) entity.getWorld(), entity);
+        this.entityType = EntityType.getId(entity.getType()).toString();
+        this.entityNbt = entity.writeNbt(new NbtCompound());
+        this.entityUUID = entity.getUuidAsString();
+        this.entityId = entity.getId();
+        applyEntityDataPostProcessing(entity);
+    }
+
+    private void applyEntityDataPostProcessing(LivingEntity entity) {
+
+        //add more edge cases here for weird mobs
+
+        if(entity instanceof CreeperEntity){
+            this.entityNbt.putBoolean("ignited", false);
         }
     }
 
@@ -162,7 +182,8 @@ public class PetEntityData implements ISerializable {
 
             //clean fire
             entity.setOnFire(false);
-
+            entity.setFireTicks(0);
+            entity.wasOnFire = false;
 
         }
     }
@@ -194,16 +215,6 @@ public class PetEntityData implements ISerializable {
         return createdEntity;
     }
 
-    @Nullable
-    public LivingEntity getEntityForInteraction(PetData petData, MinecraftServer server){
-        if(petData.isSummoned()){
-            return this.getEntity(server);
-        }else { //handles healing and recalled states
-
-            return this.createAndInitializeEntity(petData, this.getTracker().position.toCenterPos(), this.getTracker().getWorld(server));
-        }
-    }
-
     public void spawnEntity(ServerWorld world, Vec3d pos, PlayerEntity player, PetData petData){
         world.getServer().execute(()-> {
 
@@ -212,6 +223,7 @@ public class PetEntityData implements ISerializable {
             if(createdEntity == null) return;
 
             world.spawnEntity(createdEntity);
+            this.tracker.updateFromEntity(world, createdEntity);
             Utils.message("Summoned " + createdEntity.getDisplayName().getString() + ".", player);
             SetTimeoutManager.setTimeout(()-> {
                 this.applyStatModifiers(createdEntity, petData);
@@ -219,6 +231,10 @@ public class PetEntityData implements ISerializable {
 
 
             this.setOwner(player, createdEntity);
+            petData.followDistance = (int) Math.max(PetData.BASE_FOLLOW_DISTANCE, Math.min(createdEntity.getBoundingBox().getAverageSideLength() * PetData.BASE_FOLLOW_DISTANCE, 40));
+            Utils.log("Follow distance for " + petData.getPetInfo().getPetName() + ": " + petData.followDistance);
+            petData.teleportDistance = (int) Math.min(60, petData.followDistance + PetData.TP_DISTANCE_DELTA);
+            Utils.log("Teleport distance for " + petData.getPetInfo().getPetName() + ": " + petData.teleportDistance);
         });
 
     }
@@ -234,7 +250,6 @@ public class PetEntityData implements ISerializable {
     public void recallSync(MinecraftServer server, PetData petData, LivingEntity entityLoaded, PlayerEntity player){
         Utils.message("Recalled " + petData.getPetInfo().getPetName() + ".", player);
         saveEntityData(server);
-        cleanEntityBeforeSaving(entityLoaded);
         removeEntity(entityLoaded);
         Utils.log("Loaded entity and removed it");
     }
@@ -266,18 +281,15 @@ public class PetEntityData implements ISerializable {
 
     private void removeEntity(LivingEntity entity){
 
-        entity.remove(Entity.RemovalReason.DISCARDED);
+        entity.remove(Entity.RemovalReason.CHANGED_DIMENSION);
 
     }
 
-    public void updateTracker(MinecraftServer server){
-        
-        LivingEntity entity = this.getEntity(server);
+    public void updateTracker(LivingEntity entity){
         
         if(entity != null){
-            
-            tracker.setPosition(entity.getBlockPos());
-            tracker.setDimension(entity.getWorld().getRegistryKey().getValue());
+
+            tracker.updateFromEntity((ServerWorld) entity.getWorld(), entity);
             
         }
         
@@ -659,6 +671,11 @@ public class PetEntityData implements ISerializable {
                     this.position.getX(),
                     this.position.getY(),
                     this.position.getZ());
+        }
+
+        public void updateFromEntity(ServerWorld world, LivingEntity entity) {
+            this.setDimension(world.getRegistryKey().getValue());
+            this.setPosition(entity.getBlockPos());
         }
     }
 

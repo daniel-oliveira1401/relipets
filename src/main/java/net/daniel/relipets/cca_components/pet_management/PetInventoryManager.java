@@ -114,18 +114,19 @@ public class PetInventoryManager extends SimpleInventory {
 
     public NbtCompound writeToNbt(){
         NbtCompound nbt = new NbtCompound();
+        if(!this.inventorySlots.isEmpty()){
+            for (int i = 0; i < this.size(); i++) {
+                NbtCompound inventorySlotNbt = new NbtCompound();
+                PetInventorySlot slot = this.inventorySlots.get(i);
 
-        for (int i = 0; i < this.size(); i++) {
-            NbtCompound inventorySlotNbt = new NbtCompound();
-            PetInventorySlot slot = this.inventorySlots.get(i);
+                ItemStack itemStack = this.getStack(slot.getSlotIndex());
 
-            ItemStack itemStack = this.getStack(slot.getSlotIndex());
+                inventorySlotNbt.put("item", itemStack.writeNbt(new NbtCompound()));
+                inventorySlotNbt.put("inventorySlot", slot.writeToNbt());
 
-            inventorySlotNbt.put("item", itemStack.writeNbt(new NbtCompound()));
-            inventorySlotNbt.put("inventorySlot", slot.writeToNbt());
+                nbt.put(i+"", inventorySlotNbt);
 
-            nbt.put(i+"", inventorySlotNbt);
-
+            }
         }
 
         return nbt;

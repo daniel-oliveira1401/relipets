@@ -355,14 +355,6 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         return slotContainer;
     }
 
-    private void saveGroupName(PetGroup group, FlowLayout groupContainer) {
-        TextBoxComponent groupLabel = groupContainer.childById(TextBoxComponent.class, "groupName");
-        if(groupLabel != null){
-            String name = groupLabel.getText();
-            setGroupName(group.getId().toString(), name);
-        }
-    }
-
     private boolean openColorPicker(PetGroup group) {
         ColorPickerComponent colorPicker = new ColorPickerComponent();
         colorPicker.selectedColor(Color.ofArgb(group.getColor()));

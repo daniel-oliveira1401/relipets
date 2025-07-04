@@ -83,7 +83,7 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
                 buildPointsLeftLabel();
 
             }else{
-                bodyContainer.child(Components.label(Text.of("Could not find metadata for selected pet")));
+                bodyContainer.child(Components.label(Text.of("Pet must be summoned and near the player")));
             }
         }else{
             bodyContainer.child(Components.label(Text.of("A pet must be selected and summoned to change their stats")));
