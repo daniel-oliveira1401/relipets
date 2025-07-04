@@ -30,7 +30,7 @@ public class ChunkLoadManager {
         for(Iterator<ChunkLoadRequest> iterator = this.requests.iterator() ; iterator.hasNext();){
 
             ChunkLoadRequest request = iterator.next();
-
+            request.setMaxTries(request.getMaxTries()-1);
             //this is here to cover the edge case of having two requests that target the same chunk and
             //the fulfillment of the first request causes that chunk to unload and so the second request
             //may never complete because one of the chunks that it relies on is not forceloaded anymore
@@ -44,14 +44,18 @@ public class ChunkLoadManager {
                     break;
                 }
             }
-
+            if(request.getMaxTries() <= 0){
+                Utils.log("Could not fulfill request. Discarding it due to max tries exceeded.");
+                this.unloadChunks(request.getChunkCoords(), request.getWorld());
+                iterator.remove();
+            }
             if(chunksLoaded){
 
                 boolean succeeded = request.getAction().getAsBoolean();
                 if(succeeded){
-                    iterator.remove();
                     Utils.log("Chunk load request fulfilled");
                     this.unloadChunks(request.getChunkCoords(), request.getWorld());
+                    iterator.remove();
 
                 }else{
                     Utils.log("Chunks were loaded but request could not be fulfilled...");

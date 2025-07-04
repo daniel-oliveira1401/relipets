@@ -18,6 +18,13 @@ public class ChunkLoadRequest {
     private ServerWorld world;
     private List<Vec2f> chunkCoords;
     private BooleanSupplier action;
+    private int maxTries = 100;
+
+    public ChunkLoadRequest(ServerWorld world, List<Vec2f> chunkCoords, BooleanSupplier action){
+        this.world = world;
+        this.chunkCoords = chunkCoords;
+        this.action = action;
+    }
 
     static List<Vec2f> chunkAreaAroundCenterPoint(int centerX, int centerZ, int size) {
         List<Vec2f> chunkCoords = new ArrayList<>();

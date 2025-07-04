@@ -36,6 +36,7 @@ import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Colors;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -69,6 +70,24 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         return OwoUIAdapter.create(this, Containers::verticalFlow);
     }
 
+    public Surface getSlotSurface(int index, PetData petData){
+
+        Surface slotSurface = Surface.tiled(slotBg, slotSize+slotPadding*2, slotSize+slotPadding*2);
+
+        if(index == this.selectedSlot){
+            slotSurface = Surface.PANEL;
+        }
+
+        if(petData != null && petData.isSummoned()){
+            slotSurface = slotSurface.and(Surface.outline(0xff5DE2E7));
+        }
+
+
+        return  slotSurface;
+
+    }
+
+    int slotPadding = 3;
     public void buildSlots(){
         if(this.client == null || this.client.player == null || this.body == null) return;
 
@@ -76,23 +95,24 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         PetParty party = petOwner.getPetParty();
 
         for(int i = 0; i <party.getSlotManager().getSlotCount(); i++){
+            PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
 
             int currentRow = (int) Math.floor((double)i / columnCount);
 
             int currentColumn = i - currentRow * columnCount;
 
-            Surface slotSurface = Surface.tiled(slotBg, slotSize, slotSize);
+            Surface slotSurface = getSlotSurface(i, petData);
 
-            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
+            FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize+slotPadding*2), Sizing.fixed(slotSize+slotPadding*2));
+            slotContainer.padding(Insets.of(slotPadding));
             slotContainer.margins(Insets.both(5, 5));
+
             slotContainer.surface(slotSurface);
+
             int finalI = i;
             slotContainer.mouseDown().subscribe((a, b, c)-> this.onSlotClicked(finalI));
-            //.margins(Insets.right(slotSpacing));
 
             slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
-
-            PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
 
             if(petData != null && petData.getPetEntityData().isValid()){
                 Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
@@ -122,6 +142,8 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
             slotContainer.clearChildren();
 
             PetData petData = party.getSlotManager().getSlotAt(i).getContent();
+
+            slotContainer.surface(getSlotSurface(i, petData));
 
             if(petData != null && petData.getPetEntityData().isValid()){
                 Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
@@ -222,16 +244,19 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                         Components.button(Text.of("Level Points"), (b)-> openLevelPointsScreen()).sizing(Sizing.fill(100), Sizing.content())
                                 ).margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
-                        ).child(//TODO: make this exclusive for Cores
+                        ).child(
+                                Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
+                                        Components.button(Text.of("Summon"), (b)-> toggleSummonRecall()).sizing(Sizing.fill(100), Sizing.content()).id("stateBtn")
+                                ).margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
+                        ).child(
                                 Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                                                 Components.button(Text.of("Manage Parts"), (b)-> openPartManagementScreen())
                                                         .sizing(Sizing.fill(100), Sizing.content()).id("partsBtn")
                                         )
-                                        //cool effect, but not needed
                                         .child(
                                                 Components.box(Sizing.fixed(150), Sizing.fixed(20))
                                                         .color(Color.ofArgb(0x00000000)).fill(true)
-                                                        .positioning(Positioning.absolute(0, 0)).tooltip(Text.of("Only available for Modular Pets"))
+                                                        .positioning(Positioning.absolute(0, 0)).tooltip(Text.of("Only available for Modular Pets. Pet must be recalled."))
                                         )
                                         .margins(Insets.bottom(btnSpacing)).sizing(Sizing.fill(100), Sizing.content())
                         ).child(
@@ -259,6 +284,12 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         rootComponent.child(bodyContainer);
 
         onSlotClicked(this.party.getSelectedPetIndex());
+    }
+
+    private void toggleSummonRecall() {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeBoolean(true);
+        ClientPlayNetworking.send(C2SPacketHandlers.TOGGLE_SUMMON_PET, buf);
     }
 
     private void openPartManagementScreen() {
@@ -435,7 +466,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
         ButtonComponent partsBtn = this.rootComponent.childById(ButtonComponent.class, "partsBtn");
         if(partsBtn != null){
             if(this.selectedPetData != null){
-                if(this.selectedPetData.getPetEntityData().getEntityType().toLowerCase().contains("core")){
+                if(!this.selectedPetData.isSummoned() && this.selectedPetData.getPetEntityData().getEntityType().toLowerCase().contains("core")){
                     partsBtn.active(true);
                 }else{
                     partsBtn.active(false);
@@ -444,6 +475,20 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 partsBtn.active(false);
             }
 
+        }
+
+        ButtonComponent stateBtn = this.rootComponent.childById(ButtonComponent.class, "stateBtn");
+        if(stateBtn != null){
+            if(this.selectedPetData != null){
+                stateBtn.active(true);
+                if(selectedPetData.isSummoned()){
+                    stateBtn.setMessage(Text.of("Recall"));
+                }else{
+                    stateBtn.setMessage(Text.of("Summon"));
+                }
+            }else{
+                stateBtn.active(false);
+            }
         }
 
 
@@ -490,25 +535,25 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         sendPetSelectionToServer();
 
-        if(this.rootComponent != null){
-            if(body != null){
-
-                for(int i = 0; i < body.children().size(); i++){
-
-                    var slot = body.children().get(i);
-                    if(slot instanceof FlowLayout flowSlot){
-
-                        flowSlot.surface(Surface.tiled(slotBg, slotSize, slotSize));
-                        if(i == this.selectedSlot){
-                            flowSlot.surface(Surface.PANEL);
-                        }
-                    }
-
-                }
-
-
-            }
-        }
+//        if(this.rootComponent != null){
+//            if(body != null){
+//
+//                for(int i = 0; i < body.children().size(); i++){
+//
+//                    var slot = body.children().get(i);
+//                    if(slot instanceof FlowLayout flowSlot){
+//
+//                        flowSlot.surface(Surface.tiled(slotBg, slotSize, slotSize));
+//                        if(i == this.selectedSlot){
+//                            flowSlot.surface(Surface.PANEL);
+//                        }
+//                    }
+//
+//                }
+//
+//
+//            }
+//        }
 
         return true;
     }

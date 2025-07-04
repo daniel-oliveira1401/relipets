@@ -64,7 +64,7 @@ public class CoreComeCloseToOwnerBehavior extends SpecialBehavior {
 
             //entity is too far away. Teleport it close to the owner
             if(distance > this.tpDistance * this.tpDistance){
-                BlockPos safePosToTp = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), owner.getBlockPos(), 5, entity.getWorld().getRandom());
+                BlockPos safePosToTp = Utils.findRandomSafePositionAroundPlayer(entity, (ServerWorld) entity.getWorld(), owner.getBlockPos(), 5, entity.getWorld().getRandom());
 
                 if(safePosToTp == null){
                     safePosToTp = owner.getBlockPos();
@@ -79,7 +79,7 @@ public class CoreComeCloseToOwnerBehavior extends SpecialBehavior {
 
             }else if(distance > this.minDistance * this.minDistance){
                 //entity is far but not too far away
-                BlockPos positionNearPlayer = Utils.findRandomSafePositionAroundPlayer((ServerWorld) entity.getWorld(), owner.getBlockPos(), 5, entity.getWorld().getRandom());
+                BlockPos positionNearPlayer = Utils.findRandomSafePositionAroundPlayer(entity, (ServerWorld) entity.getWorld(), owner.getBlockPos(), 5, entity.getWorld().getRandom());
 
                 if(positionNearPlayer != null){
                     entity.getNavigation().startMovingTo(positionNearPlayer.getX(), positionNearPlayer.getY(),positionNearPlayer.getZ(), entity.getMovementSpeed());

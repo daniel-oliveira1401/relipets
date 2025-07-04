@@ -51,7 +51,9 @@ public class KeyBindingsRegistry {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
 
             if(client.player != null && toggleCurrentPetSummonStateKeyBinding.wasPressed() && client.player.getMainHandStack().getItem() instanceof Petificator){
-                ClientPlayNetworking.send(C2SPacketHandlers.TOGGLE_SUMMON_PET, PacketByteBufs.empty());
+                PacketByteBuf buf = PacketByteBufs.create();
+                buf.writeBoolean(false);
+                ClientPlayNetworking.send(C2SPacketHandlers.TOGGLE_SUMMON_PET, buf);
             }
 
             if(client.player != null && openPetConfigurationScreen.wasPressed() && client.player.getMainHandStack().getItem() instanceof Petificator){

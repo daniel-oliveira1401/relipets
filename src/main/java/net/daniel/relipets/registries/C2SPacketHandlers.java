@@ -19,6 +19,7 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -228,11 +229,21 @@ public class C2SPacketHandlers {
         });
 
         ServerPlayNetworking.registerGlobalReceiver(TOGGLE_SUMMON_PET, (server, player, handler, buf, responseSender) -> {
+
+            boolean spawnAtPlayerPos = buf.readBoolean();
+
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                Vec3d pos;
 
-                petOwnerSystem.getPetParty().toggleSummonSelectedPet((ServerWorld) player.getWorld(), player.raycast(30, 1, false).getPos(), player);
+                if(spawnAtPlayerPos){
+                    pos = player.getBlockPos().up().toCenterPos();
+                }else{
+                    pos = player.raycast(30, 1, false).getPos();
+                }
+
+                petOwnerSystem.getPetParty().toggleSummonSelectedPet((ServerWorld) player.getWorld(), pos, player);
 
 
             });

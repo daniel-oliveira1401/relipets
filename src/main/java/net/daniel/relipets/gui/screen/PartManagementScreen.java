@@ -21,6 +21,7 @@ import net.daniel.relipets.cca_components.pet_management.progression.StatsOperat
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.registries.C2SPacketHandlers;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
+import net.daniel.relipets.utils.Utils;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.gui.DrawContext;
@@ -59,7 +60,14 @@ public class PartManagementScreen extends BaseOwoHandledScreen<FlowLayout, PartM
     @Override
     protected void build(FlowLayout rootComponent) {
         this.sub = (p)-> {
-            this.petData = p.getSlotManager().getSlotAt(this.handler.getPetSlot()).getContent();
+            if(this.invalidSlot){
+                this.slot = p.getSelectedPetIndex();
+                this.buildForReal();
+                invalidSlot = false;
+            }
+
+            this.petData = p.getSlotManager().getSlotAt(this.slot).getContent();
+
             this.rootComponent.queue(()-> {
                 //run update code here
                 FlowLayout entityContainer = this.rootComponent.childById(FlowLayout.class, "entityContainer");
@@ -81,13 +89,15 @@ public class PartManagementScreen extends BaseOwoHandledScreen<FlowLayout, PartM
 
         if(this.client == null || this.client.player == null) return;
 
+        ClientPlayNetworking.send(C2SPacketHandlers.GET_PARTY, PacketByteBufs.empty());
+
     }
 
     public void buildForReal(){
         if(this.client == null || this.client.player == null) return;
 
         PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
-        this.petData = petOwnerComponent.getPetParty().getSlotManager().getSlotAt(this.handler.getPetSlot()).getContent();
+        this.petData = petOwnerComponent.getPetParty().getSlotManager().getSlotAt(this.slot).getContent();
 
 
 
@@ -161,17 +171,17 @@ public class PartManagementScreen extends BaseOwoHandledScreen<FlowLayout, PartM
     }
 
     @Override
+    public void render(DrawContext vanillaContext, int mouseX, int mouseY, float delta) {
+        try{
+            super.render(vanillaContext, mouseX, mouseY, delta);
+        }catch (Exception e){
+            Utils.log("Owo exploded...");
+        }
+    }
+
+    @Override
     protected void handledScreenTick() {
         super.handledScreenTick();
-        if(this.invalidSlot){
-            this.slot = this.handler.getPetSlot();
-
-            if(this.slot != -1){
-                this.invalidSlot = false;
-                this.buildForReal();
-            }
-
-        }
     }
 
     //TODO: update slots when server pushes changes to client
