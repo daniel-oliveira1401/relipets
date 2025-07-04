@@ -83,11 +83,9 @@ public class CyanCoreProjectile extends PersistentProjectileEntity implements Ge
                 entityHit.setAttacker(this.attacker);
 
             }
-
-
         }
-        this.remove(RemovalReason.DISCARDED);
 
+        this.remove(RemovalReason.DISCARDED);
 
     }
 

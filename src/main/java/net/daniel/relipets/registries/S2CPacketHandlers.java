@@ -7,6 +7,7 @@ import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsOperationEnum;
+import net.daniel.relipets.gui.screen.PetSpectatorScreen;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -19,6 +20,7 @@ import java.util.Optional;
 public class S2CPacketHandlers {
 
     public static final Identifier PARTY_UPDATE = new Identifier(Relipets.MOD_ID, "party_update");
+    public static final Identifier REOPEN_SPECTATOR_SCREEN = new Identifier(Relipets.MOD_ID, "reopen_spectator_screen");
 
     public static void onInitialize(){
 
@@ -37,6 +39,22 @@ public class S2CPacketHandlers {
 
             PetPartyUpdateNotifier.getInstance().emit(party);
 
+
+        });
+
+        ClientPlayNetworking.registerGlobalReceiver(REOPEN_SPECTATOR_SCREEN, (client, handler, buf, sender) -> {
+
+            if(client.player == null) return;
+
+            int slot = buf.readInt();
+            NbtCompound petDataNbt = buf.readNbt();
+            if(petDataNbt != null){
+                PetData petData = new PetData();
+                petData.readFromNbt(petDataNbt);
+                client.execute(()-> {
+                    client.setScreen(new PetSpectatorScreen(slot, petData));
+                });
+            }
 
         });
 

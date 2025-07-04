@@ -1,33 +1,17 @@
 package net.daniel.relipets.entity.cores;
 
-import net.daniel.relipets.cca_components.PartSystemComponent;
-import net.daniel.relipets.cca_components.parts.PetPart;
+
 import net.daniel.relipets.entity.cores.related_entities.CyanCoreProjectile;
-import net.daniel.relipets.items.PartItem;
-import net.daniel.relipets.items.PartItemFactory;
-import net.daniel.relipets.registries.CardinalComponentsRegistry;
-import net.daniel.relipets.registries.RelipetsConstantsRegistry;
+
 import net.daniel.relipets.registries.RelipetsEntityRegistry;
-import net.daniel.relipets.registries.RelipetsItemRegistry;
+
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.*;
-import net.minecraft.entity.ai.goal.LookAtEntityGoal;
-import net.minecraft.entity.ai.goal.WanderAroundGoal;
-import net.minecraft.entity.attribute.EntityAttributes;
+
 import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.AbstractFireballEntity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.entity.projectile.SmallFireballEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ShearsItem;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import software.bernie.geckolib.constant.DefaultAnimations;
+
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.core.animation.AnimationController;
@@ -80,7 +64,7 @@ public class CyanCore extends BaseCore {
 
     @Override
     public void performBasicAttack(LivingEntity attackTarget) {
-        Vec3d direction = attackTarget.getPos().subtract(this.getPos()).normalize();
+        Vec3d direction = attackTarget.getEyePos().subtract(this.getPos()).normalize();
 
         CyanCoreProjectile proj = new CyanCoreProjectile(RelipetsEntityRegistry.CYAN_CORE_PROJECTILE, this.getWorld());
         proj.setAttacker(this);

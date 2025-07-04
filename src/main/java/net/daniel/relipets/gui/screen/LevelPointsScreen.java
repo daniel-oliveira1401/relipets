@@ -25,6 +25,8 @@ import org.jetbrains.annotations.Nullable;
 
 public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
+    private PetData pet;
+    private final int slot;
     String statCurrentValueSuffix = "_current_value";
 
     BaseOwoScreen<?> parent;
@@ -35,8 +37,10 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
     FlowLayout rootComponent;
 
-    public LevelPointsScreen(@NotNull BaseOwoScreen<?> parent){
+    public LevelPointsScreen(@NotNull BaseOwoScreen<?> parent, PetData pet, int slot){
         this.parent = parent;
+        this.pet = pet;
+        this.slot = slot;
     }
 
     @Override
@@ -65,15 +69,16 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
 
         if(this.client == null || this.client.player == null) return;
 
-        PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
-        PetData selectedPet = petOwner.getPetParty().getSelectedPet();
+        PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
+        PetData petData = petOwnerComponent.getPetParty().getSlotManager().getSlotAt(slot).getContent();
+        this.pet = petData;
 
-        if(selectedPet != null && selectedPet.isSummonedNoEntityValidation()){
+        if(this.pet != null && this.pet.isSummonedNoEntityValidation()){
 
-            PetMetadataComponent petMetadata = selectedPet.getPetEntityData().getMetadata(this.client.player.getWorld());
+            PetMetadataComponent petMetadata = this.pet.getPetEntityData().getMetadata(this.client.player.getWorld());
             if(petMetadata != null){
 
-                buildParams(rootComponent, petMetadata, selectedPet);
+                buildParams(rootComponent, petMetadata, this.pet);
 
                 buildPointsLeftLabel();
 
@@ -147,7 +152,7 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
         if(!this.invalid && this.client != null && this.client.player != null){
             //update the contents of the screen that need to be updated
             PetOwnerComponent petOwner = CardinalComponentsRegistry.PET_OWNER_KEY.get(this.client.player);
-            PetData selectedPet = petOwner.getPetParty().getSelectedPet();
+            PetData selectedPet = petOwner.getPetParty().getSlotManager().getSlotAt(slot).getContent();
 
             if(selectedPet != null && selectedPet.isSummonedNoEntityValidation()){
 

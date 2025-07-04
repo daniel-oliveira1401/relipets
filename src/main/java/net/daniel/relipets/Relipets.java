@@ -1,5 +1,6 @@
 package net.daniel.relipets;
 
+import net.daniel.relipets.cca_components.PartSystem;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.config.RelipetsConfig;
@@ -9,10 +10,14 @@ import net.daniel.relipets.entity.brain.sensor.RelipetsSensorTypes;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.entity.cores.YellowCore;
 import net.daniel.relipets.events.PetFaintedCallback;
+import net.daniel.relipets.items.Petificator;
 import net.daniel.relipets.registries.*;
 import net.daniel.relipets.utils.SetTimeoutManager;
+import net.daniel.relipets.utils.Utils;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
@@ -20,9 +25,13 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -53,6 +62,7 @@ public class Relipets implements ModInitializer {
 
 		TrackedDataHandlerRegistry.register(YellowCore.YELLOW_CORE_STATS_HANDLER);
 		TrackedDataHandlerRegistry.register(BaseCore.ABILITY_STATS_HANDLER);
+		TrackedDataHandlerRegistry.register(BaseCore.PART_SYSTEM_HANDLER);
 
 		RelipetsEntityRegistry.onInitialize();
 
@@ -91,11 +101,32 @@ public class Relipets implements ModInitializer {
 
 		});
 
+		//TODO: change this to only recall pets in the "following" mode
 		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, oldWorld, newWorld) -> {
-			System.out.println("Player went from "+ oldWorld.getDimensionKey().getValue().toString() + " to " + newWorld.getDimensionKey().getValue().toString());
+			Utils.log("Player went from "+ oldWorld.getDimensionKey().getValue().toString() + " to " + newWorld.getDimensionKey().getValue().toString());
 			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
-			petOwnerComponent.getPetParty().recallAllPets(oldWorld, player);
+			petOwnerComponent.getPetParty().recallFollowingPets(oldWorld, player);
 		});
+
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			ServerPlayerEntity player = handler.player;
+			// revert player state or store current state for restore later
+			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+			if(petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
+				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
+				petOwnerComponent.getPetParty().getChunkLoadManager().cleanupUnfulfilledRequests();
+			}
+		});
+
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			ServerPlayerEntity player = handler.player;
+			// check if player should be restored to normal state
+			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+			if(petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
+				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
+			}
+		});
+
 
 
 

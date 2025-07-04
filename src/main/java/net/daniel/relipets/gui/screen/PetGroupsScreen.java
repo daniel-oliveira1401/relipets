@@ -43,6 +43,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
     int disabledSlotColor = 0xffdd5555;
     private PetParty party;
+    private boolean requiresUpdate;
 
     public PetGroupsScreen(BaseOwoScreen<FlowLayout> parent){
         this.parent = parent;
@@ -65,7 +66,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         this.sub = (p)-> {
             this.rootComponent.queue(()-> {
                 this.party = p;
-                onPartyUpdated(p);
+                this.requiresUpdate = true;
             });
         };
 
@@ -185,19 +186,11 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void updateGroup(PetParty party, PetGroup group, FlowLayout groupContainer) {
-        //handle updating group name (not needed because the input field already contains the text)
-        //TextBoxComponent groupName = groupContainer.childById(TextBoxComponent.class, "groupName");
-        //if(groupName != null){
-            //groupName.text(group.getName());
-        //}
 
         //handle updating the buttons
         ButtonComponent groupModeBtn = groupContainer.childById(ButtonComponent.class, "groupModeBtn");
         if(groupModeBtn != null){
-
             groupModeBtn.setMessage(Text.of("Mode: " + getCurrentGroupMoveMode(party, group)));
-
-
         }
 
         //handle updating group slots
@@ -351,7 +344,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
             EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
-            EntityComponent component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
+            EntityComponent<LivingEntity> component = Components.entity(Sizing.fixed(slotSize), entityType, petData.getPetEntityData().getEntityNbt())
                     .scaleToFit(true);
 
             slotContainer.child(
@@ -371,7 +364,6 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private boolean openColorPicker(PetGroup group) {
-        System.out.println("Open color picker :)");
         ColorPickerComponent colorPicker = new ColorPickerComponent();
         colorPicker.selectedColor(Color.ofArgb(group.getColor()));
         colorPicker.onChanged().subscribe((color)-> setGroupColor(group, color));
@@ -404,7 +396,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
             var container = Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                     Components.label(Text.of("Select the slot to Remove from the group "+ group.getName())).maxWidth(150).margins(Insets.bottom(5))
             ).child(
-                    grid
+                    Containers.verticalScroll(Sizing.content(), Sizing.fixed(200), grid)
             );
 
             container.horizontalAlignment(HorizontalAlignment.CENTER);
@@ -438,7 +430,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
             var container = Containers.verticalFlow(Sizing.content(), Sizing.content()).child(
                     Components.label(Text.of("Select the slot to Add to the group "+ group.getName())).maxWidth(150).margins(Insets.bottom(5))
             ).child(
-                    grid
+                    Containers.verticalScroll(Sizing.content(), Sizing.fixed(200), grid)
             );
 
             container.horizontalAlignment(HorizontalAlignment.CENTER);
@@ -533,7 +525,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
             FlowLayout slotContainer = Containers.verticalFlow(Sizing.fixed(slotSize), Sizing.fixed(slotSize));
             slotContainer.margins(Insets.both(5, 5));
 
-            if(group.getSlots().contains(Integer.valueOf(i))){
+            if(group.getSlots().contains(i)){
                 slotSurface = Surface.flat(disabledSlotColor);
             }else{
                 int finalI = i;
@@ -585,7 +577,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
             slotContainer.margins(Insets.both(5, 5));
 
 
-            if(!group.getSlots().contains(Integer.valueOf(i))){
+            if(!group.getSlots().contains(i)){
                 slotSurface = Surface.flat(this.disabledSlotColor);
             }else{
                 int finalI = i;
@@ -670,13 +662,14 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         try{
-
             super.render(context, mouseX, mouseY, delta);
+            if(this.requiresUpdate){
+                this.requiresUpdate = false;
+                onPartyUpdated(this.party);
+            }
         }catch (Exception e){
-            System.out.println("Owo lib exploded");
+            Utils.log("Owo lib exploded");
         }
-        //iterate over the slots
-        //  if the slot index matches the selected slot, then paint it with another color
 
     }
 

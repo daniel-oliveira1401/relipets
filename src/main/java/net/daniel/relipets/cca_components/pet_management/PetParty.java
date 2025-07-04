@@ -10,28 +10,22 @@ import net.daniel.relipets.registries.RelipetsItemRegistry;
 import net.daniel.relipets.registries.S2CPacketHandlers;
 import net.daniel.relipets.utils.Utils;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
-
-/*
-
-How unlocking more slots will work:
-
-    player crafts an item
-
-    When the player uses the item, the item is consumed and the player gets one more slot
-
- */
 
 public class PetParty implements ISerializable {
 
@@ -57,22 +51,37 @@ public class PetParty implements ISerializable {
     int petSummonCooldown = 0;
     int naturalHealingCooldown = 0;
 
+    @Getter
+    private SpectatorModeData spectatorModeData;
+
+    @Getter
+    private ChunkLoadManager chunkLoadManager = new ChunkLoadManager();
+
     public PetParty(PlayerEntity player){
         this.player = player;
     }
 
     public void tick(ServerWorld world){
 
+        checkChunkLoadRequests();
+
         List<PetSlot<PetData>> slotsWithPets = this.getSlotManager().getSlotsWithContent();
         List<PetData> summonedPets = getSummonedPets(slotsWithPets);
 
         tickPets(slotsWithPets, world);
 
-        updateParty(slotsWithPets);
+        updateParty(slotsWithPets, world.getServer());
 
-        applyHealingToSummonedPetsIfPossible(summonedPets);
+        applyHealingToSummonedPetsIfPossible(summonedPets, world.getServer());
 
         tickCooldowns();
+
+    }
+
+    private void checkChunkLoadRequests() {
+
+        if(!chunkLoadManager.requests.isEmpty())
+            this.chunkLoadManager.processActiveRequestsIfAny();
 
     }
 
@@ -91,12 +100,12 @@ public class PetParty implements ISerializable {
 
     }
 
-    private void updateParty(List<PetSlot<PetData>> slotsWithPets) {
+    private void updateParty(List<PetSlot<PetData>> slotsWithPets, MinecraftServer server) {
         if(partyUpdateCooldown <= 0){
             for(PetSlot<PetData> slot : slotsWithPets){
                 PetData petData = slot.getContent();
                 if(petData != null)
-                    petData.updateVolatilePetInfoIfPossible();
+                    petData.updateVolatilePetInfoIfPossible(server);
             }
             partyUpdateCooldown = 5;
             onPetPartyModifiedListener.onPetPartyEvent();
@@ -107,19 +116,19 @@ public class PetParty implements ISerializable {
         for(PetSlot<PetData> slot : slotsWithPets){
             PetData petData = slot.getContent();
             if(petData != null){
-                petData.tick(world, player);
+                petData.tick(this, world, player);
             }
 
         }
     }
 
-    public void applyHealingToSummonedPetsIfPossible(List<PetData> summonedPets){
+    public void applyHealingToSummonedPetsIfPossible(List<PetData> summonedPets, MinecraftServer server){
         if(naturalHealingCooldown == 0) {
             List<PetData> healablePets = summonedPets.stream()
                     .filter((p)-> p.getPetInfo().getCurrentHealth() < p.getPetInfo().getMaxHealth()).toList();
 
             for(PetData pet : healablePets){
-                pet.applyNaturalHealing();
+                pet.applyNaturalHealing(server);
             }
 
             naturalHealingCooldown = 40;
@@ -130,6 +139,13 @@ public class PetParty implements ISerializable {
 
     public void pushChangesToClient(){
         if(player instanceof ServerPlayerEntity serverPlayer){
+            this.getSlotManager().getSlotsWithContent().forEach((p)-> {
+                PetData petData = p.getContent();
+                if(petData != null && petData.isSummoned()){
+                    petData.getPetEntityData().saveEntityData(player.getServer());
+                }
+            });
+
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeNbt(this.writeToNbt());
             serverPlayer.networkHandler.sendPacket(new CustomPayloadS2CPacket(S2CPacketHandlers.PARTY_UPDATE, buf));
@@ -156,6 +172,8 @@ public class PetParty implements ISerializable {
         this.selectedPetIndex = nbt.getInt(SELECTED_PET_INDEX);
 
         this.petGroupManager = new PetGroupManager(nbt.getCompound(PET_GROUP_MANAGER));
+
+        this.spectatorModeData = new SpectatorModeData(nbt.getCompound("spectatorModeData"));
     }
 
     public NbtCompound writeToNbt(){
@@ -171,6 +189,9 @@ public class PetParty implements ISerializable {
 
         if(this.petGroupManager != null)
             nbt.put(PET_GROUP_MANAGER, this.petGroupManager.writeToNbt());
+        if(this.spectatorModeData != null){
+            nbt.put("spectatorModeData", this.spectatorModeData.writeToNbt());
+        }
 
         return nbt;
     }
@@ -181,7 +202,12 @@ public class PetParty implements ISerializable {
         return this.getSlotManager().getSlotAt(this.selectedPetIndex).getContent();
     }
 
-    public void cyclePetSlot(int direction){
+    public void setSelectedPetIndex(int index){
+        this.selectedPetIndex = index;
+        this.onPetPartyModifiedListener.onPetPartyEvent();
+    }
+
+    public void cyclePetSlot(int direction, MinecraftServer server){
         //-1 -> scroll down (should go to the right)
         //1 -> scroll up (should go to the left)
 
@@ -192,7 +218,7 @@ public class PetParty implements ISerializable {
         Relipets.LOGGER.debug("Selected pet index: " + this.selectedPetIndex);
 
         if(this.getSelectedPet() != null && this.getSelectedPet().isSummoned()){
-            this.getSelectedPet().addHighlight();
+            this.getSelectedPet().addHighlight(server);
         }
         this.onPetPartyModifiedListener.onPetPartyEvent();
     }
@@ -210,7 +236,7 @@ public class PetParty implements ISerializable {
         boolean operationExecuted = false;
 
         if(selectedPet.isSummoned()){
-            selectedPet.recall(world, player);
+            selectedPet.recall(this,world, player);
             operationExecuted = true;
         }else if (selectedPet.isRecalled()){
             selectedPet.summon(world, pos, player);
@@ -236,7 +262,7 @@ public class PetParty implements ISerializable {
         PetData petData = getPetByEntityUUID(petEntity.getUuidAsString());
         if(petData != null){
 
-            petData.onFaint(petEntity, world, player);
+            petData.onFaint(this, petEntity, world, player);
             Relipets.LOGGER.debug("Recalled pet that was about to die");
             Utils.message("Pet " + petData.getPetInfo().getPetName() + " fainted! They are healing now...", player);
         }else{
@@ -258,24 +284,24 @@ public class PetParty implements ISerializable {
 
     public void addPetToParty(LivingEntity entity, PlayerEntity player){
 
-
-        PetData newPet = new PetData();
-        newPet.fillFromEntity(entity, player);
-
         if(this.getSlotManager().getSlotAt(this.selectedPetIndex).isEmpty()){
+            PetData newPet = new PetData();
+            newPet.fillFromEntity(entity, player);
             this.getSlotManager().getSlotAt(this.selectedPetIndex).setContent(newPet);
             Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
-            newPet.updateVolatilePetInfoIfPossible();
-            newPet.recall((ServerWorld) entity.getWorld(), player);
+            newPet.updateVolatilePetInfoIfPossible(player.getServer());
+            newPet.recall(this,(ServerWorld) entity.getWorld(), player);
         }else{
 
             //search for a slot
             PetSlot<PetData> emptySlot = this.getSlotManager().getFirstEmptySlot();
             if(emptySlot != null){
+                PetData newPet = new PetData();
+                newPet.fillFromEntity(entity, player);
                 emptySlot.setContent(newPet);
                 Utils.message("Added " + entity.getDisplayName().getString() + " to party!", player);
-                newPet.updateVolatilePetInfoIfPossible();
-                newPet.recall((ServerWorld) entity.getWorld(), player);
+                newPet.updateVolatilePetInfoIfPossible(player.getServer());
+                newPet.recall(this, (ServerWorld) entity.getWorld(), player);
             }else{
                 Utils.message("There's no slot available for this pet. Either craft more slots or free up existing ones.", player);
             }
@@ -287,7 +313,7 @@ public class PetParty implements ISerializable {
 
     }
 
-    public void releasePetFromParty(PetData pet){
+    public void releasePetFromParty(PetData pet, MinecraftServer server){
         int petIndex = -1;
         int currentIndex = 0;
         for(PetSlot<PetData> slot : this.getSlotManager().getSlots()){
@@ -307,42 +333,24 @@ public class PetParty implements ISerializable {
         }
 
         PetData petToBeReleased = this.getSlotManager().getSlotAt(petIndex).getContent();
-
-        if(petToBeReleased != null && petToBeReleased.getPetEntityData().getEntity() != null){
-            PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(petToBeReleased.getPetEntityData().getEntity());
-            petMetadata.clearPlayerUUID();
-        }
-
         if(petToBeReleased != null){
+            LivingEntity petEntity = petToBeReleased.getPetEntityData().getEntity(server);
+
+            if(petEntity  != null){
+                PetMetadataComponent petMetadata = CardinalComponentsRegistry.PET_METADATA_KEY.get(petEntity);
+                petMetadata.clearPlayerUUID();
+            }
+
             Utils.message("Released "+ petToBeReleased.getPetInfo().getPetName() + " from party", player);
             petToBeReleased.summonForRelease((ServerWorld) player.getWorld(), player.getPos(), player);
             this.getSlotManager().getSlotAt(petIndex).clear();
 
         }
-
         triggerOnPartyModifiedEvent();
         this.pushChangesToClient();
 
         Relipets.LOGGER.debug("Pet released");
 
-    }
-
-    public void removeSelectedPetFromParty(ServerWorld world, Vec3d pos, PlayerEntity player){
-
-        PetData selectedPet = this.getSelectedPet();
-
-        if(selectedPet == null){
-            Relipets.LOGGER.debug("There is no pet in this slot to remove from party");
-            return;
-        }
-
-        if(selectedPet.isRecalled()){
-            selectedPet.summon(world, pos, player);
-        }
-
-        this.getSlotManager().getSlotAt(selectedPetIndex).clear();
-
-        triggerOnPartyModifiedEvent();
     }
 
     public void reorderPets(int originIndex, int destinationIndex) {
@@ -370,7 +378,7 @@ public class PetParty implements ISerializable {
     }
 
     public void recallAllPets(ServerWorld world, PlayerEntity player) {
-        this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).forEach((p)-> p.recall(world, player));
+        this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).forEach((p)-> p.recall(this, world, player));
     }
 
     public void summonGroup(UUID uuid, ServerWorld world, Vec3d pos, PlayerEntity player) {
@@ -401,7 +409,7 @@ public class PetParty implements ISerializable {
                     PetData petData = this.getSlotManager().getSlotAt(slot).getContent();
 
                     if(petData != null){
-                        petData.recall(world, player);
+                        petData.recall(this, world, player);
                     }
                 }
 
@@ -411,11 +419,11 @@ public class PetParty implements ISerializable {
         }
     }
 
-    public void renamePet(int slot, String name) {
+    public void renamePet(int slot, String name, MinecraftServer server) {
         PetData pet = this.getSlotManager().getSlotAt(slot).getContent();
         if(pet != null){
 
-            pet.renamePet(name);
+            pet.renamePet(name, server);
 
             this.onPetPartyModifiedListener.onPetPartyEvent();
             this.pushChangesToClient();
@@ -451,28 +459,89 @@ public class PetParty implements ISerializable {
 
     }
 
+    public void loadAreaAroundPet(int slot, ServerPlayerEntity serverPlayer) {
+        PetData petData = this.getSlotManager().getSlotAt(slot).getContent();
+        if(petData != null){
+            petData.getPetEntityData().loadAreaAroundEntity(serverPlayer.getServer(), this);
+            this.spectatorModeData = new SpectatorModeData(
+                    serverPlayer.getBlockPos(),
+                    serverPlayer.interactionManager.getGameMode(),
+                    (ServerWorld) serverPlayer.getWorld(),
+                    true,
+                    slot
+            );
+            serverPlayer.changeGameMode(GameMode.SPECTATOR);
+            serverPlayer.teleport(
+                    petData.getPetEntityData().getTracker().getWorld(serverPlayer.getServer()),
+                    petData.getPetEntityData().getTracker().getPosition().getX(),
+                    petData.getPetEntityData().getTracker().getPosition().getY(),
+                    petData.getPetEntityData().getTracker().getPosition().getZ(),
+                    0,0
+                    );
+
+            if(!this.spectatorModeData.getOriginalWorld(serverPlayer.getServer()).getRegistryKey().getValue().toString().equals(
+                    petData.getPetEntityData().getTracker().getDimension().toString()
+            )){
+                //player and entity are in different dimensions. Must send a reopen spectator screen packet
+                PacketByteBuf buf = PacketByteBufs.create();
+                buf.writeInt(slot);
+                buf.writeNbt(petData.writeToNbt());
+                ServerPlayNetworking.send(serverPlayer, S2CPacketHandlers.REOPEN_SPECTATOR_SCREEN, buf);
+            }
+
+        }
+    }
+
+    public void unloadAreaAroundPet(int slot, ServerPlayerEntity serverPlayer) {
+
+        serverPlayer.teleport(
+                this.getSpectatorModeData().getOriginalWorld(serverPlayer.getServer()),
+                this.getSpectatorModeData().getOriginalPos().getX(),
+                this.getSpectatorModeData().getOriginalPos().getY(),
+                this.getSpectatorModeData().getOriginalPos().getZ(),
+                0, 0
+        );
+        serverPlayer.changeGameMode(this.spectatorModeData.getOriginalGameMode());
+        this.spectatorModeData.setSpectating(false);
+
+        PetData petData = this.getSlotManager().getSlotAt(slot).getContent();
+        if(petData != null){
+            petData.getPetEntityData().unloadAreaAroundEntity(serverPlayer.getServer());
+        }
+    }
+
+    public void recallFollowingPets(ServerWorld world, ServerPlayerEntity player) {
+
+        this.getSummonedPets(this.getSlotManager().getSlotsWithContent()).stream()
+                .filter((p)-> p.getMoveMode() == PetMoveMode.FOLLOWING).forEach((p)-> p.recall(this, world, player));
+
+    }
+
+    public void teleportSelectedPetToBlock(BlockPos blockPos, ServerWorld world) {
+        PetData pet = this.getSelectedPet();
+
+        if(pet != null){
+            if(pet.isSummoned()){
+                pet.getPetEntityData().requestTeleportTo(this, world.getServer(),  blockPos);
+            }
+        }
+    }
+
     public interface PetPartyEventListener{
         void onPetPartyEvent();
     }
-
-
 
 }
 
 /*
 
-Idea: add "following modes" to pets. A pet can be following their owner or they can be wandering around.
-If they are following the owner, they will tp to the owner once they get too far away.
-If they are wandering around, they will not tp to the owner once you get far away from them.
+What is needed for the pet part management screen:
 
-For that, we would also need a way to locate wandering pets. To do so we can add an option in the
-pet management screen called "Locate Pet" and that would say in the chat where the pet is
+A way to interact with an entity when they are not summoned.
 
+    - Whenever an interaction with that entity is needed, we create the entity by reading its nbt data.
+    - We then perform the interaction needed.
+    - Then we finish the interaction by saving the entity to nbt again
 
-TODO: make the locator shoot a slow moving projectile that will go towards the direction of where the pet was last
-seen when you use the locator button
-
-TODO:Fix move mode button.
-
-TODO: make pet management screen look better
  */
+

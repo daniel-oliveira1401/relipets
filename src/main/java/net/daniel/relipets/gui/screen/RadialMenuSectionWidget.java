@@ -164,38 +164,11 @@ public class RadialMenuSectionWidget extends ClickableWidget {
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        System.out.println("Mouse released!!");
-        return super.mouseReleased(mouseX, mouseY, button);
-    }
-
-    @Override
     public void onClick(double mouseX, double mouseY) {
         this.onClickCall.run();
 
     }
 
-//    boolean isPointInTriangle(double x, double y) {
-//        //TODO: change this logic to use the angle of the cursor relative to the
-//        //center point instead of calculating if it is inside the triangle
-//        if(new Vec2f((float) x, (float) y).add(this.pointC.negate()).lengthSquared() < 16) return false;
-//
-//        double x1 = this.pointA.x;
-//        double y1 = this.pointA.y;
-//
-//        double x2 = this.pointB.x;
-//        double y2 = this.pointB.y;
-//
-//        double x3 = this.pointC.x;
-//        double y3 = this.pointC.y;
-//
-//        double denominator = ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
-//        double a = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / denominator;
-//        double b = ((y3 - y1)*(x - x3) + (x1 - x3)*(y - y3)) / denominator;
-//        double c = 1 - a - b;
-//
-//        return (a >= 0) && (b >= 0) && (c >= 0);
-//    }
     boolean isPointInTriangle(double x, double y) {
 
         double degrees = angleClockwiseDegrees(0, -this.length, x - originX, y - originY);

@@ -1,6 +1,7 @@
 package net.daniel.relipets.utils;
 
 import net.daniel.relipets.Relipets;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -68,4 +69,9 @@ public class Utils {
         return shape.isEmpty() && shapeAbove.isEmpty();
     }
 
+    public static void log(String s) {
+        if(FabricLoader.getInstance().isDevelopmentEnvironment()){
+            System.out.println(s);
+        }
+    }
 }
