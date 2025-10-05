@@ -1,0 +1,142 @@
+package net.daniel.relipets;
+
+import net.daniel.relipets.cca_components.PartSystem;
+import net.daniel.relipets.cca_components.PetMetadataComponent;
+import net.daniel.relipets.cca_components.PetOwnerComponent;
+import net.daniel.relipets.config.RelipetsConfig;
+import net.daniel.relipets.entity.brain.activity.CoreCustomActivities;
+import net.daniel.relipets.entity.brain.memory.RelipetsMemoryTypes;
+import net.daniel.relipets.entity.brain.sensor.RelipetsSensorTypes;
+import net.daniel.relipets.entity.cores.BaseCore;
+import net.daniel.relipets.entity.cores.YellowCore;
+import net.daniel.relipets.events.PetFaintedCallback;
+import net.daniel.relipets.items.Petificator;
+import net.daniel.relipets.registries.*;
+import net.daniel.relipets.utils.SetTimeoutManager;
+import net.daniel.relipets.utils.Utils;
+import net.fabricmc.api.ModInitializer;
+
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.WorldEvents;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import net.fabricmc.api.ModInitializer;
+
+import java.util.UUID;
+
+public class Relipets implements ModInitializer {
+
+	public static final String MOD_ID = "relipets";
+
+	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+	public static final RelipetsConfig CONFIG = RelipetsConfig.createAndLoad();
+
+	public Relipets() {
+		
+	}
+
+	@Override
+	public void onInitialize() {
+		LOGGER.info("Hello Fabric world!");
+		RelipetsItemRegistry.onInitialize();
+		CardinalComponentsRegistry.onInitialize();
+
+		TrackedDataHandlerRegistry.register(YellowCore.YELLOW_CORE_STATS_HANDLER);
+		TrackedDataHandlerRegistry.register(BaseCore.ABILITY_STATS_HANDLER);
+		TrackedDataHandlerRegistry.register(BaseCore.PART_SYSTEM_HANDLER);
+
+		RelipetsEntityRegistry.onInitialize();
+
+		C2SPacketHandlers.onInitialize();
+
+		CoreCustomActivities.init();
+
+		RelipetsSensorTypes.init();
+
+		RelipetsMemoryTypes.init();
+
+		PetPartRegistry.onInitialize();
+
+		ServerTickEvents.END_SERVER_TICK.register(server -> SetTimeoutManager.tickActiveTimeouts());
+
+		PetFaintedCallback.EVENT.register((pet)->{
+			Relipets.LOGGER.debug("Pet entity died (inside listener)");
+
+			PetMetadataComponent petMetadataComponent = CardinalComponentsRegistry.PET_METADATA_KEY.get(pet);
+
+			String ownerUUID = petMetadataComponent.getPlayerUUID();
+
+            Relipets.LOGGER.debug("Owner is: {}", ownerUUID);
+
+			if(!pet.getWorld().isClient() && pet.getWorld() instanceof ServerWorld world){
+				ServerPlayerEntity player = (ServerPlayerEntity) world.getPlayerByUuid(UUID.fromString(ownerUUID));
+				if(player != null){
+					PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+					petOwnerComponent.getPetParty().onPetFainted(pet, world);
+
+				}else{
+					Relipets.LOGGER.debug("Could not find the player bound to this pet using UUID");
+				}
+
+			}
+
+		});
+
+		//TODO: change this to only recall pets in the "following" mode
+		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, oldWorld, newWorld) -> {
+			Utils.log("Player went from "+ oldWorld.getDimensionKey().getValue().toString() + " to " + newWorld.getDimensionKey().getValue().toString());
+			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+			petOwnerComponent.getPetParty().recallFollowingPets(oldWorld, player);
+		});
+
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			ServerPlayerEntity player = handler.player;
+			// revert player state or store current state for restore later
+			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+			if(
+					petOwnerComponent.getPetParty() != null &&
+					petOwnerComponent.getPetParty().getSpectatorModeData() != null &&
+					petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
+				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
+				petOwnerComponent.getPetParty().getChunkLoadManager().cleanupUnfulfilledRequests();
+			}
+		});
+
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			ServerPlayerEntity player = handler.player;
+			// check if player should be restored to normal state
+			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+
+			if(
+					petOwnerComponent.getPetParty() != null &&
+					petOwnerComponent.getPetParty().getSpectatorModeData() != null &&
+					petOwnerComponent.getPetParty().getSpectatorModeData().isSpectating()){
+				petOwnerComponent.getPetParty().unloadAreaAroundPet(petOwnerComponent.getPetParty().getSpectatorModeData().getSpectatedPetSlot(), player);
+			}
+		});
+
+
+
+
+	}
+
+}

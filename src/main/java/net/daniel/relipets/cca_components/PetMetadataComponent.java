@@ -1,8 +1,6 @@
 package net.daniel.relipets.cca_components;
 
-import dev.onyxstudios.cca.api.v3.component.Component;
-import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
-import dev.onyxstudios.cca.api.v3.component.tick.ServerTickingComponent;
+
 import lombok.Getter;
 import lombok.Setter;
 import net.daniel.relipets.cca_components.pet_management.PetData;
@@ -16,7 +14,11 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.RegistryWrapper;
 import org.jetbrains.annotations.Nullable;
+import org.ladysnake.cca.api.v3.component.Component;
+import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
+import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -45,16 +47,7 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
     }
 
     public PetMetadataComponent(NbtCompound nbt){
-        this.readFromNbt(nbt);
-    }
-
-    @Override
-    public void readFromNbt(NbtCompound tag) {
-        if(tag.contains(PLAYER_UUID_KEY))
-            this.playerUUID = tag.getString(PLAYER_UUID_KEY);
-
-        this.levelProgression = new LevelProgression(tag.getCompound(LEVEL_PROGRESSION_KEY));
-        this.statUpgrades = new UpgradableStats(tag.getCompound(STAT_UPGRADES_KEY));
+        this.readFromNbt(nbt, null);
     }
 
     public float getCurrentValueByStatName(StatsEnum stat, PetData pet){
@@ -125,16 +118,6 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
         return null;
     }
 
-    @Override
-    public void writeToNbt(NbtCompound tag) {
-        tag.putString(PLAYER_UUID_KEY, this.playerUUID);
-        if(this.levelProgression != null)
-            tag.put(LEVEL_PROGRESSION_KEY, this.levelProgression.writeToNbt());
-
-        if(this.statUpgrades != null)
-            tag.put(STAT_UPGRADES_KEY, this.statUpgrades.writeToNbt());
-    }
-
     public void clearPlayerUUID(){
         this.playerUUID = "";
     }
@@ -162,5 +145,24 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
         if(this.levelProgression != null){
             this.levelProgression.receiveXp(40);
         }
+    }
+
+    @Override
+    public void readFromNbt(NbtCompound nbtCompound, RegistryWrapper.WrapperLookup wrapperLookup) {
+        if(nbtCompound.contains(PLAYER_UUID_KEY))
+            this.playerUUID = nbtCompound.getString(PLAYER_UUID_KEY);
+
+        this.levelProgression = new LevelProgression(nbtCompound.getCompound(LEVEL_PROGRESSION_KEY));
+        this.statUpgrades = new UpgradableStats(nbtCompound.getCompound(STAT_UPGRADES_KEY));
+    }
+
+    @Override
+    public void writeToNbt(NbtCompound nbtCompound, RegistryWrapper.WrapperLookup wrapperLookup) {
+        nbtCompound.putString(PLAYER_UUID_KEY, this.playerUUID);
+        if(this.levelProgression != null)
+            nbtCompound.put(LEVEL_PROGRESSION_KEY, this.levelProgression.writeToNbt());
+
+        if(this.statUpgrades != null)
+            nbtCompound.put(STAT_UPGRADES_KEY, this.statUpgrades.writeToNbt());
     }
 }
