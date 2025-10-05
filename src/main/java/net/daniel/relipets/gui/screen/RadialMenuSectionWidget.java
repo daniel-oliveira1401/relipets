@@ -102,9 +102,7 @@ public class RadialMenuSectionWidget extends ClickableWidget {
 
         Matrix4f transformationMatrix = context.getMatrices().peek().getPositionMatrix();
         Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
-
-        buffer.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
+        BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
 
         int color = 0xaa333333;
         boolean isHovered = isPointInTriangle(mouseX, mouseY);
@@ -199,7 +197,7 @@ public class RadialMenuSectionWidget extends ClickableWidget {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
         if (this.visible) {
             this.hovered = isPointInTriangle(mouseX, mouseY);
             this.renderButton(context, mouseX, mouseY, delta);

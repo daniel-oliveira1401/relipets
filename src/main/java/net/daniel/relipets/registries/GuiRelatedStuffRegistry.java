@@ -14,6 +14,6 @@ public class GuiRelatedStuffRegistry {
             new ScreenHandlerType<>(PartManagementScreenHandler::new, FeatureFlags.VANILLA_FEATURES);
 
     public static void onInitialize(){
-        Registry.register(Registries.SCREEN_HANDLER, new Identifier(Relipets.MOD_ID, "part_management"), PART_MANAGEMENT_SCREEN_HANDLER_TYPE);
+        Registry.register(Registries.SCREEN_HANDLER, Identifier.of(Relipets.MOD_ID, "part_management"), PART_MANAGEMENT_SCREEN_HANDLER_TYPE);
     }
 }

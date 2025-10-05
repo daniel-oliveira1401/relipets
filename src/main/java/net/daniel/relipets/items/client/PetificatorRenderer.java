@@ -9,6 +9,6 @@ import software.bernie.geckolib.renderer.GeoItemRenderer;
 public class PetificatorRenderer extends GeoItemRenderer<PartItem> {
 
     public PetificatorRenderer() {
-        super(new DefaultedItemGeoModel<>(new Identifier(Relipets.MOD_ID, "petificator")));
+        super(new DefaultedItemGeoModel<>(Identifier.of(Relipets.MOD_ID, "petificator")));
     }
 }

@@ -14,6 +14,7 @@ import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNot
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsOperationEnum;
 import net.daniel.relipets.registries.C2SPacketHandlers;
+import net.daniel.relipets.registries.C2SPayloads;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -239,8 +240,7 @@ public class LevelPointsScreen extends BaseOwoScreen<FlowLayout> {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeString(operation.name());
         buf.writeString(stat.name());
-        ClientPlayNetworking.send(C2SPacketHandlers.STAT_POINT_CHANGE, buf);
-        //this.client.player.getWorld().getEntityById();
+        ClientPlayNetworking.send(new C2SPayloads.StatPointChange(operation.name(), stat.name()));
     }
 
 }

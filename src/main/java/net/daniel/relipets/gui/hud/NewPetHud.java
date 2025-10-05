@@ -17,6 +17,7 @@ import net.daniel.relipets.utils.Utils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.registry.Registries;
@@ -30,12 +31,12 @@ public class NewPetHud {
 
     public static final int verticalSpacing = 2;
 
-    private static final Identifier HUD_ID = new Identifier(Relipets.MOD_ID, "hud-id");
-    private static final Identifier RED_HEALTH_BAR_ID = new Identifier(Relipets.MOD_ID, "red-health-bar");
-    private static final Identifier GRAY_HEALTH_BAR_ID = new Identifier(Relipets.MOD_ID, "gray-health-bar");
-    private static final Identifier HEALTH_BAR_CONTAINER_ID = new Identifier(Relipets.MOD_ID, "health-bar-container");
-    private static final Identifier XP_BAR_CONTAINER_ID = new Identifier(Relipets.MOD_ID, "xp-bar-container");
-    private static final Identifier ENTITY_NAME_LABEL_ID = new Identifier(Relipets.MOD_ID, "entity-name-label");
+    private static final Identifier HUD_ID = Identifier.of(Relipets.MOD_ID, "hud-id");
+    private static final Identifier RED_HEALTH_BAR_ID = Identifier.of(Relipets.MOD_ID, "red-health-bar");
+    private static final Identifier GRAY_HEALTH_BAR_ID = Identifier.of(Relipets.MOD_ID, "gray-health-bar");
+    private static final Identifier HEALTH_BAR_CONTAINER_ID = Identifier.of(Relipets.MOD_ID, "health-bar-container");
+    private static final Identifier XP_BAR_CONTAINER_ID = Identifier.of(Relipets.MOD_ID, "xp-bar-container");
+    private static final Identifier ENTITY_NAME_LABEL_ID = Identifier.of(Relipets.MOD_ID, "entity-name-label");
 
     private static FlowLayout hudLayout;
     private static LabelComponent entityNameLabel;
@@ -145,7 +146,7 @@ public class NewPetHud {
         }
     }
 
-    public static void tick(DrawContext context, float v){
+    public static void tick(DrawContext context, RenderTickCounter v){
 
         if(shouldRender()){
             //add hud layout if not present
@@ -223,7 +224,7 @@ public class NewPetHud {
             slotsLayout.child().clearChildren();
 
             for(int i = 0; i < currentSlotCount; i++){
-                Surface slotSurface = Surface.tiled(new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png"), slotSize, slotSize);
+                Surface slotSurface = Surface.tiled(Identifier.of(Relipets.MOD_ID, "textures/gui/slot_bg.png"), slotSize, slotSize);
 
                 if(i == selectedPetSlot){
                     slotSurface = Surface.PANEL;
@@ -237,7 +238,7 @@ public class NewPetHud {
                 PetData petData = petParty.getSlotManager().getSlotAt(i).getContent();
 
                 if(petData != null && petData.getPetEntityData().isValid()){
-                    Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+                    Identifier entityTypeId = Identifier.of(petData.getPetEntityData().getEntityType());
 
                     EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 

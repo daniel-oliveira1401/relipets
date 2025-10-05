@@ -29,7 +29,7 @@ public class RelipetsMemoryTypes {
 
 
     private static <T> MemoryModuleType<T> register(String id) {
-        return Registry.register(Registries.MEMORY_MODULE_TYPE, new Identifier(id), new MemoryModuleType<T>(Optional.empty()));
+        return Registry.register(Registries.MEMORY_MODULE_TYPE, Identifier.of(id), new MemoryModuleType<T>(Optional.empty()));
     }
 
     public static void init(){}

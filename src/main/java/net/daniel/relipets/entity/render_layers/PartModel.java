@@ -30,18 +30,18 @@ public class PartModel extends GeoModel<BasePart> {
     public Identifier animationsPath;
 
     public Identifier buildFormattedModelPath(Identifier partVariant, String partType) {
-        return new Identifier(partVariant.getNamespace(), "geo/parts/" + partType + "/" + partVariant.getPath() + ".geo.json");
+        return Identifier.of(partVariant.getNamespace(), "geo/parts/" + partType + "/" + partVariant.getPath() + ".geo.json");
     }
 
     public static Identifier buildFormattedAnimationPath(Identifier partVariant, String partType) {
-        return new Identifier(partVariant.getNamespace(), "animations/parts/" + partType + "/" + partVariant.getPath() + ".animation.json");
+        return Identifier.of(partVariant.getNamespace(), "animations/parts/" + partType + "/" + partVariant.getPath() + ".animation.json");
     }
 
     public static Identifier buildFormattedTexturePath(Identifier partVariant, String partType) {
         //if(partType.equals(PetPart.TORSO_PART)){
-            //return new Identifier(basePath.getNamespace(), "textures/parts/torso/" + basePath.getPath() + ".png");
+            //return Identifier.of(basePath.getNamespace(), "textures/parts/torso/" + basePath.getPath() + ".png");
         //}else{
-            return new Identifier(partVariant.getNamespace(), "textures/parts/sets/" + getPartSet(partVariant) + ".png");
+            return Identifier.of(partVariant.getNamespace(), "textures/parts/sets/" + getPartSet(partVariant) + ".png");
         //}
     }
 

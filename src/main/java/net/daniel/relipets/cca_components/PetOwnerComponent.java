@@ -9,8 +9,10 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.CommonTickingComponent;
@@ -26,14 +28,13 @@ public class PetOwnerComponent implements Component, AutoSyncedComponent, Common
         this.petParty.setOnPartyModifiedListener(this::onPartyModified);
     }
 
-    //TODO: override the packet assembling method for making it more lightweight to update things
     public void onPartyModified(){
         CardinalComponentsRegistry.PET_OWNER_KEY.sync(player);
 
     }
 
     @Override
-    public void readFromNbt(NbtCompound tag) {
+    public void readFromNbt(NbtCompound tag, RegistryWrapper.@NotNull WrapperLookup registryLookup) {
 
         if(tag.contains(RelipetsConstantsRegistry.PET_PARTY_KEY)){
             this.petParty.readFromNbt(tag.getCompound(RelipetsConstantsRegistry.PET_PARTY_KEY));
@@ -42,7 +43,7 @@ public class PetOwnerComponent implements Component, AutoSyncedComponent, Common
     }
 
     @Override
-    public void writeToNbt(NbtCompound tag) {
+    public void writeToNbt(NbtCompound tag, RegistryWrapper.@NotNull WrapperLookup registryLookup) {
 
         if(this.petParty != null){
             NbtCompound petParty = this.petParty.writeToNbt();
@@ -67,17 +68,6 @@ public class PetOwnerComponent implements Component, AutoSyncedComponent, Common
         return player == this.player;
     }
 
-    @Override
-    public void writeSyncPacket(PacketByteBuf buf, ServerPlayerEntity recipient) {
-        AutoSyncedComponent.super.writeSyncPacket(buf, recipient);
-    }
-
-    @Override
-    public void applySyncPacket(PacketByteBuf buf) {
-
-        AutoSyncedComponent.super.applySyncPacket(buf);
-
-    }
 }
 
 /*

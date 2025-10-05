@@ -9,6 +9,7 @@ import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.*;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.registries.C2SPacketHandlers;
+import net.daniel.relipets.registries.C2SPayloads;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.Utils;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -27,10 +28,10 @@ import java.util.*;
 
 public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
 
-    static final Identifier defaultPaneBg = new Identifier(Relipets.MOD_ID, "textures/gui/pane_bg.png");
+    static final Identifier defaultPaneBg = Identifier.of(Relipets.MOD_ID, "textures/gui/pane_bg.png");
     static int slotSize = 22;
     static int groupBarSize = 6;
-    public static final Surface defaultSlotSurface = Surface.tiled(new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png"), slotSize, slotSize);
+    public static final Surface defaultSlotSurface = Surface.tiled(Identifier.of(Relipets.MOD_ID, "textures/gui/slot_bg.png"), slotSize, slotSize);
     BaseOwoScreen<FlowLayout> parent;
     private FlowLayout rootComponent;
     private int rows;
@@ -326,7 +327,8 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     private void cycleGroupMoveMode(String groupId) {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeString(groupId);
-        ClientPlayNetworking.send(C2SPacketHandlers.CYCLE_GROUP_MOVE_MODE, buf);
+
+        ClientPlayNetworking.send(new C2SPayloads.CycleGroupMoveMode(groupId));
     }
 
     private FlowLayout buildSlot(PetParty party, PetGroup group, int slotIndex){
@@ -340,7 +342,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
         PetData petData = party.getSlotManager().getSlotAt(slotIndex).getContent();
 
         if(petData != null && petData.getPetEntityData().isValid()){
-            Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+            Identifier entityTypeId = Identifier.of(petData.getPetEntityData().getEntityType());
 
             EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
@@ -483,7 +485,7 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     @Nullable
     private EntityComponent<LivingEntity> buildSlotEntity(PetData petData){
         if(petData != null && petData.getPetEntityData().isValid()){
-            Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+            Identifier entityTypeId = Identifier.of(petData.getPetEntityData().getEntityType());
 
             EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
@@ -672,56 +674,40 @@ public class PetGroupsScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void recallGroup(PetGroup group) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
-        ClientPlayNetworking.send(C2SPacketHandlers.RECALL_GROUP, buf);
+        ClientPlayNetworking.send(new C2SPayloads.RecallGroup(group.getId().toString()));
     }
 
     private void summonGroup(PetGroup group) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
-        ClientPlayNetworking.send(C2SPacketHandlers.SUMMON_GROUP, buf);
+        ClientPlayNetworking.send(new C2SPayloads.SummonGroup(group.getId().toString()));
     }
 
     private void setGroupColor(PetGroup group, Color color) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
-        buf.writeInt(color.argb());
-        ClientPlayNetworking.send(C2SPacketHandlers.CHANGE_GROUP_COLOR, buf);
+        ClientPlayNetworking.send(new C2SPayloads.ChangeGroupColor(group.getId().toString(), color.argb()));
     }
 
     private void setGroupName(String groupId, String name) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(groupId);
-        buf.writeString(name);
-        ClientPlayNetworking.send(C2SPacketHandlers.CHANGE_GROUP_NAME, buf);
+
+        ClientPlayNetworking.send(new C2SPayloads.ChangeGroupName(groupId, name));
     }
 
     private void removeGroup(PetGroup group) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
-        ClientPlayNetworking.send(C2SPacketHandlers.REMOVE_GROUP, buf);
-
+        ClientPlayNetworking.send(new C2SPayloads.RemoveGroup(group.getId().toString()));
     }
 
     public void addGroup(){
-        ClientPlayNetworking.send(C2SPacketHandlers.CREATE_GROUP, PacketByteBufs.empty());
+        ClientPlayNetworking.send(new C2SPayloads.CreateGroup());
     }
 
     private boolean addSlotToGroup(PetGroup group, int slotIndex) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
-        buf.writeInt(slotIndex);
-        ClientPlayNetworking.send(C2SPacketHandlers.ADD_SLOT_TO_GROUP, buf);
+
+        ClientPlayNetworking.send(new C2SPayloads.AddSlotToGroup(group.getId().toString(), slotIndex));
         this.addSlotToGroupOverlay.remove();
         return true;
     }
 
     private boolean removeSlotFromGroup(PetGroup group, int slotIndex){
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(group.getId().toString());
-        buf.writeInt(slotIndex);
-        ClientPlayNetworking.send(C2SPacketHandlers.REMOVE_SLOT_FROM_GROUP, buf);
+
+        ClientPlayNetworking.send(new C2SPayloads.RemoveSlotFromGroup(group.getId().toString(), slotIndex));
         this.removeSlotFromGroupOverlay.remove();
         return true;
     }

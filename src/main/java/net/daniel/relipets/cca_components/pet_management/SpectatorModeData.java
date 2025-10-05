@@ -53,7 +53,7 @@ public class SpectatorModeData implements ISerializable {
             this.originalPos = Utils.deserializeBlockPos(nbt.getString("originalPos"));
 
         if(nbt.contains("originalWorld"))
-            this.originalWorldIdentifier = new Identifier(nbt.getString("originalWorld"));
+            this.originalWorldIdentifier = Identifier.of(nbt.getString("originalWorld"));
 
         if(nbt.contains("originalGameModeId"))
             this.originalGameMode = GameMode.byId(nbt.getInt("originalGameModeId"));

@@ -39,7 +39,7 @@ public class BasePart implements GeoEntity {
         if(core != null){
             //return event.setAndContinue(getPartAnimationForCoreAnimation(core.getCurrentAnim()));
 
-            final Identifier location = new Identifier(Relipets.MOD_ID, "animations/parts/"+partType + "/" + partModelId + ".animation.json");
+            final Identifier location = Identifier.of(Relipets.MOD_ID, "animations/parts/"+partType + "/" + partModelId + ".animation.json");
             final BakedAnimations bakedAnimations = GeckoLibCache.getBakedAnimations().get(location);
 
             final String animationName = core.getCurrentAnim();

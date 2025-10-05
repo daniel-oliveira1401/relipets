@@ -10,7 +10,7 @@ import software.bernie.geckolib.renderer.GeoItemRenderer;
 public class PartItemRenderer extends GeoItemRenderer<PartItem> {
 
     public PartItemRenderer() {
-        super(new DefaultedItemGeoModel<>(new Identifier(Relipets.MOD_ID, "part_item")));
+        super(new DefaultedItemGeoModel<>(Identifier.of(Relipets.MOD_ID, "part_item")));
         addRenderLayer(new PartItemRenderLayer(this));
     }
 }

@@ -20,6 +20,7 @@ import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsOperationEnum;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.registries.C2SPacketHandlers;
+import net.daniel.relipets.registries.C2SPayloads;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.Utils;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -89,7 +90,7 @@ public class PartManagementScreen extends BaseOwoHandledScreen<FlowLayout, PartM
 
         if(this.client == null || this.client.player == null) return;
 
-        ClientPlayNetworking.send(C2SPacketHandlers.GET_PARTY, PacketByteBufs.empty());
+        ClientPlayNetworking.send(new C2SPayloads.GetParty());
 
     }
 
@@ -158,7 +159,7 @@ public class PartManagementScreen extends BaseOwoHandledScreen<FlowLayout, PartM
     }
 
     public EntityComponent<BaseCore> buildEntityComponent(PetData petData){
-        Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+        Identifier entityTypeId = Identifier.of(petData.getPetEntityData().getEntityType());
 
         EntityType<BaseCore> entityType = (EntityType<BaseCore>) Registries.ENTITY_TYPE.get(entityTypeId);
 

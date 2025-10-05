@@ -22,7 +22,7 @@ public class PartRenderer extends GeoObjectRenderer<BasePart> {
     public boolean variantChangeSinceLastRender = true;
 
     public PartRenderer() {
-        super(new PartModel(new Identifier(Relipets.MOD_ID, "head_avian_basic"), PetPart.HEAD_PART));
+        super(new PartModel(Identifier.of(Relipets.MOD_ID, "head_avian_basic"), PetPart.HEAD_PART));
     }
 
     public void setPartVariant(String variantId, String partType) {
@@ -44,7 +44,7 @@ public class PartRenderer extends GeoObjectRenderer<BasePart> {
 
         if(!this.isValid()) return;
 
-        this.partVariantModel = new PartModel(new Identifier(Relipets.MOD_ID, this.partVariantId), this.partType);
+        this.partVariantModel = new PartModel(Identifier.of(Relipets.MOD_ID, this.partVariantId), this.partType);
 
     }
 

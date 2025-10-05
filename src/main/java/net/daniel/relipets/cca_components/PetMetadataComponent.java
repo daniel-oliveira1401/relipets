@@ -1,4 +1,5 @@
 package net.daniel.relipets.cca_components;
+import net.minecraft.registry.RegistryWrapper;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
@@ -44,11 +45,11 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
     }
 
     public PetMetadataComponent(NbtCompound nbt){
-        this.readFromNbt(nbt);
+        this.readFromNbt(nbt, null);
     }
 
     @Override
-    public void readFromNbt(NbtCompound tag) {
+    public void readFromNbt(NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         if(tag.contains(PLAYER_UUID_KEY))
             this.playerUUID = tag.getString(PLAYER_UUID_KEY);
 
@@ -125,7 +126,7 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
     }
 
     @Override
-    public void writeToNbt(NbtCompound tag) {
+    public void writeToNbt(NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         tag.putString(PLAYER_UUID_KEY, this.playerUUID);
         if(this.levelProgression != null)
             tag.put(LEVEL_PROGRESSION_KEY, this.levelProgression.writeToNbt());
@@ -162,4 +163,5 @@ public class PetMetadataComponent implements Component, AutoSyncedComponent, Ser
             this.levelProgression.receiveXp(40);
         }
     }
+
 }

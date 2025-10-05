@@ -190,7 +190,7 @@ public class PetEntityData implements ISerializable {
 
     @Nullable
     private LivingEntity createAndInitializeEntity(PetData petData, Vec3d pos, ServerWorld world){
-        Identifier entityTypeId = new Identifier(this.entityType);
+        Identifier entityTypeId = Identifier.of(this.entityType);
 
         EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
@@ -542,7 +542,7 @@ public class PetEntityData implements ISerializable {
 
     public void spawnEntityForRelease(ServerWorld world, Vec3d pos, PlayerEntity player, PetData petData) {
         world.getServer().execute(()-> {
-            Identifier entityTypeId = new Identifier(this.entityType);
+            Identifier entityTypeId = Identifier.of(this.entityType);
 
             EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
@@ -641,7 +641,7 @@ public class PetEntityData implements ISerializable {
         @Override
         public void readFromNbt(NbtCompound nbt) {
             if(nbt.contains(DIMENSION_KEY)){
-                this.dimension = new Identifier(nbt.getString(DIMENSION_KEY));
+                this.dimension = Identifier.of(nbt.getString(DIMENSION_KEY));
             }
 
             if(nbt.contains(POSITION_KEY)){

@@ -22,7 +22,7 @@ public class YellowCoreRenderer extends GeoEntityRenderer<BaseCore> {
     public PartRenderLayer torsoRenderLayer;
 
     public YellowCoreRenderer(EntityRendererFactory.Context renderManager) {
-        super(renderManager, new DefaultedEntityGeoModel<>(new Identifier(Relipets.MOD_ID, RelipetsEntityRegistry.YELLOW_CORE_PATH), false));
+        super(renderManager, new DefaultedEntityGeoModel<>(Identifier.of(Relipets.MOD_ID, RelipetsEntityRegistry.YELLOW_CORE_PATH), false));
 
         addRenderLayer(new PartRenderLayer(this, PetPart.ARM_PART));
         addRenderLayer(new PartRenderLayer(this, PetPart.HEAD_PART));
@@ -54,7 +54,7 @@ public class YellowCoreRenderer extends GeoEntityRenderer<BaseCore> {
     public Identifier getTexture(BaseCore animatable) {
         PetPart part = animatable.getPartFromType(PetPart.TORSO_PART);
         if(part != null && part.isValid() && part != PetPart.EMPTY_TORSO_PART){
-            return PartModel.buildFormattedTexturePath(new Identifier(Relipets.MOD_ID, part.getModelPartId()), part.getPartType());
+            return PartModel.buildFormattedTexturePath(Identifier.of(Relipets.MOD_ID, part.getModelPartId()), part.getPartType());
         }
         return super.getTexture(animatable);
     }

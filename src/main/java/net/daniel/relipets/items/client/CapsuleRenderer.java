@@ -9,7 +9,7 @@ import software.bernie.geckolib.renderer.GeoItemRenderer;
 public class CapsuleRenderer extends GeoItemRenderer<PartItem> {
 
     public CapsuleRenderer() {
-        super(new DefaultedItemGeoModel<>(new Identifier(Relipets.MOD_ID, "capsule")));
+        super(new DefaultedItemGeoModel<>(Identifier.of(Relipets.MOD_ID, "capsule")));
     }
 
 

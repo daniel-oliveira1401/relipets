@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
 
-    static final Identifier slotBg = new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png");
+    static final Identifier slotBg = Identifier.of(Relipets.MOD_ID, "textures/gui/slot_bg.png");
 
     static int slotSize = 22;
     BaseOwoScreen<FlowLayout> parent;
@@ -79,7 +79,7 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
             PetData petData = petOwner.getPetParty().getSlotManager().getSlotAt(i).getContent();
 
             if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+                Identifier entityTypeId = Identifier.of(petData.getPetEntityData().getEntityType());
 
                 EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
@@ -108,7 +108,7 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
             PetData petData = party.getSlotManager().getSlotAt(i).getContent();
 
             if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+                Identifier entityTypeId = Identifier.of(petData.getPetEntityData().getEntityType());
 
                 EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 

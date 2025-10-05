@@ -16,6 +16,7 @@ import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNot
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.entity.util.PetCameraEntity;
 import net.daniel.relipets.registries.C2SPacketHandlers;
+import net.daniel.relipets.registries.C2SPayloads;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.Utils;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -78,7 +79,7 @@ public class PetSpectatorScreen extends BaseOwoScreen<FlowLayout> {
                             entity.getZ()
                     );
                     cameraEntity.lookAt(EntityAnchorArgumentType.EntityAnchor.EYES, entity.getPos());
-                    this.client.world.addEntity(-65, cameraEntity);
+                    this.client.world.addEntity(cameraEntity);
 
                     this.client.setCameraEntity(cameraEntity);
                     this.client.options.setPerspective(Perspective.THIRD_PERSON_BACK);
@@ -120,7 +121,7 @@ public class PetSpectatorScreen extends BaseOwoScreen<FlowLayout> {
 
         buf.writeInt(this.slot);
 
-        ClientPlayNetworking.send(C2SPacketHandlers.UNLOAD_AREA_AROUND_PET, buf);
+        ClientPlayNetworking.send(new C2SPayloads.UnloadAreaAroundPet(this.slot));
     }
 
     @Override

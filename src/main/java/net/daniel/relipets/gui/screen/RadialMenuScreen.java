@@ -10,6 +10,7 @@ import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.PetOwnerComponent;
 import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.registries.C2SPacketHandlers;
+import net.daniel.relipets.registries.C2SPayloads;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -32,11 +33,11 @@ public class RadialMenuScreen extends BaseOwoScreen<FlowLayout> {
         return false;
     }
 
-    Identifier levelPointsScreen = new Identifier(Relipets.MOD_ID, "textures/gui/level_points_screen.png");
-    Identifier petGroupsScreen = new Identifier(Relipets.MOD_ID, "textures/gui/pet_groups_screen.png");
-    Identifier reorderPets = new Identifier(Relipets.MOD_ID, "textures/gui/reorder_pets_screen.png");
-    Identifier recallAll = new Identifier(Relipets.MOD_ID, "textures/gui/recall_all.png");
-    Identifier managementScreen = new Identifier(Relipets.MOD_ID, "textures/gui/management_screen.png");
+    Identifier levelPointsScreen = Identifier.of(Relipets.MOD_ID, "textures/gui/level_points_screen.png");
+    Identifier petGroupsScreen = Identifier.of(Relipets.MOD_ID, "textures/gui/pet_groups_screen.png");
+    Identifier reorderPets = Identifier.of(Relipets.MOD_ID, "textures/gui/reorder_pets_screen.png");
+    Identifier recallAll = Identifier.of(Relipets.MOD_ID, "textures/gui/recall_all.png");
+    Identifier managementScreen = Identifier.of(Relipets.MOD_ID, "textures/gui/management_screen.png");
 
     @Override
     protected void build(FlowLayout rootComponent) {
@@ -98,7 +99,7 @@ public class RadialMenuScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void recallAllPets(){
-        ClientPlayNetworking.send(C2SPacketHandlers.RECALL_ALL_PETS, PacketByteBufs.empty());
+        ClientPlayNetworking.send(new C2SPayloads.RecallAllPets());
     }
 
     private void goToReorderPetsScreen(){

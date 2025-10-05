@@ -18,6 +18,7 @@ import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.entity.util.PetCameraEntity;
 import net.daniel.relipets.registries.C2SPacketHandlers;
+import net.daniel.relipets.registries.C2SPayloads;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.daniel.relipets.utils.Utils;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -43,8 +44,8 @@ import org.jetbrains.annotations.Nullable;
 
 public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
-    static final Identifier defaultPaneBg = new Identifier(Relipets.MOD_ID, "textures/gui/pane_bg.png");
-    static final Identifier slotBg = new Identifier(Relipets.MOD_ID, "textures/gui/slot_bg.png");
+    static final Identifier defaultPaneBg = Identifier.of(Relipets.MOD_ID, "textures/gui/pane_bg.png");
+    static final Identifier slotBg = Identifier.of(Relipets.MOD_ID, "textures/gui/slot_bg.png");
     static int slotSize = 22;
     BaseOwoScreen<FlowLayout> parent;
     private FlowLayout rootComponent;
@@ -115,7 +116,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
             slotContainer.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
 
             if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+                Identifier entityTypeId = Identifier.of(petData.getPetEntityData().getEntityType());
 
                 EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
@@ -146,7 +147,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
             slotContainer.surface(getSlotSurface(i, petData));
 
             if(petData != null && petData.getPetEntityData().isValid()){
-                Identifier entityTypeId = new Identifier(petData.getPetEntityData().getEntityType());
+                Identifier entityTypeId = Identifier.of(petData.getPetEntityData().getEntityType());
 
                 EntityType<LivingEntity> entityType = (EntityType<LivingEntity>) Registries.ENTITY_TYPE.get(entityTypeId);
 
@@ -191,9 +192,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         rootComponent.child(backBtn);
 
-        ClientPlayNetworking.send(C2SPacketHandlers.GET_PARTY, PacketByteBufs.empty());
-
-
+        ClientPlayNetworking.send(new C2SPayloads.GetParty());
 
     }
 
@@ -287,9 +286,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void toggleSummonRecall() {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeBoolean(true);
-        ClientPlayNetworking.send(C2SPacketHandlers.TOGGLE_SUMMON_PET, buf);
+        ClientPlayNetworking.send(new C2SPayloads.ToggleSummonPet(true));
     }
 
     private void openPartManagementScreen() {
@@ -300,10 +297,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
                             this.selectedPetData.getPetEntityData().getEntityType().toLowerCase().contains("relipets:pets/yellow_core")) ||
                             this.selectedPetData.getPetEntityData().getEntityType().toLowerCase().contains("relipets:pets/cyan_core")) {
 
-                PacketByteBuf buf = PacketByteBufs.create();
-                buf.writeInt(this.selectedSlot);
-
-                ClientPlayNetworking.send(C2SPacketHandlers.OPEN_PART_MANAGEMENT_SCREEN, buf);
+                ClientPlayNetworking.send(new C2SPayloads.OpenPartManagementScreen(this.selectedSlot));
             }
         }
     }
@@ -322,7 +316,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeInt(this.selectedSlot);
 
-            ClientPlayNetworking.send(C2SPacketHandlers.CHANGE_MOVE_MODE, buf);
+            ClientPlayNetworking.send(new C2SPayloads.ChangeMoveMode(this.selectedSlot));
         }
     }
 
@@ -332,11 +326,7 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
             if(this.selectedPetData.isSummonedNoEntityValidation()){
 
-                PacketByteBuf buf = PacketByteBufs.create();
-
-                buf.writeInt(this.selectedSlot);
-
-                ClientPlayNetworking.send(C2SPacketHandlers.LOAD_AREA_AROUND_PET, buf);
+                ClientPlayNetworking.send(new C2SPayloads.LoadAreaAroundPet(this.selectedSlot));
 
                 if(!this.selectedPetData.getPetEntityData().getTracker().getDimension().toString().equals(
                     this.client.world.getRegistryKey().getValue().toString()
@@ -355,14 +345,9 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void releasePet() {
         closeModal();
-        PacketByteBuf buf = PacketByteBufs.create();
 
         if(this.selectedPetData != null){
-
-            buf.writeInt(this.selectedSlot);
-
-            ClientPlayNetworking.send(C2SPacketHandlers.RELEASE_PET, buf);
-
+            ClientPlayNetworking.send(new C2SPayloads.ReleasePet(this.selectedSlot));
         }
     }
 
@@ -430,25 +415,18 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
     public void recoverPet(){
         closeModal();
 
-        PacketByteBuf buf = PacketByteBufs.create();
-
-        buf.writeInt(this.selectedSlot);
-
-        ClientPlayNetworking.send(C2SPacketHandlers.RECOVER_PET, buf);
-
+        ClientPlayNetworking.send(new C2SPayloads.RecoverPet(this.selectedSlot));
     }
 
     private void renamePet() {
-        PacketByteBuf buf = PacketByteBufs.create();
+
         if(this.petName != null && this.selectedPetData != null){
 
-            buf.writeInt(this.selectedSlot);
-            buf.writeString(petName.getText());
-
-            ClientPlayNetworking.send(C2SPacketHandlers.RENAME_PET, buf);
-
+            String newName = petName.getText();
+            if (!newName.isEmpty()) {
+                ClientPlayNetworking.send(new C2SPayloads.RenamePet(this.selectedSlot, newName));
+            }
         }
-
     }
 
     private void updateActionPanel() {
@@ -535,33 +513,11 @@ public class PetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         sendPetSelectionToServer();
 
-//        if(this.rootComponent != null){
-//            if(body != null){
-//
-//                for(int i = 0; i < body.children().size(); i++){
-//
-//                    var slot = body.children().get(i);
-//                    if(slot instanceof FlowLayout flowSlot){
-//
-//                        flowSlot.surface(Surface.tiled(slotBg, slotSize, slotSize));
-//                        if(i == this.selectedSlot){
-//                            flowSlot.surface(Surface.PANEL);
-//                        }
-//                    }
-//
-//                }
-//
-//
-//            }
-//        }
-
         return true;
     }
 
     private void sendPetSelectionToServer() {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeInt(this.selectedSlot);
-        ClientPlayNetworking.send(C2SPacketHandlers.SELECT_PET, buf);
+        ClientPlayNetworking.send(new C2SPayloads.SelectPet(this.selectedSlot));
     }
 
     private void backToMainScreen(ButtonComponent btn){
