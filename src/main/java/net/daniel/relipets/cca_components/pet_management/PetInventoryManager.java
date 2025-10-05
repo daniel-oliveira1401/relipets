@@ -9,9 +9,11 @@ import net.daniel.relipets.utils.Utils;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.RegistryWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 @Getter
@@ -75,16 +77,12 @@ public class PetInventoryManager extends SimpleInventory {
         super(6);
         this.inventorySlots = new ArrayList<>(6);
     }
-    public PetInventoryManager(NbtCompound nbt){
-        this();
-        this.readFromNbt(nbt);
-    }
 
     public PetInventoryManager.PetInventorySlot getInventorySlotByIndex(int index){
         return this.inventorySlots.get(index);
     }
 
-    public void readFromNbt(NbtCompound nbt){
+    public void readFromNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup){
         //if the nbt is empty, then we should initialize this class using empty values
         if(nbt.isEmpty()){
             for(int i = 0; i < 6; i++){
@@ -96,12 +94,13 @@ public class PetInventoryManager extends SimpleInventory {
                 NbtCompound inventorySlotNbt = nbt.getCompound(key);
 
                 try{
-                    ItemStack item = ItemStack.fromNbt(inventorySlotNbt.getCompound("item"));
+                    Optional<ItemStack> item = ItemStack.fromNbt(lookup, inventorySlotNbt.getCompound("item"));
+
                     PetInventorySlot slot = new PetInventorySlot(inventorySlotNbt.getCompound("inventorySlot"));
                     int index = Integer.parseInt(key);
                     slot.setSlotIndex(index);
                     slot.getData().setCompatiblePart(PartSystem.availableParts[index]);
-                    this.setStack(slot.getSlotIndex(), item);
+                    this.setStack(slot.getSlotIndex(), item.orElse(ItemStack.EMPTY));
                     this.inventorySlots.add(slot);
                 }catch (Exception e){
                     Utils.log("Could not read inventory");
@@ -112,7 +111,7 @@ public class PetInventoryManager extends SimpleInventory {
 
     }
 
-    public NbtCompound writeToNbt(){
+    public NbtCompound writeToNbt(RegistryWrapper.WrapperLookup lookup){
         NbtCompound nbt = new NbtCompound();
         if(!this.inventorySlots.isEmpty()){
             for (int i = 0; i < this.size(); i++) {
@@ -121,7 +120,7 @@ public class PetInventoryManager extends SimpleInventory {
 
                 ItemStack itemStack = this.getStack(slot.getSlotIndex());
 
-                inventorySlotNbt.put("item", itemStack.writeNbt(new NbtCompound()));
+                inventorySlotNbt.put("item", itemStack.encode(lookup, new NbtCompound()));
                 inventorySlotNbt.put("inventorySlot", slot.writeToNbt());
 
                 nbt.put(i+"", inventorySlotNbt);

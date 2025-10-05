@@ -14,6 +14,7 @@ import net.daniel.relipets.cca_components.pet_management.PetData;
 import net.daniel.relipets.cca_components.pet_management.PetParty;
 import net.daniel.relipets.cca_components.pet_management.event.PetPartyUpdateNotifier;
 import net.daniel.relipets.registries.C2SPacketHandlers;
+import net.daniel.relipets.registries.C2SPayloads;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -230,7 +231,8 @@ public class ReorderPetsScreen extends BaseOwoScreen<FlowLayout> {
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeInt(this.selectedSlot); //origin
             buf.writeInt(slotIndex); //destination
-            ClientPlayNetworking.send(C2SPacketHandlers.REORDER_PETS, buf);
+
+            ClientPlayNetworking.send(new C2SPayloads.ReorderPets(this.selectedSlot, slotIndex));
             this.selectedSlot = -1;
         }
 

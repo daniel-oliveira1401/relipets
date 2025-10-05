@@ -4,8 +4,9 @@ import net.daniel.relipets.cca_components.parts.PetPart;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
-import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
-import software.bernie.geckolib.core.animation.AnimationState;
+
+import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.model.GeoModel;
 
 import java.util.Arrays;
@@ -82,7 +83,7 @@ public class PartModel extends GeoModel<BasePart> {
 
         if(this.partType.equals(PetPart.HEAD_PART)){
 
-            CoreGeoBone head = getAnimationProcessor().getBone("head");
+            GeoBone head = getAnimationProcessor().getBone("head");
 
             if (head != null && this.core != null) {
 

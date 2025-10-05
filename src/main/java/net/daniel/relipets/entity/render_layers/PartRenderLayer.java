@@ -17,7 +17,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
-import software.bernie.geckolib.core.object.Axis;
 import software.bernie.geckolib.renderer.GeoRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
@@ -92,7 +91,8 @@ public class PartRenderLayer extends GeoRenderLayer<BaseCore> {
                 null,
                 null,
                 null,
-                packedLight
+                packedLight,
+                partialTick
         );
 
         poseStack.pop();

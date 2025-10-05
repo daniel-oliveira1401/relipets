@@ -3,6 +3,7 @@ package net.daniel.relipets.mixin;
 import net.daniel.relipets.Relipets;
 import net.daniel.relipets.items.Petificator;
 import net.daniel.relipets.registries.C2SPacketHandlers;
+import net.daniel.relipets.registries.C2SPayloads;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
@@ -28,9 +29,8 @@ public class MouseScrollMixin {
 			//-1 -> scroll down (should go to the right)
 			//1 -> scroll up (should go to the left)
 			Relipets.LOGGER.debug("Mouse scrolled from mixin :3" + horizontal + "," + vertical);
-			PacketByteBuf data = PacketByteBufs.create();
-			data.writeInt((int)vertical);
-			ClientPlayNetworking.send(C2SPacketHandlers.CYCLE_PET_SLOT, data);
+
+			ClientPlayNetworking.send(new C2SPayloads.CyclePetSlot((int)vertical));
 
 			info.cancel();
 

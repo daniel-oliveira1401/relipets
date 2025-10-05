@@ -4,15 +4,14 @@ import net.daniel.relipets.Relipets;
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.registries.RelipetsConstantsRegistry;
 import net.minecraft.util.Identifier;
-import software.bernie.geckolib.GeckoLibException;
+
 import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.*;
 import software.bernie.geckolib.cache.GeckoLibCache;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.*;
-import software.bernie.geckolib.core.object.PlayState;
+
 import software.bernie.geckolib.loading.object.BakedAnimations;
 import software.bernie.geckolib.util.GeckoLibUtil;
-import RawAnimation;
 import java.util.HashMap;
 
 public class BasePart implements GeoEntity {

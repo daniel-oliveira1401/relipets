@@ -134,7 +134,7 @@ public class PetData implements ISerializable {
     int teleportDistance = 30;
     public void followOwner(LivingEntity entity, PlayerEntity player){
         if(!(entity instanceof BaseCore) && entity instanceof MobEntity mobEntity){
-            boolean sameDimension = entity.getWorld().getDimensionKey().getValue().compareTo(player.getWorld().getDimensionKey().getValue()) == 0;
+            boolean sameDimension = entity.getWorld().getDimensionEntry().getKey().get().getValue().compareTo(player.getWorld().getDimensionEntry().getKey().get().getValue()) == 0;
             if(!sameDimension) return;
             double distance = mobEntity.squaredDistanceTo(player);
             if(distance > (this.teleportDistance * this.teleportDistance)){
@@ -145,13 +145,13 @@ public class PetData implements ISerializable {
                     mobEntity.teleport(
                             safePosToTeleport.getX() + 0.5,
                             safePosToTeleport.getY(),
-                            safePosToTeleport.getZ() + 0.5
+                            safePosToTeleport.getZ() + 0.5, false
                     );
                 }else{
                     mobEntity.teleport(
                             player.getX(),
                             player.getY(),
-                            player.getZ()
+                            player.getZ(), false
                     );
                 }
             }else if(distance > (this.followDistance * this.followDistance)){

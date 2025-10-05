@@ -1,12 +1,8 @@
 package net.daniel.relipets.gui.screen;
 
-import com.eliotlash.mclib.math.functions.classic.Pi;
 import com.mojang.blaze3d.systems.RenderSystem;
-import io.wispforest.owo.ui.component.TextAreaComponent;
-import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.core.Color;
 import io.wispforest.owo.ui.core.OwoUIDrawContext;
-import net.daniel.relipets.Relipets;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
@@ -16,13 +12,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
-import org.joml.Matrix4dStack;
 import org.joml.Matrix4f;
-import org.joml.Vector3fc;
-
-import java.awt.*;
-import java.util.function.Consumer;
 
 public class RadialMenuSectionWidget extends ClickableWidget {
     private final int textWidth;
@@ -96,8 +86,7 @@ public class RadialMenuSectionWidget extends ClickableWidget {
 
     private static final int iconBottomMargin = 10;
 
-    @Override
-    protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+    protected void renderButtonSlice(DrawContext context, int mouseX, int mouseY, float delta) {
         if(!(context instanceof OwoUIDrawContext)) return;
 
         Matrix4f transformationMatrix = context.getMatrices().peek().getPositionMatrix();
@@ -111,14 +100,14 @@ public class RadialMenuSectionWidget extends ClickableWidget {
             color = 0xaa555555;
         }
 
-        buffer.vertex(transformationMatrix, (int)pointA.x, (int)pointA.y, dummyZ).color(color).next();
-        buffer.vertex(transformationMatrix, (int)pointC.x, (int)pointC.y, dummyZ).color(color).next();
-        buffer.vertex(transformationMatrix, (int)pointB.x, (int)pointB.y, dummyZ).color(color).next();
+        buffer.vertex(transformationMatrix, (int)pointA.x, (int)pointA.y, dummyZ).color(color);
+        buffer.vertex(transformationMatrix, (int)pointC.x, (int)pointC.y, dummyZ).color(color);
+        buffer.vertex(transformationMatrix, (int)pointB.x, (int)pointB.y, dummyZ).color(color);
 
         RenderSystem.setShader(GameRenderer::getPositionColorProgram);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.enableBlend();
-        tessellator.draw();
+        BufferRenderer.drawWithGlobalProgram(buffer.end());
 
         context.drawTexture(texture, (int)texturePos.x, (int)texturePos.y, 0, 0, iconSize, iconSize, iconSize, iconSize);
         RenderSystem.disableBlend();
@@ -200,7 +189,7 @@ public class RadialMenuSectionWidget extends ClickableWidget {
     public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
         if (this.visible) {
             this.hovered = isPointInTriangle(mouseX, mouseY);
-            this.renderButton(context, mouseX, mouseY, delta);
+            this.renderButtonSlice(context, mouseX, mouseY, delta);
         }
     }
 }

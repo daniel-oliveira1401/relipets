@@ -19,8 +19,9 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.world.World;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
+
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public class CyanCoreProjectile extends PersistentProjectileEntity implements GeoEntity {
@@ -91,6 +92,11 @@ public class CyanCoreProjectile extends PersistentProjectileEntity implements Ge
 
     @Override
     protected ItemStack asItemStack() {
+        return null;
+    }
+
+    @Override
+    protected ItemStack getDefaultItemStack() {
         return null;
     }
 

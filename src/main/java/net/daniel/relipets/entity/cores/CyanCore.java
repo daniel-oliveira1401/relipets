@@ -12,10 +12,12 @@ import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.core.animation.AnimationController;
-import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.animation.AnimationController;
+
+import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.animation.PlayState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public class CyanCore extends BaseCore {
@@ -38,7 +40,7 @@ public class CyanCore extends BaseCore {
         controllers.add(new AnimationController<CyanCore>(this, this::movementAnimController));
     }
 
-    private PlayState movementAnimController(software.bernie.geckolib.core.animation.AnimationState<CyanCore> animationState) {
+    private PlayState movementAnimController(AnimationState<CyanCore> animationState) {
         if (animationState.isMoving() && this.isOnGround()) {
             this.setCurrentAnim(BaseCore.ANIM_WALK);
 
@@ -56,11 +58,11 @@ public class CyanCore extends BaseCore {
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return cache;
     }
-
-    @Override
-    protected float getActiveEyeHeight(EntityPose pose, EntityDimensions dimensions) {
-        return dimensions.height / 2;
-    }
+    //TODO: adjust eye height
+//    @Override
+//    public float getEyeHeight(EntityPose pose) {
+//        return this.getDimensions(pose).height() / 2;
+//    }
 
     @Override
     public void performBasicAttack(LivingEntity attackTarget) {

@@ -3,6 +3,7 @@ package net.daniel.relipets.cca_components.pet_management;
 import com.google.common.collect.*;
 import lombok.Getter;
 import lombok.Setter;
+import net.daniel.relipets.Relipets;
 import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.cca_components.pet_management.progression.StatsEnum;
@@ -26,6 +27,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -266,7 +268,7 @@ public class PetEntityData implements ISerializable {
         //try loading the last place they were seen at
         String entityName = petData.getPetInfo().getPetName();
         Utils.message(entityName + " was last seen at " +
-                trackerWorld.getDimensionKey().getValue().toString() +
+                trackerWorld.getDimensionEntry().getKey().get().getValue().toString() +
                 " " + tracker.getPosition().toShortString() +
                 ". Trying to recall them from there.", player);
 
@@ -327,7 +329,7 @@ public class PetEntityData implements ISerializable {
             UpgradableStats stats = petMetadata.getStatUpgrades();
             if(stats == null) return;
 
-            Multimap<EntityAttribute, EntityAttributeModifier> statModifiersMap = ArrayListMultimap.create();
+            Multimap<RegistryEntry <EntityAttribute>, EntityAttributeModifier> statModifiersMap = ArrayListMultimap.create();
 
             if(this.entityHasStat(entity.getWorld(), StatsEnum.HEALTH)){
 
@@ -338,10 +340,9 @@ public class PetEntityData implements ISerializable {
                                 UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.HEALTH);
 
                 EntityAttributeModifier healthModifier = new EntityAttributeModifier(
-                        UUID.fromString("a09b45d1-ca1a-4ff6-8f67-e7ad1415f664"),
-                        "relipets_health_modifier",
+                        Identifier.of(Relipets.MOD_ID,"relipets_health_modifier"),
                         healthBuffValue,
-                        EntityAttributeModifier.Operation.ADDITION);
+                        EntityAttributeModifier.Operation.ADD_VALUE);
 
                 statModifiersMap.put(EntityAttributes.GENERIC_MAX_HEALTH, healthModifier);
                 //==========
@@ -356,10 +357,9 @@ public class PetEntityData implements ISerializable {
                                 UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ATTACK);
 
                 EntityAttributeModifier attackModifier = new EntityAttributeModifier(
-                        UUID.fromString("30190be1-5f46-4706-8a9d-e46458edb3c1"),
-                        "relipets_attack_modifier_2",
+                        Identifier.of(Relipets.MOD_ID, "relipets_attack_modifier_2"),
                         attackBuff,
-                        EntityAttributeModifier.Operation.ADDITION);
+                        EntityAttributeModifier.Operation.ADD_VALUE);
 
                 statModifiersMap.put(EntityAttributes.GENERIC_ATTACK_DAMAGE, attackModifier);
             }
@@ -375,10 +375,10 @@ public class PetEntityData implements ISerializable {
                                 UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ARMOR);
 
                 EntityAttributeModifier armorModifier = new EntityAttributeModifier(
-                        UUID.fromString("6b01e11d-0e74-4840-b8e7-d31be3c08be1"),
-                        "relipets_armor_modifier",
+
+                        Identifier.of(Relipets.MOD_ID, "relipets_armor_modifier"),
                         armorBuff,
-                        EntityAttributeModifier.Operation.ADDITION);
+                        EntityAttributeModifier.Operation.ADD_VALUE);
 
                 statModifiersMap.put(EntityAttributes.GENERIC_ARMOR, armorModifier);
 
@@ -394,10 +394,9 @@ public class PetEntityData implements ISerializable {
                                 UpgradableStats.getEntityCategory(entity)) * stats.getStatValue(StatsEnum.ARMOR_TOUGHNESS);
 
                 EntityAttributeModifier armorToughnessModifier = new EntityAttributeModifier(
-                        UUID.fromString("d2017fa1-9d52-4afd-8dc2-ecef7a6cd220"),
-                        "relipets_armor_tough_modifier",
+                        Identifier.of(Relipets.MOD_ID, "relipets_armor_tough_modifier"),
                         armorToughnessBuff,
-                        EntityAttributeModifier.Operation.ADDITION);
+                        EntityAttributeModifier.Operation.ADD_VALUE);
 
                 statModifiersMap.put(EntityAttributes.GENERIC_ARMOR_TOUGHNESS, armorToughnessModifier);
 
