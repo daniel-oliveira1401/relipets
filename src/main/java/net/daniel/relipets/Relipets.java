@@ -66,9 +66,7 @@ public class Relipets implements ModInitializer {
 
 		RelipetsEntityRegistry.onInitialize();
 
-        S2CPayloads.onInitialize();
-
-        C2SPacketHandlers.onInitialize();
+		C2SPacketHandlers.onInitialize();
 
 		CoreCustomActivities.init();
 
@@ -103,8 +101,9 @@ public class Relipets implements ModInitializer {
 
 		});
 
+		//TODO: change this to only recall pets in the "following" mode
 		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, oldWorld, newWorld) -> {
-			Utils.log("Player went from "+ oldWorld.getDimensionKey().getValue().toString() + " to " + newWorld.getDimensionKey().getValue().toString());
+			Utils.log("Player went from "+ oldWorld.getDimensionEntry().getKey().get().getValue().toString() + " to " + newWorld.getDimensionEntry().getKey().get().getValue().toString());
 			PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
 			petOwnerComponent.getPetParty().recallFollowingPets(oldWorld, player);
 		});

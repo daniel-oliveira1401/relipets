@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 
 public class HeadPartItem extends PartItem{
 
-    public HeadPartItem(Settings settings) {
+    public HeadPartItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 

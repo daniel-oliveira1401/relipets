@@ -19,42 +19,32 @@ import java.util.Optional;
 
 public class S2CPacketHandlers {
 
-    public static final Identifier PARTY_UPDATE = new Identifier(Relipets.MOD_ID, "party_update");
-    public static final Identifier REOPEN_SPECTATOR_SCREEN = new Identifier(Relipets.MOD_ID, "reopen_spectator_screen");
+    public static final Identifier PARTY_UPDATE = Identifier.of(Relipets.MOD_ID, "party_update");
+    public static final Identifier REOPEN_SPECTATOR_SCREEN = Identifier.of(Relipets.MOD_ID, "reopen_spectator_screen");
 
     public static void onInitialize(){
 
+        ClientPlayNetworking.registerGlobalReceiver(S2CPayloads.S2CPartyUpdatePayload.ID, (payload, context) -> {
+            PetParty party = payload.petParty();
+            party.player = context.player();
 
-
-        ClientPlayNetworking.registerGlobalReceiver(PARTY_UPDATE, (client, handler, buf, sender) -> {
-
-            if(client.player == null) return;
-
-            NbtCompound nbt = buf.readNbt();
-
-            if(nbt == null) return;
-
-            PetParty party = new PetParty(client.player);
-            party.readFromNbt(nbt);
-
-            PetPartyUpdateNotifier.getInstance().emit(party);
-
+            context.client().execute(()-> {
+                PetPartyUpdateNotifier.getInstance().emit(party);
+            });
 
         });
 
-        ClientPlayNetworking.registerGlobalReceiver(REOPEN_SPECTATOR_SCREEN, (client, handler, buf, sender) -> {
+        ClientPlayNetworking.registerGlobalReceiver(S2CPayloads.S2CReopenSpectatorScreenPayload.ID, (payload, context) -> {
 
-            if(client.player == null) return;
+            if(context.player() == null) return;
 
-            int slot = buf.readInt();
-            NbtCompound petDataNbt = buf.readNbt();
-            if(petDataNbt != null){
-                PetData petData = new PetData();
-                petData.readFromNbt(petDataNbt);
-                client.execute(()-> {
-                    client.setScreen(new PetSpectatorScreen(slot, petData));
-                });
-            }
+            int slot = payload.slot();
+
+            PetData petData = payload.petData();
+
+            context.client().execute(()-> {
+                context.client().setScreen(new PetSpectatorScreen(slot, petData));
+            });
 
         });
 

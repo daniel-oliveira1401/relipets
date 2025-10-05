@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 
 public class ArmPartItem extends PartItem{
 
-    public ArmPartItem(Settings settings) {
+    public ArmPartItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 

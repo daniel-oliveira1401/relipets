@@ -38,7 +38,7 @@ public class CapsuleItem extends Item implements GeoItem {
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private final Supplier<Object> renderProvider = GeoItem.makeRenderer(this);
 
-    public CapsuleItem(Settings settings) {
+    public CapsuleItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 

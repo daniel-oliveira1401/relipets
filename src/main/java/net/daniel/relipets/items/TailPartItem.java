@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 
 public class TailPartItem extends PartItem{
 
-    public TailPartItem(Settings settings) {
+    public TailPartItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 

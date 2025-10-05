@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 
 public class TorsoPartItem extends PartItem{
 
-    public TorsoPartItem(Settings settings) {
+    public TorsoPartItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 

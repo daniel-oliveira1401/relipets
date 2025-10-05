@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 public class PartPackItem extends Item {
 
-    public PartPackItem(Settings settings) {
+    public PartPackItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 
@@ -65,7 +65,7 @@ public class PartPackItem extends Item {
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, net.minecraft.item.Item.TooltipContext context) {
         super.appendTooltip(stack, world, tooltip, context);
         tooltip.add(MutableText.of(new LiteralTextContent("Use to get a full set of parts for a random variant!"))
                 .setStyle(Style.EMPTY.withColor(0x5DE2E7)));

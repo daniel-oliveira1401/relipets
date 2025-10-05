@@ -16,6 +16,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -26,45 +27,45 @@ import java.util.UUID;
 
 public class C2SPacketHandlers {
 
-    public static final Identifier TOGGLE_SUMMON_PET = new Identifier(Relipets.MOD_ID, "toggle_summon_pet");
-    public static final Identifier CYCLE_PET_SLOT = new Identifier(Relipets.MOD_ID, "cycle_pet_slot");
-    public static final Identifier STAT_POINT_CHANGE = new Identifier(Relipets.MOD_ID, "stat_point_change");
+    public static final Identifier TOGGLE_SUMMON_PET = Identifier.of(Relipets.MOD_ID, "toggle_summon_pet");
+    public static final Identifier CYCLE_PET_SLOT = Identifier.of(Relipets.MOD_ID, "cycle_pet_slot");
+    public static final Identifier STAT_POINT_CHANGE = Identifier.of(Relipets.MOD_ID, "stat_point_change");
 
-    public static final Identifier CREATE_GROUP = new Identifier(Relipets.MOD_ID, "create_group");
-    public static final Identifier REMOVE_GROUP = new Identifier(Relipets.MOD_ID, "remove_group");
-    public static final Identifier ADD_SLOT_TO_GROUP = new Identifier(Relipets.MOD_ID, "add_slot_to_group");
-    public static final Identifier REMOVE_SLOT_FROM_GROUP = new Identifier(Relipets.MOD_ID, "remove_slot_from_group");
-    public static final Identifier CHANGE_GROUP_COLOR = new Identifier(Relipets.MOD_ID, "change_group_color");
-    public static final Identifier CHANGE_GROUP_NAME = new Identifier(Relipets.MOD_ID, "change_group_name");
-    public static final Identifier SUMMON_GROUP = new Identifier(Relipets.MOD_ID, "summon_group");
-    public static final Identifier RECALL_GROUP = new Identifier(Relipets.MOD_ID, "recall_group");
+    public static final Identifier CREATE_GROUP = Identifier.of(Relipets.MOD_ID, "create_group");
+    public static final Identifier REMOVE_GROUP = Identifier.of(Relipets.MOD_ID, "remove_group");
+    public static final Identifier ADD_SLOT_TO_GROUP = Identifier.of(Relipets.MOD_ID, "add_slot_to_group");
+    public static final Identifier REMOVE_SLOT_FROM_GROUP = Identifier.of(Relipets.MOD_ID, "remove_slot_from_group");
+    public static final Identifier CHANGE_GROUP_COLOR = Identifier.of(Relipets.MOD_ID, "change_group_color");
+    public static final Identifier CHANGE_GROUP_NAME = Identifier.of(Relipets.MOD_ID, "change_group_name");
+    public static final Identifier SUMMON_GROUP = Identifier.of(Relipets.MOD_ID, "summon_group");
+    public static final Identifier RECALL_GROUP = Identifier.of(Relipets.MOD_ID, "recall_group");
 
-    public static final Identifier REORDER_PETS = new Identifier(Relipets.MOD_ID, "reorder_pets");
-    public static final Identifier SELECT_PET = new Identifier(Relipets.MOD_ID, "select_pet");
-    public static final Identifier BOOST_PET_FLIGHT = new Identifier(Relipets.MOD_ID, "boost_pet_flight");
-    public static final Identifier RECALL_ALL_PETS = new Identifier(Relipets.MOD_ID, "recall_all_pets");
-    public static final Identifier RENAME_PET = new Identifier(Relipets.MOD_ID, "rename_pet");
-    public static final Identifier RELEASE_PET = new Identifier(Relipets.MOD_ID, "release_pet");
-    public static final Identifier RECOVER_PET = new Identifier(Relipets.MOD_ID, "recover_pet");
-    public static final Identifier CHANGE_MOVE_MODE = new Identifier(Relipets.MOD_ID, "change_move_mode");
-    public static final Identifier CYCLE_GROUP_MOVE_MODE = new Identifier(Relipets.MOD_ID, "cycle_group_move_mode");;
-    public static final Identifier OPEN_PART_MANAGEMENT_SCREEN = new Identifier(Relipets.MOD_ID, "open_part_management_screen");
-    public static final Identifier LOAD_AREA_AROUND_PET = new Identifier(Relipets.MOD_ID, "load_area_around_pet");
-    public static final Identifier UNLOAD_AREA_AROUND_PET = new Identifier(Relipets.MOD_ID, "unload_area_around_pet");
-    public static final Identifier GET_PARTY = new Identifier(Relipets.MOD_ID, "get_party");
+    public static final Identifier REORDER_PETS = Identifier.of(Relipets.MOD_ID, "reorder_pets");
+    public static final Identifier SELECT_PET = Identifier.of(Relipets.MOD_ID, "select_pet");
+    public static final Identifier BOOST_PET_FLIGHT = Identifier.of(Relipets.MOD_ID, "boost_pet_flight");
+    public static final Identifier RECALL_ALL_PETS = Identifier.of(Relipets.MOD_ID, "recall_all_pets");
+    public static final Identifier RENAME_PET = Identifier.of(Relipets.MOD_ID, "rename_pet");
+    public static final Identifier RELEASE_PET = Identifier.of(Relipets.MOD_ID, "release_pet");
+    public static final Identifier RECOVER_PET = Identifier.of(Relipets.MOD_ID, "recover_pet");
+    public static final Identifier CHANGE_MOVE_MODE = Identifier.of(Relipets.MOD_ID, "change_move_mode");
+    public static final Identifier CYCLE_GROUP_MOVE_MODE = Identifier.of(Relipets.MOD_ID, "cycle_group_move_mode");;
+    public static final Identifier OPEN_PART_MANAGEMENT_SCREEN = Identifier.of(Relipets.MOD_ID, "open_part_management_screen");
+    public static final Identifier LOAD_AREA_AROUND_PET = Identifier.of(Relipets.MOD_ID, "load_area_around_pet");
+    public static final Identifier UNLOAD_AREA_AROUND_PET = Identifier.of(Relipets.MOD_ID, "unload_area_around_pet");
+    public static final Identifier GET_PARTY = Identifier.of(Relipets.MOD_ID, "get_party");
 
     public static void onInitialize(){
 
-        ServerPlayNetworking.registerGlobalReceiver(OPEN_PART_MANAGEMENT_SCREEN, (server, player, handler, buf, responseSender) -> {
-            int selectedSlot = buf.readInt();
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.OpenPartManagementScreen.ID, (payload, context) -> {
+            int selectedSlot = payload.selectedSlot();
 
-            server.execute(()-> {
+            context.server().execute(()-> {
 
-                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
+                PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(context.player());
 
                 PetData petData = petOwnerSystem.getPetParty().getSlotManager().getSlotAt(selectedSlot).getContent();
                 if(petData != null){
-                    player.openHandledScreen(new NamedScreenHandlerFactory() {
+                    context.player().openHandledScreen(new NamedScreenHandlerFactory() {
                         @Override
                         public Text getDisplayName() {
                             return Text.of("Part Management");
@@ -83,9 +84,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(LOAD_AREA_AROUND_PET, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.LoadAreaAroundPet.ID, (payload, context) -> {
 
-            int slot = buf.readInt();
+            int slot = payload.slot();
+            ServerPlayerEntity player = context.player();
+            var server = context.server();
 
             server.execute(()-> {
 
@@ -98,8 +101,9 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(GET_PARTY, (server, player, handler, buf, responseSender) -> {
-
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.GetParty.ID, (payload, context) -> {
+            var server = context.server();
+            PlayerEntity player = context.player();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -108,10 +112,10 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(SELECT_PET, (server, player, handler, buf, responseSender) -> {
-
-            int slot = buf.readInt();
-
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.SelectPet.ID, (payload, context) -> {
+            var server = context.server();
+            PlayerEntity player = context.player();
+            int slot = payload.slot();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -122,9 +126,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(UNLOAD_AREA_AROUND_PET, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.UnloadAreaAroundPet.ID, (payload, context) -> {
 
-            int slot = buf.readInt();
+            int slot = payload.slot();
+            ServerPlayerEntity player = context.player();
+            var server = context.server();
 
             server.execute(()-> {
 
@@ -137,10 +143,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(RELEASE_PET, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.ReleasePet.ID, (payload, context) -> {
 
-            int slot = buf.readInt();
-
+            int slot = payload.slot();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -148,13 +155,16 @@ public class C2SPacketHandlers {
                 if(pet != null){
                     petOwnerSystem.getPetParty().releasePetFromParty(pet, server);
                 }
+
             });
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(CYCLE_GROUP_MOVE_MODE, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.CycleGroupMoveMode.ID, (payload, context) -> {
 
-            String stringUuid = buf.readString();
+            String stringUuid = payload.stringUuid();
+            PlayerEntity player = context.player();
+            var server = context.server();
 
             server.execute(()-> {
 
@@ -167,9 +177,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(CHANGE_MOVE_MODE, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.ChangeMoveMode.ID, (payload, context) -> {
 
-            int slot = buf.readInt();
+            int slot = payload.slot();
+            PlayerEntity player = context.player();
+            var server = context.server();
 
             server.execute(()-> {
 
@@ -185,9 +197,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(RECOVER_PET, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.RecoverPet.ID, (payload, context) -> {
 
-            int slot = buf.readInt();
+            int slot = payload.slot();
+            PlayerEntity player = context.player();
+            var server = context.server();
 
             server.execute(()-> {
 
@@ -200,10 +214,12 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(RENAME_PET, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.RenamePet.ID, (payload, context) -> {
 
-            int slot = buf.readInt();
-            String name = buf.readString();
+            int slot = payload.slot();
+            String name = payload.name();
+            PlayerEntity player = context.player();
+            var server = context.server();
 
             server.execute(()-> {
 
@@ -216,7 +232,9 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(RECALL_ALL_PETS, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.RecallAllPets.ID, (payload, context) -> {
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -228,9 +246,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(TOGGLE_SUMMON_PET, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.ToggleSummonPet.ID, (payload, context) -> {
 
-            boolean spawnAtPlayerPos = buf.readBoolean();
+            boolean spawnAtPlayerPos = payload.spawnAtPlayerPos();
+            PlayerEntity player = context.player();
+            var server = context.server();
 
             server.execute(()-> {
 
@@ -250,14 +270,15 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(STAT_POINT_CHANGE, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.StatPointChange.ID, (payload, context) -> {
+            PlayerEntity player = context.player();
+            var server = context.server();
 
-            StatsOperationEnum operation = StatsOperationEnum.valueOf(buf.readString());
-            StatsEnum stat = StatsEnum.valueOf(buf.readString());
+            StatsOperationEnum operation = StatsOperationEnum.valueOf(payload.operation());
+            StatsEnum stat = StatsEnum.valueOf(payload.stat());
             server.execute(()-> {
 
                 //read operation and stat from buf
-
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
                 PetData petData = petOwnerComponent.getPetParty().getSelectedPet();
 
@@ -266,14 +287,14 @@ public class C2SPacketHandlers {
                     petOwnerComponent.onPartyModified();
                 }
 
-
             });
 
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(CREATE_GROUP, (server, player, handler, buf, responseSender) -> {
-
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.CreateGroup.ID, (payload, context) -> {
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -289,9 +310,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(REMOVE_GROUP, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.RemoveGroup.ID, (payload, context) -> {
 
-            String stringUuid = buf.readString();
+            String stringUuid = payload.stringUuid();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -307,8 +330,10 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(SUMMON_GROUP, (server, player, handler, buf, responseSender) -> {
-            String stringUuid = buf.readString();
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.SummonGroup.ID, (payload, context) -> {
+            String stringUuid = payload.stringUuid();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
 
@@ -317,15 +342,18 @@ public class C2SPacketHandlers {
                     petOwnerComponent.getPetParty().pushChangesToClient();
                 }
 
+
             });
 
 
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(RECALL_GROUP, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.RecallGroup.ID, (payload, context) -> {
 
-            String stringUuid = buf.readString();
+            String stringUuid = payload.stringUuid();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -341,10 +369,12 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(CHANGE_GROUP_COLOR, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.ChangeGroupColor.ID, (payload, context) -> {
 
-            String stringUuid = buf.readString();
-            int color = buf.readInt();
+            String stringUuid = payload.stringUuid();
+            int color = payload.color();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -360,10 +390,12 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(CHANGE_GROUP_NAME, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.ChangeGroupName.ID, (payload, context) -> {
 
-            String stringUuid = buf.readString();
-            String name = buf.readString();
+            PlayerEntity player = context.player();
+            var server = context.server();
+            String stringUuid = payload.stringUuid();
+            String name = payload.name();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -380,10 +412,12 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(ADD_SLOT_TO_GROUP, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.AddSlotToGroup.ID, (payload, context) -> {
 
-            String stringUuid = buf.readString();
-            int slotIndex = buf.readInt();
+            String stringUuid = payload.stringUuid();
+            int slotIndex = payload.slotIndex();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -399,10 +433,12 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(REMOVE_SLOT_FROM_GROUP, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.RemoveSlotFromGroup.ID, (payload, context) -> {
 
-            String stringUuid = buf.readString();
-            int slotIndex = buf.readInt();
+            String stringUuid = payload.stringUuid();
+            int slotIndex = payload.slotIndex();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerComponent = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -418,9 +454,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(REORDER_PETS, (server, player, handler, buf, responseSender) -> {
-            int originIndex = buf.readInt();
-            int destinationIndex = buf.readInt();
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.ReorderPets.ID, (payload, context) -> {
+            int originIndex = payload.originIndex();
+            int destinationIndex = payload.destinationIndex();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 //read operation and stat from buf
@@ -433,9 +471,11 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(CYCLE_PET_SLOT, (server, player, handler, buf, responseSender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.CyclePetSlot.ID, (payload, context) -> {
 
-            int direction = buf.readInt();
+            int direction = payload.direction();
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 PetOwnerComponent petOwnerSystem = CardinalComponentsRegistry.PET_OWNER_KEY.get(player);
@@ -446,8 +486,9 @@ public class C2SPacketHandlers {
 
         });
 
-        ServerPlayNetworking.registerGlobalReceiver(BOOST_PET_FLIGHT, (server, player, handler, buf, responseSender) -> {
-
+        ServerPlayNetworking.registerGlobalReceiver(C2SPayloads.BoostPetFlight.ID, (payload, context) -> {
+            PlayerEntity player = context.player();
+            var server = context.server();
             server.execute(()-> {
 
                 if(player.getVehicle() instanceof YellowCore core){

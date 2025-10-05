@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 
 public class WingPartItem extends PartItem{
 
-    public WingPartItem(Settings settings) {
+    public WingPartItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 

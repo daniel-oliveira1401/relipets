@@ -37,7 +37,7 @@ public abstract class PartItem extends Item implements GeoItem {
     private final Supplier<Object> renderProvider = GeoItem.makeRenderer(this);
     public String TYPE = "";
 
-    public PartItem(Settings settings) {
+    public PartItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 
@@ -97,7 +97,7 @@ public abstract class PartItem extends Item implements GeoItem {
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, net.minecraft.item.Item.TooltipContext context) {
         if(stack.getOrCreateNbt().contains(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY)){
             PetPart part = PetPart.readFromNbt(stack.getOrCreateNbt().getCompound(RelipetsConstantsRegistry.PART_VARIANT_ITEM_KEY));
 

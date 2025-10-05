@@ -12,7 +12,7 @@ import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.loading.object.BakedAnimations;
 import software.bernie.geckolib.util.GeckoLibUtil;
-
+import RawAnimation;
 import java.util.HashMap;
 
 public class BasePart implements GeoEntity {

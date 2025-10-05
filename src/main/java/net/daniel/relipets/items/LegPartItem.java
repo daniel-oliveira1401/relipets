@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 
 public class LegPartItem extends PartItem{
 
-    public LegPartItem(Settings settings) {
+    public LegPartItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 

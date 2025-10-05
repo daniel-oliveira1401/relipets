@@ -11,7 +11,7 @@ import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 
 public class AddPetSlotItem extends Item {
-    public AddPetSlotItem(Settings settings) {
+    public AddPetSlotItem(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 

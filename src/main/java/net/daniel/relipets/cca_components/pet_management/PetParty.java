@@ -6,13 +6,10 @@ import net.daniel.relipets.cca_components.ISerializable;
 import net.daniel.relipets.cca_components.PetMetadataComponent;
 import net.daniel.relipets.registries.*;
 import net.daniel.relipets.utils.Utils;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.packet.s2c.common.CustomPayloadS2CPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -43,7 +40,7 @@ public class PetParty implements ISerializable {
     @Getter
     private PetGroupManager petGroupManager = new PetGroupManager();
 
-    public PlayerEntity player;
+    private PlayerEntity player;
     private static final int baseSlotCount = 10;
     int partyUpdateCooldown = 0;
     int petSummonCooldown = 0;
@@ -174,8 +171,6 @@ public class PetParty implements ISerializable {
                 }
             });
 
-            PacketByteBuf buf = PacketByteBufs.create();
-            buf.writeNbt(this.writeToNbt());
             ServerPlayNetworking.send(serverPlayer, new S2CPayloads.S2CPartyUpdatePayload(this));
         }
     }

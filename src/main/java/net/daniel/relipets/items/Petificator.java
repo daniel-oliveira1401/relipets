@@ -45,7 +45,7 @@ public class Petificator extends Item implements GeoItem {
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private final Supplier<Object> renderProvider = GeoItem.makeRenderer(this);
 
-    public Petificator(Settings settings) {
+    public Petificator(net.minecraft.item.Item.Settings settings) {
         super(settings);
     }
 
@@ -150,7 +150,7 @@ public class Petificator extends Item implements GeoItem {
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, net.minecraft.item.Item.TooltipContext context) {
         tooltip.add(getTooltipText("[Sneak + Right Click] To throw a pet capsule"));
         tooltip.add(getTooltipText("[Sneak + Scroll] While holding the Petificator to cycle through the pets"));
 

@@ -1,11 +1,12 @@
 package net.daniel.relipets.cca_components;
 
+import org.ladysnake.cca.api.v3.entity.EntityComponentFactoryRegistry;
+import org.ladysnake.cca.api.v3.entity.EntityComponentInitializer;
+
 import net.daniel.relipets.entity.cores.BaseCore;
 import net.daniel.relipets.registries.CardinalComponentsRegistry;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import org.ladysnake.cca.api.v3.entity.EntityComponentFactoryRegistry;
-import org.ladysnake.cca.api.v3.entity.EntityComponentInitializer;
 import org.ladysnake.cca.api.v3.entity.RespawnCopyStrategy;
 
 public class CCAComponentsFactory implements EntityComponentInitializer {
